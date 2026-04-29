@@ -6,6 +6,8 @@ A browser-based design space explorer for implicit metamaterials. Sweep hundreds
 
 Companion to the [field.tpms](https://mshomper.github.io/f13ld.tpms) tool.
 
+<img width="1688" height="1252" alt="F13LD sweep screenshot" src="https://github.com/user-attachments/assets/ebada980-4da3-4ec8-bde3-074d3e299112" />
+
 ---
 
 ## What It Does
