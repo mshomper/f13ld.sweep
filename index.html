@@ -3,29 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TPMS Pipeline</title>
+<title>F13LD.Sweep</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Azeret+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Azeret+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Outfit:wght@300;400;500;600;700&family=Exo+2:wght@500;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:       #080c10;
-  --surface:  #0d1318;
-  --panel:    #111a22;
-  --border:   #1c2d3a;
-  --border2:  #243545;
-  --accent:   #00e5c0;
-  --accent2:  #0099ff;
-  --accent3:  #ff6f3c;
-  --warn:     #ffc94a;
-  --text:     #d4e8f0;
-  --muted:    #4a6a7a;
-  --muted2:   #2a4050;
-  --success:  #00c97a;
-  --rank1:    #00e5c0;
-  --rank2:    #0099ff;
-  --rank3:    #9b6fff;
+  /* F13LD brand chrome — per Brand Guidelines v1.0 */
+  --bg:       #06080c;   /* brand body bg */
+  --surface:  #06080f;   /* brand header bg, sidebar */
+  --panel:    #0d140d;   /* tool panel — green-tinted */
+  --border:   #1a2a1a;   /* brand secondary border */
+  --border2:  #243a24;   /* lighter border for hover/emphasis */
+
+  /* F13LD brand accents */
+  --accent:   #c8f542;   /* Neon Accent — primary highlight (was teal) */
+  --accent2:  #1D9E75;   /* Primary Green — secondary accent (was blue) */
+  --accent3:  #a86c30;   /* warm bronze — derived from Sweep #633806, lighter for body use */
+
+  /* Semantic colors (retained — encode meaning, not branding) */
+  --warn:     #ffc94a;   /* amber warning — semantic */
+  --success:  #00c97a;   /* green success — harmonizes with brand */
+  --text:     #c0d4c0;   /* warm green-tinted body text */
+  --muted:    #5a7a5a;   /* muted green — subdued labels */
+  --muted2:   #2a3a2a;   /* deepest muted — disabled states */
+
+  /* Rank colors — three distinguishable hues for filter ranks */
+  --rank1:    #c8f542;   /* matches accent (neon) */
+  --rank2:    #1D9E75;   /* matches accent2 (primary green) */
+  --rank3:    #b598d4;   /* muted lavender — distinct third hue */
 }
 
 html, body {
@@ -37,28 +44,10 @@ html, body {
   line-height: 1.5;
 }
 
-/* noise overlay */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 999;
-  opacity: 0.4;
-}
-
-/* grid bg */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0,229,192,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,229,192,0.025) 1px, transparent 1px);
-  background-size: 32px 32px;
-  pointer-events: none;
-}
+/* Brand-compliant clean dark surface — no decorative grid or noise overlays.
+   Per F13LD Brand Guidelines: background #06080c (or #06080f), tool panels #111118.
+   Decorative texture overlays were removed in v0.2 — they conflicted with the
+   sidebar surface and clashed with the F13LD palette. */
 
 /* Layout */
 .app {
@@ -88,67 +77,60 @@ body::before {
   gap: 10px;
 }
 
-.logo-mark {
-  width: 28px;
-  height: 28px;
-  border: 1.5px solid var(--accent);
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
-  position: relative;
-  overflow: hidden;
+.fh-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
 }
 
-.logo-mark::before {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  background: conic-gradient(from 0deg, var(--accent), var(--accent2), var(--accent), var(--accent2), var(--accent));
-  border-radius: 2px;
-  animation: spin 8s linear infinite;
-  opacity: 0.7;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.logo-text {
-  font-family: 'Azeret Mono', monospace;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: 0.05em;
-}
-
-.logo-sub {
-  font-family: 'Azeret Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
+.fh-wm {
+  font-family: 'Exo 2', system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
   letter-spacing: 0.1em;
 }
 
-.topbar-right {
+.fh-div {
+  width: 0.5px;
+  height: 24px;
+  background: #1a2a1a;
+}
+
+.fh-tool {
+  font-family: 'Exo 2', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #633806;
+}
+
+.fh-right {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 8px var(--success);
-  animation: pulse 2s ease infinite;
+.fh-ver {
+  font-family: 'Exo 2', system-ui, sans-serif;
+  font-size: 10px;
+  color: #4a6a4a;
+  letter-spacing: 0.1em;
 }
 
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-.status-label {
-  font-family: 'Azeret Mono', monospace;
-  font-size: 11px;
-  color: var(--muted);
+.fh-ico {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FAEEDA;  /* Sweep tile color */
 }
+
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Sidebar */
 .sidebar {
@@ -189,8 +171,8 @@ body::before {
   min-height: 56px;
 }
 
-.recipe-card:hover { border-color: var(--accent); background: rgba(0,229,192,0.03); }
-.recipe-card.loaded { border-style: solid; border-color: rgba(0,229,192,0.25); background: rgba(0,229,192,0.04); }
+.recipe-card:hover { border-color: var(--accent); background: rgba(200,245,66,0.03); }
+.recipe-card.loaded { border-style: solid; border-color: rgba(200,245,66,0.25); background: rgba(200,245,66,0.04); }
 
 /* Form controls */
 .control-group {
@@ -336,6 +318,22 @@ select:focus { border-color: var(--accent); }
   align-items: center;
   font-size: 11px;
   color: var(--muted);
+  transition: opacity 0.15s ease;
+}
+
+.threshold-row.inactive {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.threshold-row.inactive::after {
+  content: 'no metric — filter off';
+  grid-column: 1 / -1;
+  font-family: 'Azeret Mono', monospace;
+  font-size: 9px;
+  color: var(--warn);
+  margin-top: 2px;
+  letter-spacing: 0.05em;
 }
 
 .threshold-row input[type=number] { font-size: 11px; padding: 5px 8px; }
@@ -348,7 +346,7 @@ select:focus { border-color: var(--accent); }
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   border: none;
   border-radius: 8px;
-  color: #080c10;
+  color: #06080c;
   font-family: 'Outfit', sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -473,10 +471,14 @@ select:focus { border-color: var(--accent); }
   height: 100%;
   display: block;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.3s, filter 0.3s ease;
 }
 
 #previewCanvas.visible { opacity: 1; }
+
+/* Sweep-pause state: dimmed + desaturated to communicate that animation is suspended.
+   Last-rendered frame stays on screen so the user has visual context. */
+#previewCanvas.paused { filter: grayscale(0.5) brightness(0.45); }
 
 .preview-empty {
   position: absolute;
@@ -591,7 +593,7 @@ th {
   cursor: pointer;
   user-select: none;
   transition: color 0.15s;
-  background: rgba(0,229,192,0.03);
+  background: rgba(200,245,66,0.03);
 }
 
 th:hover { color: var(--accent); }
@@ -620,9 +622,9 @@ tbody tr {
 }
 
 tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: rgba(0,229,192,0.03); }
-tbody tr.selected-row { background: rgba(0,229,192,0.07) !important; outline: 1px solid rgba(0,229,192,0.25); outline-offset: -1px; }
-tbody tr.hovered-row { background: rgba(0,229,192,0.04) !important; }
+tbody tr:hover { background: rgba(200,245,66,0.03); }
+tbody tr.selected-row { background: rgba(200,245,66,0.07) !important; outline: 1px solid rgba(200,245,66,0.25); outline-offset: -1px; }
+tbody tr.hovered-row { background: rgba(200,245,66,0.04) !important; }
 
 td {
   padding: 7px 10px;
@@ -656,9 +658,9 @@ td.td-group-end, th.td-group-end {
   border: 1px solid;
 }
 
-.rank-badge.r1 { color: var(--rank1); border-color: var(--rank1); background: rgba(0,229,192,0.08); }
-.rank-badge.r2 { color: var(--rank2); border-color: var(--rank2); background: rgba(0,153,255,0.08); }
-.rank-badge.r3 { color: var(--rank3); border-color: var(--rank3); background: rgba(155,111,255,0.08); }
+.rank-badge.r1 { color: var(--rank1); border-color: var(--rank1); background: rgba(200,245,66,0.08); }
+.rank-badge.r2 { color: var(--rank2); border-color: var(--rank2); background: rgba(29,158,117,0.08); }
+.rank-badge.r3 { color: var(--rank3); border-color: var(--rank3); background: rgba(181,152,212,0.08); }
 
 /* Mode toggle buttons */
 .mode-toggle-group {
@@ -770,8 +772,8 @@ td.td-group-end, th.td-group-end {
 .term-toggle input { display: none; }
 
 .term-toggle.checked {
-  border-color: rgba(0,229,192,0.3);
-  background: rgba(0,229,192,0.06);
+  border-color: rgba(200,245,66,0.3);
+  background: rgba(200,245,66,0.06);
   color: var(--accent);
 }
 
@@ -794,7 +796,7 @@ td.td-group-end, th.td-group-end {
 .term-check::after {
   content: '✓';
   font-size: 8px;
-  color: #080c10;
+  color: #06080c;
   display: none;
 }
 
@@ -813,18 +815,45 @@ td.td-group-end, th.td-group-end {
 
 <div class="app">
 
-  <!-- Topbar -->
+  <!-- Topbar — F13LD brand-compliant header
+       Pattern: master logo (links to f13ld.app) + wordmark · divider · tool name · | · version + tool icon
+       Per F13LD Brand Guidelines v1.0 -->
   <header class="topbar">
     <div class="logo">
-      <div class="logo-mark"></div>
-      <div>
-        <div class="logo-text">TPMS PIPELINE</div>
-        <div class="logo-sub">surface explorer · v0.1</div>
-      </div>
+      <a class="fh-brand" href="https://f13ld.app" target="_blank">
+        <!-- F13LD master mark — crossing-wave lattice, never recolored or rotated -->
+        <svg width="24" height="24" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="F13LD">
+          <defs><clipPath id="f13ldClip"><path d="M50,5 C91,5 95,9 95,50 C95,91 91,95 50,95 C9,95 5,91 5,50 C5,9 9,5 50,5Z"/></clipPath></defs>
+          <path d="M50,5 C91,5 95,9 95,50 C95,91 91,95 50,95 C9,95 5,91 5,50 C5,9 9,5 50,5Z" fill="#111e13" stroke="#1D9E75" stroke-width="5"/>
+          <g clip-path="url(#f13ldClip)" fill="none">
+            <path d="M0,50 Q25,40 50,50 Q75,60 100,50" stroke="#c8f542" stroke-width="6"/>
+            <path d="M50,0 Q40,25 50,50 Q60,75 50,100" stroke="#c8f542" stroke-width="6"/>
+            <path d="M0,31 Q25,21 50,31 Q75,41 100,31" stroke="#2c4e30" stroke-width="3"/>
+            <path d="M0,69 Q25,59 50,69 Q75,79 100,69" stroke="#2c4e30" stroke-width="3"/>
+            <path d="M31,0 Q21,25 31,50 Q41,75 31,100" stroke="#2c4e30" stroke-width="3"/>
+            <path d="M69,0 Q59,25 69,50 Q79,75 69,100" stroke="#2c4e30" stroke-width="3"/>
+            <circle cx="50" cy="50" r="7" fill="#c8f542"/>
+          </g>
+          <path d="M50,5 C91,5 95,9 95,50 C95,91 91,95 50,95 C9,95 5,91 5,50 C5,9 9,5 50,5Z" fill="none" stroke="#1D9E75" stroke-width="5"/>
+        </svg>
+        <div class="fh-wm"><span style="color:#1D9E75">F</span><span style="color:#c8f542">1</span><span style="color:#c8f542">3</span><span style="color:#1D9E75">LD</span></div>
+      </a>
+      <div class="fh-div"></div>
+      <div class="fh-tool">SWEEP</div>
     </div>
-    <div class="topbar-right">
-      <div class="status-dot"></div>
-      <div class="status-label">engine running</div>
+    <div class="fh-right">
+      <span class="fh-ver">v0.8</span>
+      <!-- Sweep tool icon — fan of lines emanating from a pivot, per brand guidelines -->
+      <div class="fh-ico" title="F13LD.Sweep — parameter-space exploration">
+        <svg width="18" height="18" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <line x1="7" y1="34" x2="18" y2="4"  stroke="#633806" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="7" y1="34" x2="26" y2="6"  stroke="#633806" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="7" y1="34" x2="33" y2="10" stroke="#633806" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="7" y1="34" x2="37" y2="18" stroke="#633806" stroke-width="1.8" stroke-linecap="round" opacity=".5"/>
+          <line x1="7" y1="34" x2="37" y2="28" stroke="#633806" stroke-width="1.8" stroke-linecap="round" opacity=".25"/>
+          <circle cx="7" cy="34" r="3" fill="#633806"/>
+        </svg>
+      </div>
     </div>
   </header>
 
@@ -899,17 +928,17 @@ td.td-group-end, th.td-group-end {
       <div style="font-family:'Azeret Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px">% of nominal &nbsp;·&nbsp; <span style="color:var(--muted2)">min → max</span></div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
         <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-          <span style="font-size:10px;color:#22d3ee;font-family:'Azeret Mono',monospace">X</span>
+          <span style="font-size:10px;color:#5fb5b5;font-family:'Azeret Mono',monospace">X</span>
           <input type="number" id="scaleXlo" value="50"  step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
           <input type="number" id="scaleXhi" value="200" step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-          <span style="font-size:10px;color:#e879f9;font-family:'Azeret Mono',monospace">Y</span>
+          <span style="font-size:10px;color:#c794d4;font-family:'Azeret Mono',monospace">Y</span>
           <input type="number" id="scaleYlo" value="50"  step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
           <input type="number" id="scaleYhi" value="200" step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-          <span style="font-size:10px;color:#facc15;font-family:'Azeret Mono',monospace">Z</span>
+          <span style="font-size:10px;color:#d4b04a;font-family:'Azeret Mono',monospace">Z</span>
           <input type="number" id="scaleZlo" value="50"  step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
           <input type="number" id="scaleZhi" value="200" step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
         </div>
@@ -922,6 +951,13 @@ td.td-group-end, th.td-group-end {
         <span style="font-size:11px;color:var(--muted);white-space:nowrap">Samples</span>
         <input type="range" id="samplesSlider" min="10" max="1000" value="200" step="10" style="flex:1">
         <span id="samplesVal" style="font-family:'Azeret Mono',monospace;font-size:11px;color:var(--accent);min-width:28px;text-align:right">200</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">Sampling</span>
+        <select id="samplingMethod" style="flex:1;padding:3px 6px;font-size:11px" title="Sobol gives more uniform coverage of parameter space at small N. Uniform random is fully stochastic.">
+          <option value="sobol">Sobol (low-discrepancy)</option>
+          <option value="uniform">Uniform random</option>
+        </select>
       </div>
     </div>
 
@@ -983,7 +1019,7 @@ td.td-group-end, th.td-group-end {
       </div>
       <div class="rank-body">
         <div class="rank-row">
-          <select id="r2metric">
+          <select id="r2metric" onchange="updateRankActiveState()">
             <option value="none">— disabled —</option>
             <option value="anisotropy">Anisotropy ratio</option>
             <option value="Ex_GPa">Stiffness — Ex</option>
@@ -1019,7 +1055,7 @@ td.td-group-end, th.td-group-end {
             <button data-rank="2" data-dir="min" onclick="setDir(2,'min',this)">MIN</button>
           </div>
         </div>
-        <div class="threshold-row">
+        <div class="threshold-row" id="r2thresholdRow">
           <span>Keep top %</span>
           <input type="number" id="r2keep" placeholder="default 50%" step="1" min="1" max="100">
         </div>
@@ -1035,7 +1071,7 @@ td.td-group-end, th.td-group-end {
       </div>
       <div class="rank-body">
         <div class="rank-row">
-          <select id="r3metric">
+          <select id="r3metric" onchange="updateRankActiveState()">
             <option value="none">— disabled —</option>
             <option value="anisotropy">Anisotropy ratio</option>
             <option value="Ex_GPa">Stiffness — Ex</option>
@@ -1071,7 +1107,7 @@ td.td-group-end, th.td-group-end {
             <button data-rank="3" data-dir="min" onclick="setDir(3,'min',this)">MIN</button>
           </div>
         </div>
-        <div class="threshold-row">
+        <div class="threshold-row" id="r3thresholdRow">
           <span>Keep top %</span>
           <input type="number" id="r3keep" placeholder="default 25%" step="1" min="1" max="100">
         </div>
@@ -1260,7 +1296,7 @@ td.td-group-end, th.td-group-end {
           <div style="font-family:'Azeret Mono',monospace;font-size:10px;color:var(--muted)" id="selectedLabel">click a row to select</div>
           <button id="validateBtn" onclick="exportResults()"
             style="font-family:'Azeret Mono',monospace;font-size:11px;padding:4px 12px;
-            border:1px solid rgba(0,153,255,0.4);border-radius:20px;background:transparent;
+            border:1px solid rgba(29,158,117,0.4);border-radius:20px;background:transparent;
             color:var(--accent2);cursor:pointer;transition:all 0.2s;white-space:nowrap">
             ↓ Export Results
           </button>
@@ -1286,7 +1322,6 @@ td.td-group-end, th.td-group-end {
 
 </div>
 
-<script src="solver.js"></script>
 <script>
 // ─── State ───────────────────────────────────────────────────────────────────
 let baseRecipe = null;
@@ -1296,13 +1331,6 @@ let currentFiltered = [];
 let sortState = { col: null, dir: 'desc' };
 let rankMode = 'ideal';   // 'ideal' | 'outlier'
 let colorMode = 'rank';   // 'rank'  | 'terms'
-
-// detectPISurfaceType — used by generateSample to look up the shift library
-function detectPISurfaceType(recipe) {
-  if (!recipe) return null;
-  const preset = recipe.surface?.preset || recipe.meta?.preset;
-  return (preset && PI_SHIFT_LIBRARY[preset]) ? preset : null;
-}
 
 function setRankMode(mode, btn) {
   rankMode = mode;
@@ -1417,7 +1445,7 @@ function getPointColor(d, fr) {
     const cluster = clusterAssignments.get(d.id) ?? 0;
     return CLUSTER_COLORS[cluster % CLUSTER_COLORS.length];
   }
-  return fr === 1 ? '#00e5c0' : fr === 2 ? '#0099ff' : fr === 3 ? '#9b6fff' : '#4a7a9b';
+  return fr === 1 ? '#c8f542' : fr === 2 ? '#1D9E75' : fr === 3 ? '#b598d4' : '#5a7a5a';
 }
 
 // ─── Final ranking (called after filters and on mode switch) ──────────────────
@@ -1514,76 +1542,16 @@ let currentMaterial = null; // null = agnostic
 // All metrics are always computed and exported regardless.
 // r1/r2/r3: { metric, dir } — null means leave as-is
 const DOMAIN_CONFIG = {
-  general:    { sigma_ref: 1,   show: ['anisotropy','Ex_GPa','Ey_GPa','Ez_GPa','stiffness_density','aniso_efficiency','axial_dominance','ortho_contrast','load_path_eff','stiff_axis','connect_idx','U_strain','microstrain_avg','pore_size','throat_size','perc_idx','volume_fraction'], r1:null, r2:null, r3:null },
+  general:    { sigma_ref: 1,   show: ['anisotropy','Ex_GPa','Ey_GPa','Ez_GPa','stiffness_density','aniso_efficiency','axial_dominance','ortho_contrast','load_path_eff','stiff_axis','connect_idx','keff_x','keff_y','keff_z','thermal_anisotropy','k_density','U_strain','microstrain_x','microstrain_y','microstrain_z','microstrain_avg','pore_size','throat_size','perc_idx','volume_fraction'], r1:null, r2:null, r3:null },
   biomedical: { sigma_ref: 2,   show: ['connect_idx','Ex_GPa','Ey_GPa','Ez_GPa','anisotropy','stiffness_density','U_strain','microstrain_avg','pore_size','throat_size','perc_idx','volume_fraction'], r1:{metric:'microstrain_avg',dir:'min'}, r2:{metric:'pore_size',dir:'max'}, r3:{metric:'throat_size',dir:'max'} },
   aerospace:  { sigma_ref: 100, show: ['anisotropy','stiffness_density','load_path_eff','Ex_GPa','Ey_GPa','Ez_GPa','axial_dominance','aniso_efficiency','stiff_axis','connect_idx','volume_fraction'], r1:{metric:'load_path_eff',dir:'max'}, r2:{metric:'anisotropy',dir:'max'}, r3:{metric:'volume_fraction',dir:'min'} },
   oilgas:     { sigma_ref: 50,  show: ['connect_idx','anisotropy','stiffness_density','Ex_GPa','Ey_GPa','Ez_GPa','ortho_contrast','pore_size','throat_size','perc_idx','volume_fraction'], r1:{metric:'connect_idx',dir:'max'}, r2:{metric:'anisotropy',dir:'min'}, r3:{metric:'stiffness_density',dir:'max'} },
-  automotive: { sigma_ref: 50,  show: ['ortho_contrast','stiffness_density','axial_dominance','aniso_efficiency','Ex_GPa','Ey_GPa','Ez_GPa','connect_idx','U_strain','microstrain_avg','volume_fraction'], r1:{metric:'ortho_contrast',dir:'max'}, r2:{metric:'stiffness_density',dir:'max'}, r3:{metric:'volume_fraction',dir:'min'} },
+  automotive: { sigma_ref: 50,  show: ['ortho_contrast','stiffness_density','axial_dominance','aniso_efficiency','Ex_GPa','Ey_GPa','Ez_GPa','connect_idx','U_strain','microstrain_x','microstrain_y','microstrain_z','volume_fraction'], r1:{metric:'ortho_contrast',dir:'max'}, r2:{metric:'stiffness_density',dir:'max'}, r3:{metric:'volume_fraction',dir:'min'} },
   thermal:    { sigma_ref: null, show: ['keff_x','keff_y','keff_z','thermal_anisotropy','k_density','connect_idx','pore_size','throat_size','perc_idx','volume_fraction','surface_complexity'], r1:{metric:'k_density',dir:'max'}, r2:{metric:'thermal_anisotropy',dir:'max'}, r3:{metric:'connect_idx',dir:'max'} },
 };
 
 // Currently active visible set — starts as general (all)
 let activeDomainShow = DOMAIN_CONFIG.general.show;
-
-// Rebuild filter dropdowns to show only metrics relevant to current domain
-function rebuildFilterDropdowns(domain) {
-  const cfg = DOMAIN_CONFIG[domain] || DOMAIN_CONFIG.general;
-  const metricsToShow = cfg.show || [];
-  
-  // Metric display names
-  const metricNames = {
-    anisotropy: 'Anisotropy ratio',
-    Ex_GPa: 'Stiffness — Ex',
-    Ey_GPa: 'Stiffness — Ey',
-    Ez_GPa: 'Stiffness — Ez',
-    stiffness_density: 'Stiffness / Density',
-    aniso_efficiency: 'Anisotropy efficiency',
-    axial_dominance: 'Axial dominance',
-    ortho_contrast: 'Orthotropic contrast',
-    load_path_eff: 'Load path efficiency (λ)',
-    stiff_axis: 'Stiff axis',
-    connect_idx: 'Connectivity index (κ)',
-    keff_x: 'Thermal cond. — kx',
-    keff_y: 'Thermal cond. — ky',
-    keff_z: 'Thermal cond. — kz',
-    thermal_anisotropy: 'Thermal anisotropy (kα)',
-    k_density: 'Thermal / Density (k/ρ)',
-    U_strain: 'Strain energy density (U)',
-    microstrain_x: 'Microstrain X (με)',
-    microstrain_y: 'Microstrain Y (με)',
-    microstrain_z: 'Microstrain Z (με)',
-    microstrain_avg: 'Avg microstrain (με̄)',
-    pore_size: 'Mean pore size (φ)',
-    throat_size: 'Min throat diameter (φt)',
-    perc_idx: 'Void percolation (perc)',
-    surface_complexity: 'Surface complexity',
-    volume_fraction: 'Volume fraction'
-  };
-  
-  // Build options HTML
-  const optionsHTML = metricsToShow.map(key => 
-    `<option value="${key}">${metricNames[key] || key}</option>`
-  ).join('');
-  
-  // Get current selections
-  const r1Current = document.getElementById('r1metric')?.value;
-  const r2Current = document.getElementById('r2metric')?.value;
-  const r3Current = document.getElementById('r3metric')?.value;
-  
-  // Update all three dropdowns
-  const r1 = document.getElementById('r1metric');
-  const r2 = document.getElementById('r2metric');
-  const r3 = document.getElementById('r3metric');
-  
-  if (r1) r1.innerHTML = optionsHTML;
-  if (r2) r2.innerHTML = optionsHTML;
-  if (r3) r3.innerHTML = optionsHTML;
-  
-  // Restore selections if they're still valid in this domain
-  if (r1 && metricsToShow.includes(r1Current)) r1.value = r1Current;
-  if (r2 && metricsToShow.includes(r2Current)) r2.value = r2Current;
-  if (r3 && metricsToShow.includes(r3Current)) r3.value = r3Current;
-}
 
 function onDomainChange() {
   const domain = document.getElementById('domainSel').value;
@@ -1616,9 +1584,6 @@ function onDomainChange() {
     updateMaterialProps();
   }
 
-  // Rebuild filter dropdowns to show only domain-relevant metrics
-  rebuildFilterDropdowns(domain);
-
   // Rank filter defaults
   if (cfg.r1) {
     const s = document.getElementById('r1metric');
@@ -1633,11 +1598,27 @@ function onDomainChange() {
     if (s) { s.value = cfg.r3.metric; setDirBtn(3, cfg.r3.dir); }
   }
 
+  // Update rank filter inactive states (visual gray-out when metric=none)
+  updateRankActiveState();
+
   // Update metric key to reflect visible set
   renderMetricKey();
 
   // Re-render table if we have results
   if (currentFiltered.length > 0) renderTable(currentFiltered);
+}
+
+// Toggle the .inactive class on rank threshold-rows when their metric is "none".
+// This is a UX cue — the underlying applyRankFilter() function already correctly
+// short-circuits when metric === 'none'; this just makes that state visible.
+function updateRankActiveState() {
+  [2, 3].forEach(rank => {
+    const sel = document.getElementById('r' + rank + 'metric');
+    const row = document.getElementById('r' + rank + 'thresholdRow');
+    if (!sel || !row) return;
+    const inactive = !sel.value || sel.value === 'none';
+    row.classList.toggle('inactive', inactive);
+  });
 }
 
 function setDirBtn(rank, dir) {
@@ -1726,23 +1707,21 @@ function getVoxelToUm() {
   const mm = (el && el.value) ? parseFloat(el.value) : 2.0;
   return mm * 1000 / 32; // µm per voxel at N=32 — analyzePores recovers mm internally
 }
-
-
-
-// resolveRawPreset — expands surface presets into explicit term arrays.
-// Defined here (main thread) to guarantee availability regardless of solver.js load status.
-// An identical copy lives in solver.js for worker-context use.
+// Fischer-Koch, Lidinoid, Split-P, F-RD use double-frequency terms not in the
+// standard factor model. We approximate them with their closest standard-term
+// equivalents so the sweep engine can vary coefficients and frequencies.
+// For rendering, the GLSL path uses the exact formula anyway.
 function resolveRawPreset(preset) {
   const mk = (factors, coef) => ({ on: true, coef, factors });
   const f  = (trig, fx=1, fy=1, fz=1) => ({ trig, fx, fy, fz });
   switch (preset) {
-    case 'fks':
+    case 'fks': // Fischer-Koch S: cos(2x)sin(y)cos(z) + cyclic
       return [
         mk([f('cos(x)',2,1,1), f('sin(y)'), f('cos(z)')], 1),
         mk([f('cos(y)',1,2,1), f('sin(z)'), f('cos(x)')], 1),
         mk([f('cos(z)',1,1,2), f('sin(x)'), f('cos(y)')], 1),
       ];
-    case 'lidinoid':
+    case 'lidinoid': // Lidinoid: 1.1*(sin2x cosy sinz + ...) - 0.2*(cos2x cos2y + ...) - 0.4*(cos2x + ...)
       return [
         mk([f('sin(x)',2,1,1), f('cos(y)'), f('sin(z)')],  1.1),
         mk([f('sin(y)',1,2,1), f('cos(z)'), f('sin(x)')],  1.1),
@@ -1754,13 +1733,13 @@ function resolveRawPreset(preset) {
         mk([f('cos(y)',1,2,1)],                            -0.4),
         mk([f('cos(z)',1,1,2)],                            -0.4),
       ];
-    case 'splitP':
+    case 'splitP': // Split-P: sin(x)sin(y)cos(z) + cyclic - 0.3
       return [
         mk([f('sin(x)'), f('sin(y)'), f('cos(z)')], 1),
         mk([f('sin(y)'), f('sin(z)'), f('cos(x)')], 1),
         mk([f('sin(z)'), f('sin(x)'), f('cos(y)')], 1),
       ];
-    case 'frd':
+    case 'frd': // F-RD approximation via dominant terms
       return [
         mk([f('sin(x)',2,1,1), f('cos(y)'), f('sin(z)')],  1),
         mk([f('sin(y)',1,2,1), f('cos(z)'), f('sin(x)')],  1),
@@ -1768,42 +1747,6 @@ function resolveRawPreset(preset) {
         mk([f('cos(x)',2,1,1), f('cos(y)',1,2,1)],         -1),
         mk([f('cos(y)',1,2,1), f('cos(z)',1,1,2)],         -1),
         mk([f('cos(z)',1,1,2), f('cos(x)',2,1,1)],         -1),
-      ];
-    case 'gyroidHarmonic':
-      return [
-        mk([f('sin(x)'), f('cos(y)')],                     1),
-        mk([f('sin(y)'), f('cos(z)')],                     1),
-        mk([f('sin(z)'), f('cos(x)')],                     1),
-        mk([f('sin(x)',2,1,1), f('cos(y)',1,2,1)],         0.3),
-        mk([f('sin(y)',1,2,1), f('cos(z)',1,1,2)],         0.3),
-        mk([f('sin(z)',1,1,2), f('cos(x)',2,1,1)],         0.3),
-      ];
-    case 'primitiveC':
-      return [
-        mk([f('cos(x)')],                                  2),
-        mk([f('cos(y)')],                                  2),
-        mk([f('cos(z)')],                                  2),
-        mk([f('cos(x)',2,1,1)],                           -1),
-        mk([f('cos(y)',1,2,1)],                           -1),
-        mk([f('cos(z)',1,1,2)],                           -1),
-      ];
-    case 'octo':
-      return [
-        mk([f('cos(x)')],                                  1),
-        mk([f('cos(y)')],                                  1),
-        mk([f('cos(z)')],                                  1),
-        mk([f('cos(x)',2,1,1), f('cos(y)',1,2,1)],        -0.5),
-        mk([f('cos(y)',1,2,1), f('cos(z)',1,1,2)],        -0.5),
-        mk([f('cos(z)',1,1,2), f('cos(x)',2,1,1)],        -0.5),
-      ];
-    case 'pHarmonic':
-      return [
-        mk([f('cos(x)')],                                  1),
-        mk([f('cos(y)')],                                  1),
-        mk([f('cos(z)')],                                  1),
-        mk([f('cos(x)',2,1,1)],                            0.25),
-        mk([f('cos(y)',1,2,1)],                            0.25),
-        mk([f('cos(z)',1,1,2)],                            0.25),
       ];
     default:
       return null;
@@ -1838,7 +1781,6 @@ function loadFile(file) {
       document.getElementById('recipeLoaded').style.display = 'block';
       document.getElementById('recipeCard').classList.add('loaded');
       document.getElementById('runBtn').disabled = false;
-      buildTermToggles(baseRecipe.surface.terms);
       updateScalePreview();
       // Show preview of the base recipe immediately on load
       const baseDesign = {
@@ -1851,22 +1793,7 @@ function loadFile(file) {
       };
       showPreview(baseDesign);
       log('info', `Loaded: ${file.name}`);
-      
-      // Display mode-specific info
-      const mode = baseRecipe.geometry?.mode || 'solid';
-      let modeInfo = '';
-      if (mode === 'pi-tpms') {
-        const pipeR = baseRecipe.geometry?.pipe_radius || 0.1;
-        const shift = baseRecipe.geometry?.phase_shift || {x:0, y:0, z:0};
-        modeInfo = `PI-TPMS · pipeR ${pipeR.toFixed(3)} · shift (${shift.x},${shift.y},${shift.z})`;
-      } else if (mode === 'shell') {
-        const wallT = baseRecipe.geometry?.wall_thickness || 0.3;
-        modeInfo = `Shell · wall ${wallT.toFixed(3)} · offset ${baseRecipe.geometry.offset}`;
-      } else {
-        modeInfo = `Solid · offset ${baseRecipe.geometry.offset}`;
-      }
-      
-      log('accent', `Preset: ${baseRecipe.meta?.preset || 'custom'} · ${baseRecipe.surface.terms.length} terms · ${modeInfo} · scale ${baseRecipe.geometry.cell_scale || 1.0}`);
+      log('accent', `Preset: ${baseRecipe.meta?.preset} · ${baseRecipe.surface.terms.length} terms · offset ${baseRecipe.geometry.offset} · nominal scale ${baseRecipe.geometry.cell_scale}`);
     } catch(err) {
       log('warn', `Failed to parse JSON: ${err.message}`);
       log('warn', 'Check file was exported directly from tpms-builder');
@@ -1874,10 +1801,6 @@ function loadFile(file) {
   };
   reader.readAsText(file);
 }
-
-// ─── Term toggles (retained for compatibility, UI removed) ───────────────────
-function buildTermToggles(terms) { /* no-op — term grid removed */ }
-function termLabel(term) { return ''; }
 
 // ─── Direction toggles ────────────────────────────────────────────────────────
 function setDir(rank, dir, btn) {
@@ -1911,20 +1834,1882 @@ function updateScalePreview() {
   const zlo = +(nom * get('scaleZlo') / 100).toFixed(3);
   const zhi = +(nom * get('scaleZhi') / 100).toFixed(3);
   document.getElementById('scaleRangePreview').innerHTML =
-    `<span style="color:#22d3ee">X</span> ${xlo} → ${xhi} &nbsp;` +
-    `<span style="color:#e879f9">Y</span> ${ylo} → ${yhi} &nbsp;` +
-    `<span style="color:#facc15">Z</span> ${zlo} → ${zhi}`;
+    `<span style="color:#5fb5b5">X</span> ${xlo} → ${xhi} &nbsp;` +
+    `<span style="color:#c794d4">Y</span> ${ylo} → ${yhi} &nbsp;` +
+    `<span style="color:#d4b04a">Z</span> ${zlo} → ${zhi}`;
+}
+
+// ─── Homogenization — FFT-CG solver (N=24³, 3 normal load cases) ─────────────
+
+function evaluateTpms(terms, x, y, z) {
+  let result = 0;
+  for (const term of terms) {
+    if (!term.on) continue;
+    let product = term.coef;
+    for (const f of term.factors) {
+      // Apply trig to the correct axis only
+      const trig = f.trig;
+      if      (trig === 'sin(x)') product *= Math.sin(f.fx * x);
+      else if (trig === 'cos(x)') product *= Math.cos(f.fx * x);
+      else if (trig === 'sin(y)') product *= Math.sin(f.fy * y);
+      else if (trig === 'cos(y)') product *= Math.cos(f.fy * y);
+      else if (trig === 'sin(z)') product *= Math.sin(f.fz * z);
+      else if (trig === 'cos(z)') product *= Math.cos(f.fz * z);
+    }
+    result += product;
+  }
+  return result;
+}
+
+// ── Isotropic 6x6 Voigt stiffness tensor (flat array, row-major) ─────────────
+// Voigt order: xx yy zz yz xz xy
+function isoC(E, nu) {
+  const lam = E * nu / ((1 + nu) * (1 - 2 * nu));
+  const mu  = E / (2 * (1 + nu));
+  const C = new Float64Array(36);
+  // normal-normal block
+  C[0]=C[7]=C[14] = lam + 2*mu;
+  C[1]=C[2]=C[6]=C[8]=C[12]=C[13] = lam;
+  // shear block
+  C[21]=C[28]=C[35] = mu;
+  return C;
+}
+
+// ── Build voxel solid mask, shape N³ (Float32, 0 or 1) ───────────────────────
+function buildVoxels(terms, offset, N, isShell, wt, nWeights, piMode, pipeR, phaseShift) {
+  const L    = Math.PI;
+  const step = (2 * L) / N;
+  const N3   = N * N * N;
+
+  // Build full field array first (single pass)
+  const V = new Float32Array(N3);
+  for (let i = 0; i < N; i++) {
+    const x = -L + (i + 0.5) * step;
+    for (let j = 0; j < N; j++) {
+      const y = -L + (j + 0.5) * step;
+      for (let k = 0; k < N; k++) {
+        const z = -L + (k + 0.5) * step;
+        V[i*N*N + j*N + k] = evaluateTpms(terms, x, y, z);
+      }
+    }
+  }
+
+  const solid = new Float32Array(N3);
+
+  if (piMode) {
+    // PI-TPMS: max(|φ(p)|, |φ(p+δ)|) < pipeR
+    // δ in radians — period-invariant (fraction × 2π)
+    const TWO_PI = 2 * Math.PI;
+    const dx = (phaseShift?.x || 0) * TWO_PI;
+    const dy = (phaseShift?.y || 0) * TWO_PI;
+    const dz = (phaseShift?.z || 0) * TWO_PI;
+    const pr = pipeR || 0.1;
+    for (let i = 0; i < N; i++) {
+      const x = -L + (i + 0.5) * step;
+      for (let j = 0; j < N; j++) {
+        const y = -L + (j + 0.5) * step;
+        for (let k = 0; k < N; k++) {
+          const vA = V[i*N*N + j*N + k];
+          const vB = evaluateTpms(terms, x + dx, y + dy, -L + (k+0.5)*step + dz);
+          solid[i*N*N + j*N + k] = Math.max(Math.abs(vA), Math.abs(vB)) < pr ? 1 : 0;
+        }
+      }
+    }
+  } else if (isShell && nWeights) {
+    const wx = nWeights.wx, wy = nWeights.wy, wz = nWeights.wz;
+    for (let i = 0; i < N; i++) {
+      const ip = (i+1) % N, im = (i+N-1) % N;
+      for (let j = 0; j < N; j++) {
+        const jp = (j+1) % N, jm = (j+N-1) % N;
+        for (let k = 0; k < N; k++) {
+          const kp = (k+1) % N, km = (k+N-1) % N;
+          const gx = (V[ip*N*N+j*N+k] - V[im*N*N+j*N+k]) / (2*step);
+          const gy = (V[i*N*N+jp*N+k] - V[i*N*N+jm*N+k]) / (2*step);
+          const gz = (V[i*N*N+j*N+kp] - V[i*N*N+j*N+km]) / (2*step);
+          const gLen = Math.sqrt(gx*gx + gy*gy + gz*gz) || 1;
+          const localWt = wt * (wx*Math.abs(gx/gLen) + wy*Math.abs(gy/gLen) + wz*Math.abs(gz/gLen));
+          const idx = i*N*N + j*N + k;
+          solid[idx] = Math.abs(V[idx] - offset) < localWt ? 1 : 0;
+        }
+      }
+    }
+  } else {
+    for (let idx = 0; idx < N3; idx++) {
+      solid[idx] = isShell
+        ? (Math.abs(V[idx] - offset) < wt ? 1 : 0)
+        : (V[idx] - offset < 0 ? 1 : 0);
+    }
+  }
+
+  return solid;
+}
+
+// ── Real 3D FFT (Cooley-Tukey, in-place, power-of-2 only) ────────────────────
+// FFT grid N=16 for TPMS / N=32 for PI-TPMS: power-of-2 for radix-2 FFT,
+// sufficient accuracy for sweep ranking. PI-TPMS needs higher resolution
+// because of its r² volume-fraction scaling at small pipe radii.
+
+// Cooley-Tukey FFT — operates on interleaved [re, im, re, im, ...] Float64Array
+// n must be a power of 2, x.length = 2*n
+function fft1d(x, inverse) {
+  const n = x.length >> 1;
+  // bit-reverse permutation
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) {
+      let t = x[2*i]; x[2*i] = x[2*j]; x[2*j] = t;
+      t = x[2*i+1]; x[2*i+1] = x[2*j+1]; x[2*j+1] = t;
+    }
+  }
+  const sign = inverse ? 1 : -1;
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = sign * 2 * Math.PI / len;
+    const wRe = Math.cos(ang), wIm = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let curRe = 1, curIm = 0;
+      for (let j = 0; j < (len >> 1); j++) {
+        const uRe = x[2*(i+j)],         uIm = x[2*(i+j)+1];
+        const vRe = x[2*(i+j+len/2)],   vIm = x[2*(i+j+len/2)+1];
+        const tvRe = curRe*vRe - curIm*vIm;
+        const tvIm = curRe*vIm + curIm*vRe;
+        x[2*(i+j)]         = uRe + tvRe;
+        x[2*(i+j)+1]       = uIm + tvIm;
+        x[2*(i+j+len/2)]   = uRe - tvRe;
+        x[2*(i+j+len/2)+1] = uIm - tvIm;
+        const newRe = curRe*wRe - curIm*wIm;
+        curIm = curRe*wIm + curIm*wRe;
+        curRe = newRe;
+      }
+    }
+  }
+  if (inverse) for (let i = 0; i < x.length; i++) x[i] /= n;
+}
+
+// 3D FFT on a flat N³ complex array (interleaved re/im), N must be power of 2.
+// Optional pre-allocated lineBuf (Float64Array of length 2*N) avoids per-call
+// allocation — pass one in from the solver workspace for hot-path use.
+function fft3d(data, N, inverse, lineBuf) {
+  const buf = lineBuf || new Float64Array(2 * N);
+  // along X
+  for (let j = 0; j < N; j++) for (let k = 0; k < N; k++) {
+    for (let i = 0; i < N; i++) { buf[2*i] = data[2*(i*N*N+j*N+k)]; buf[2*i+1] = data[2*(i*N*N+j*N+k)+1]; }
+    fft1d(buf, inverse);
+    for (let i = 0; i < N; i++) { data[2*(i*N*N+j*N+k)] = buf[2*i]; data[2*(i*N*N+j*N+k)+1] = buf[2*i+1]; }
+  }
+  // along Y
+  for (let i = 0; i < N; i++) for (let k = 0; k < N; k++) {
+    for (let j = 0; j < N; j++) { buf[2*j] = data[2*(i*N*N+j*N+k)]; buf[2*j+1] = data[2*(i*N*N+j*N+k)+1]; }
+    fft1d(buf, inverse);
+    for (let j = 0; j < N; j++) { data[2*(i*N*N+j*N+k)] = buf[2*j]; data[2*(i*N*N+j*N+k)+1] = buf[2*j+1]; }
+  }
+  // along Z
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    for (let k = 0; k < N; k++) { buf[2*k] = data[2*(i*N*N+j*N+k)]; buf[2*k+1] = data[2*(i*N*N+j*N+k)+1]; }
+    fft1d(buf, inverse);
+    for (let k = 0; k < N; k++) { data[2*(i*N*N+j*N+k)] = buf[2*k]; data[2*(i*N*N+j*N+k)+1] = buf[2*k+1]; }
+  }
+}
+
+// ── Precompute Green operator Gamma for N³ grid ───────────────────────────────
+// Returns flat array of shape N³×6×6 (only normal 3×3 block needed for 3 load cases)
+// We store just the 3×3 normal-normal block: indices [xx,yy,zz] × [xx,yy,zz]
+function buildGamma(N, mu0, lam0) {
+  const N3 = N * N * N;
+  // Gamma_nn[p][q] for p,q in {0=xx,1=yy,2=zz}: shape N3, real
+  const Gamma = [
+    [new Float64Array(N3), new Float64Array(N3), new Float64Array(N3)],
+    [new Float64Array(N3), new Float64Array(N3), new Float64Array(N3)],
+    [new Float64Array(N3), new Float64Array(N3), new Float64Array(N3)],
+  ];
+  const a =  1.0 / mu0;
+  const b = -(lam0 + mu0) / (mu0 * (lam0 + 2 * mu0));
+  for (let i = 0; i < N; i++) {
+    const ki = i <= N/2 ? i : i - N;
+    for (let j = 0; j < N; j++) {
+      const kj = j <= N/2 ? j : j - N;
+      for (let k = 0; k < N; k++) {
+        const kk = k <= N/2 ? k : k - N;
+        const ksq = ki*ki + kj*kj + kk*kk;
+        const idx = i*N*N + j*N + k;
+        if (ksq === 0) { /* DC: leave zero */ continue; }
+        const rk = 1.0 / Math.sqrt(ksq);
+        const n = [ki*rk, kj*rk, kk*rk];
+        // G_pq = a*delta_pq + b*n_p*n_q
+        // Gamma_pq = -0.25*(G_pp*n_q*n_q + G_qq*n_p*n_p + G_pq*n_p*n_q + G_qp*n_q*n_p)
+        // For normal Voigt indices 0=xx,1=yy,2=zz → spatial 0,1,2
+        for (let p = 0; p < 3; p++) {
+          for (let q = 0; q < 3; q++) {
+            const Gpq = a*(p===q?1:0) + b*n[p]*n[q];
+            const Gpp = a + b*n[p]*n[p];
+            const Gqq = a + b*n[q]*n[q];
+            Gamma[p][q][idx] = -0.25*(
+              Gpp*n[q]*n[q] + Gqq*n[p]*n[p] + Gpq*n[p]*n[q] + Gpq*n[q]*n[p]
+            );
+          }
+        }
+      }
+    }
+  }
+  return Gamma;
+}
+
+// ─── Solver workspace — pre-allocated buffers, reused across CG iterations ────
+// Keyed on N. Built lazily on first solve, persists across designs in a sweep.
+// Killing this allocation churn is the main perf win in this refactor.
+//
+// Phase 2.5: Working arrays (eps, b, r, p, Ap, sig, tau, deps, FFT scratch)
+// are Float32Array — halves memory bandwidth in the hot path, accuracy is
+// well within CG_TOL=5e-4. Gamma stays Float64 (computed once, read many
+// times — no allocation pressure). FFT line buffer stays Float64 because
+// fft1d's butterfly recombination accumulates roundoff over log2(N) levels;
+// the line buffer is only 2*N entries (~512 bytes), so the bandwidth cost
+// is negligible vs the precision benefit.
+let _solverWorkspace = null;
+let _solverWorkspaceN = 0;
+
+function getSolverWorkspace(N) {
+  if (_solverWorkspaceN === N && _solverWorkspace) return _solverWorkspace;
+  const N3 = N * N * N;
+  const make3 = () => [new Float32Array(N3), new Float32Array(N3), new Float32Array(N3)];
+  _solverWorkspace = {
+    N, N3,
+    // CG state — 3 components each (xx, yy, zz)
+    eps:    make3(),
+    b:      make3(),
+    r:      make3(),
+    p:      make3(),
+    Ap:     make3(),
+    epsNew: make3(),
+    rNew:   make3(),
+    // applyA scratch
+    sig:    make3(),
+    tau:    make3(),
+    deps:   make3(),
+    // applyGammaRow scratch — complex spectra (Float32 for memory bandwidth)
+    fftOut:     new Float32Array(2 * N3),
+    tauHat:     new Float32Array(2 * N3),
+    // fft3d line buffer — Float64 to preserve butterfly precision (small footprint)
+    fftLineBuf: new Float64Array(2 * N),
+  };
+  _solverWorkspaceN = N;
+  return _solverWorkspace;
+}
+
+// ── Apply Green operator to a stress field (normal components only) ───────────
+// tauFields: [Float64Array N3, Float64Array N3, Float64Array N3] — input stress fields
+// GammaRow: [Float64Array N3, Float64Array N3, Float64Array N3] — Gamma[p][0..2]
+// out: Float64Array N3 — destination for real-space strain correction
+// ws: solver workspace (provides fftOut, tauHat, fftLineBuf scratch buffers)
+function applyGammaRow(tauFields, GammaRow, N, out, ws) {
+  const N3 = N * N * N;
+  const fftOut  = ws.fftOut;
+  const tauHat  = ws.tauHat;
+  const lineBuf = ws.fftLineBuf;
+
+  // Zero accumulator
+  fftOut.fill(0);
+
+  for (let q = 0; q < 3; q++) {
+    // Pack real tau[q] into complex tauHat (real part only)
+    tauHat.fill(0);
+    const tq = tauFields[q];
+    for (let i = 0; i < N3; i++) tauHat[2*i] = tq[i];
+    fft3d(tauHat, N, false, lineBuf);
+    // Multiply by Gamma[p][q] (real-valued) and accumulate
+    const G = GammaRow[q];
+    for (let i = 0; i < N3; i++) {
+      fftOut[2*i]   += G[i] * tauHat[2*i];
+      fftOut[2*i+1] += G[i] * tauHat[2*i+1];
+    }
+  }
+
+  // IFFT in place into fftOut
+  fft3d(fftOut, N, true, lineBuf);
+  // Extract real part into out
+  for (let i = 0; i < N3; i++) out[i] = fftOut[2*i];
+}
+
+// ── One CG load case (normal strain only) ────────────────────────────────────
+// eps_bar: [exx, eyy, ezz] uniform macroscopic strain
+// Returns: { sigma: [sxx, syy, szz], iters, converged }
+function cgSolveNormal(solid, C_s, C_v, C0, Gamma, N, eps_bar, tol, maxiter) {
+  const ws = getSolverWorkspace(N);
+  const N3 = ws.N3;
+  const { eps, b, r, p, Ap, epsNew, rNew, sig, tau, deps } = ws;
+
+  // C(x):eps for 3 normal components — writes into sigOut (3 fields)
+  // Inlines the 3-component multiplication of the Voigt 6×6 tensor (normal block only).
+  function localStress(epsIn, sigOut) {
+    for (let idx = 0; idx < N3; idx++) {
+      const C = solid[idx] ? C_s : C_v;
+      const e0 = epsIn[0][idx], e1 = epsIn[1][idx], e2 = epsIn[2][idx];
+      sigOut[0][idx] = C[0]*e0  + C[1]*e1  + C[2]*e2;
+      sigOut[1][idx] = C[6]*e0  + C[7]*e1  + C[8]*e2;
+      sigOut[2][idx] = C[12]*e0 + C[13]*e1 + C[14]*e2;
+    }
+  }
+
+  // System operator A*eps = eps + Gamma*(C(x)-C0)*eps  → writes into out
+  function applyA(epsIn, out) {
+    localStress(epsIn, sig);
+    // tau = sig - C0*eps  (C0 is uniform, so the matrix-vector mul is cheap)
+    for (let idx = 0; idx < N3; idx++) {
+      const e0 = epsIn[0][idx], e1 = epsIn[1][idx], e2 = epsIn[2][idx];
+      tau[0][idx] = sig[0][idx] - (C0[0]*e0  + C0[1]*e1  + C0[2]*e2);
+      tau[1][idx] = sig[1][idx] - (C0[6]*e0  + C0[7]*e1  + C0[8]*e2);
+      tau[2][idx] = sig[2][idx] - (C0[12]*e0 + C0[13]*e1 + C0[14]*e2);
+    }
+    // deps = Gamma * tau  (writes into ws.deps)
+    applyGammaRow(tau, Gamma[0], N, deps[0], ws);
+    applyGammaRow(tau, Gamma[1], N, deps[1], ws);
+    applyGammaRow(tau, Gamma[2], N, deps[2], ws);
+    // out = eps + deps
+    const out0 = out[0], out1 = out[1], out2 = out[2];
+    const ein0 = epsIn[0], ein1 = epsIn[1], ein2 = epsIn[2];
+    const dp0 = deps[0], dp1 = deps[1], dp2 = deps[2];
+    for (let i = 0; i < N3; i++) {
+      out0[i] = ein0[i] + dp0[i];
+      out1[i] = ein1[i] + dp1[i];
+      out2[i] = ein2[i] + dp2[i];
+    }
+  }
+
+  function dot(a, b) {
+    let s = 0;
+    const a0 = a[0], a1 = a[1], a2 = a[2];
+    const b0 = b[0], b1 = b[1], b2 = b[2];
+    for (let i = 0; i < N3; i++) s += a0[i]*b0[i] + a1[i]*b1[i] + a2[i]*b2[i];
+    return s;
+  }
+
+  // Initialise: eps = b = uniform macroscopic strain
+  for (let p_ = 0; p_ < 3; p_++) {
+    eps[p_].fill(eps_bar[p_]);
+    b[p_].fill(eps_bar[p_]);
+  }
+  const bNorm = Math.sqrt(dot(b, b)) + 1e-30;
+
+  // r = b - A*eps  (use Ap as scratch since we don't need it yet)
+  applyA(eps, Ap);
+  for (let p_ = 0; p_ < 3; p_++) {
+    const rP = r[p_], bP = b[p_], ApP = Ap[p_];
+    for (let i = 0; i < N3; i++) rP[i] = bP[i] - ApP[i];
+  }
+
+  // p = r (initial search direction)
+  for (let p_ = 0; p_ < 3; p_++) p[p_].set(r[p_]);
+
+  let rr = dot(r, r);
+  let iters = 0;
+  let converged = false;
+
+  for (let it = 0; it < maxiter; it++) {
+    iters = it + 1;
+    applyA(p, Ap);
+    const pAp = dot(p, Ap);
+    if (Math.abs(pAp) < 1e-30) break;
+    const alpha = rr / pAp;
+
+    // Fused update: epsNew = eps + alpha*p ; rNew = r - alpha*Ap
+    for (let p_ = 0; p_ < 3; p_++) {
+      const epsP = eps[p_], pP = p[p_], epsNewP = epsNew[p_];
+      const rP = r[p_], ApP = Ap[p_], rNewP = rNew[p_];
+      for (let i = 0; i < N3; i++) {
+        epsNewP[i] = epsP[i] + alpha * pP[i];
+        rNewP[i]   = rP[i]   - alpha * ApP[i];
+      }
+    }
+
+    const rrNew = dot(rNew, rNew);
+    const relRes = Math.sqrt(rrNew) / bNorm;
+
+    // Commit: eps ← epsNew, r ← rNew
+    for (let p_ = 0; p_ < 3; p_++) {
+      eps[p_].set(epsNew[p_]);
+      r[p_].set(rNew[p_]);
+    }
+
+    if (relRes < tol) { converged = true; break; }
+
+    const beta = rrNew / rr;
+    // p = r + beta*p (in-place since old p is no longer needed)
+    for (let p_ = 0; p_ < 3; p_++) {
+      const rP = r[p_], pP = p[p_];
+      for (let i = 0; i < N3; i++) pP[i] = rP[i] + beta * pP[i];
+    }
+    rr = rrNew;
+  }
+
+  // Volume-average stress
+  localStress(eps, sig);
+  let s0 = 0, s1 = 0, s2 = 0;
+  const sg0 = sig[0], sg1 = sig[1], sg2 = sig[2];
+  for (let i = 0; i < N3; i++) { s0 += sg0[i]; s1 += sg1[i]; s2 += sg2[i]; }
+  return {
+    sigma: [s0/N3, s1/N3, s2/N3],
+    iters: iters,
+    converged: converged
+  };
+}
+
+// ── Full FFT-CG homogenization (3 normal load cases) ─────────────────────────
+// ─── Sweep-level solver caches — rebuilt once per sweep, not per design ───────
+// Gamma tensors only depend on N, Es, nu, ks — all constant within a sweep run
+let _cachedElasticGamma = null, _cachedElasticKey = '';
+let _cachedThermalGamma = null, _cachedThermalKey = '';
+
+// ─── Solver configuration constants ──────────────────────────────────────────
+// FFT grid resolution per geometry mode
+const FFT_N_STD    = 16;     // solid / shell TPMS — power of 2, sufficient for ranking
+const FFT_N_PI     = 32;     // PI-TPMS — r² VF scaling needs higher resolution
+
+// Volume-fraction acceptance bounds — designs outside skip the CG solve entirely
+const RHO_MIN_STD  = 0.03;   // standard TPMS solid/shell
+const RHO_MIN_PI   = 0.005;  // PI-TPMS — relaxed because pipe radius can produce thin VFs
+const RHO_MAX      = 0.75;   // upper bound — above this, voids are isolated, not connected
+
+// Conjugate-gradient solver convergence
+const CG_TOL       = 5e-4;   // relative residual tolerance
+const CG_MAXITER   = 40;     // hard iteration cap
+
+function getElasticGamma(N, Es, nu) {
+  const key = `${N}|${Es}|${nu}`;
+  if (_cachedElasticKey !== key) {
+    const C0 = isoC(Es, nu);
+    _cachedElasticGamma = buildGamma(N, C0[21], C0[1]);
+    _cachedElasticKey = key;
+  }
+  return _cachedElasticGamma;
+}
+
+function getThermalGamma(N, k0) {
+  const key = `${N}|${k0}`;
+  if (_cachedThermalKey !== key) {
+    const N3 = N * N * N;
+    const twoPI_N = 2 * Math.PI / N;
+    const Gamma = new Float64Array(N3 * 9);
+    for (let i = 0; i < N; i++) {
+      const fi = i <= N/2 ? i : i - N;
+      for (let j = 0; j < N; j++) {
+        const fj = j <= N/2 ? j : j - N;
+        for (let k = 0; k < N; k++) {
+          const fk = k <= N/2 ? k : k - N;
+          const idx = (i*N*N + j*N + k) * 9;
+          const xi = fi * twoPI_N, xj = fj * twoPI_N, xk = fk * twoPI_N;
+          const xi2 = xi*xi + xj*xj + xk*xk;
+          if (xi2 < 1e-14) continue;
+          const inv = 1.0 / (k0 * xi2);
+          Gamma[idx+0]=xi*xi*inv; Gamma[idx+1]=xi*xj*inv; Gamma[idx+2]=xi*xk*inv;
+          Gamma[idx+3]=xj*xi*inv; Gamma[idx+4]=xj*xj*inv; Gamma[idx+5]=xj*xk*inv;
+          Gamma[idx+6]=xk*xi*inv; Gamma[idx+7]=xk*xj*inv; Gamma[idx+8]=xk*xk*inv;
+        }
+      }
+    }
+    _cachedThermalGamma = Gamma;
+    _cachedThermalKey = key;
+  }
+  return _cachedThermalGamma;
+}
+
+function invalidateSolverCaches() {
+  _cachedElasticKey = '';
+  _cachedThermalKey = '';
+}
+
+function fftHomogenize(terms, offset, N, isShell, wt, Es, nu, nWeights, piMode, pipeR, phaseShift) {
+  const solid = buildVoxels(terms, offset, N, isShell, wt, nWeights || null, piMode || false, pipeR, phaseShift);
+  const N3    = N * N * N;
+
+  // Volume fraction — direct voxel count from the already-built solid field.
+  let inside = 0;
+  for (let i = 0; i < N3; i++) inside += solid[i];
+  const rho = inside / N3;
+
+  // PI-TPMS has r² VF scaling — relaxed lower bound vs standard TPMS
+  const rhoMin = piMode ? RHO_MIN_PI : RHO_MIN_STD;
+  if (rho < rhoMin || rho > RHO_MAX) return null;
+
+  // Phase tensors
+  const C_s = isoC(Es, nu);
+  const C_v = isoC(Es * 1e-4, nu);
+  const C0  = isoC(Es, nu);  // reference = solid
+  const mu0  = C0[21];       // C[3,3]
+  const lam0 = C0[1];        // C[0,1]
+
+  // Green operator — cached for the duration of the sweep
+  const Gamma = getElasticGamma(N, Es, nu);
+
+  const tol = CG_TOL;
+  const maxiter = CG_MAXITER;
+
+  // 3 normal load cases
+  const C_eff_nn = [[0,0,0],[0,0,0],[0,0,0]]; // 3×3 normal stiffness block
+  let totalIters = 0;
+  let allConverged = true;
+  for (let lc = 0; lc < 3; lc++) {
+    const eps_bar = [lc===0?1:0, lc===1?1:0, lc===2?1:0];
+    const result = cgSolveNormal(solid, C_s, C_v, C0, Gamma, N, eps_bar, tol, maxiter);
+    const sig_bar = result.sigma;
+    totalIters += result.iters;
+    if (!result.converged) allConverged = false;
+    for (let p = 0; p < 3; p++) C_eff_nn[p][lc] = sig_bar[p];
+  }
+
+  // Symmetrise
+  for (let p = 0; p < 3; p++) for (let q = 0; q < 3; q++)
+    C_eff_nn[p][q] = 0.5*(C_eff_nn[p][q] + C_eff_nn[q][p]);
+
+  // Extract Ex, Ey, Ez from compliance S = C^{-1} (3×3)
+  // Invert 3×3
+  const C = C_eff_nn;
+  const det = C[0][0]*(C[1][1]*C[2][2]-C[1][2]*C[2][1])
+            - C[0][1]*(C[1][0]*C[2][2]-C[1][2]*C[2][0])
+            + C[0][2]*(C[1][0]*C[2][1]-C[1][1]*C[2][0]);
+  if (Math.abs(det) < 1e-30) return null;
+  const invDet = 1/det;
+  const S = [
+    [(C[1][1]*C[2][2]-C[1][2]*C[2][1])*invDet, (C[0][2]*C[2][1]-C[0][1]*C[2][2])*invDet, (C[0][1]*C[1][2]-C[0][2]*C[1][1])*invDet],
+    [(C[1][2]*C[2][0]-C[1][0]*C[2][2])*invDet, (C[0][0]*C[2][2]-C[0][2]*C[2][0])*invDet, (C[0][2]*C[1][0]-C[0][0]*C[1][2])*invDet],
+    [(C[1][0]*C[2][1]-C[1][1]*C[2][0])*invDet, (C[0][1]*C[2][0]-C[0][0]*C[2][1])*invDet, (C[0][0]*C[1][1]-C[0][1]*C[1][0])*invDet],
+  ];
+
+  const Ex = 1/S[0][0], Ey = 1/S[1][1], Ez = 1/S[2][2];
+  return { rho, Ex, Ey, Ez, solid, cg_iters: totalIters, cg_converged: allConverged };
 }
 
 
+// ─── Thermal homogenization — scalar FFT-CG ──────────────────────────────────
+// Same Lippmann-Schwinger approach as elastic but scalar:
+// ∇·(k(x)∇T) = 0  →  Γ̂(ξ) = ξ⊗ξ / (k0·|ξ|²)
+// Three load cases (unit gradient in X, Y, Z) → keff_x, keff_y, keff_z
+function thermalHomogenize(solid, N, ks, kv) {
+  const N3 = N * N * N;
+  const k0 = ks;
+  // Green operator — cached for the duration of the sweep
+  const Gamma = getThermalGamma(N, k0);
+  // Apply Green operator to a flux field q[3*N3] (interleaved x,y,z per voxel)
+  // Returns corrected flux after one Lippmann-Schwinger iteration
+  function applyGamma(q) {
+    // FFT each component
+    const qx = new Float64Array(N3*2), qy = new Float64Array(N3*2), qz = new Float64Array(N3*2);
+    for (let i = 0; i < N3; i++) { qx[2*i]=q[3*i]; qy[2*i]=q[3*i+1]; qz[2*i]=q[3*i+2]; }
+    fft3d(qx, N, false); fft3d(qy, N, false); fft3d(qz, N, false);
+    // Apply Gamma in freq space
+    for (let i = 0; i < N3; i++) {
+      const gi = i*9;
+      const rx = qx[2*i], ix2 = qx[2*i+1];
+      const ry = qy[2*i], iy = qy[2*i+1];
+      const rz = qz[2*i], iz = qz[2*i+1];
+      qx[2*i]   = Gamma[gi+0]*rx + Gamma[gi+1]*ry + Gamma[gi+2]*rz;
+      qx[2*i+1] = Gamma[gi+0]*ix2+ Gamma[gi+1]*iy + Gamma[gi+2]*iz;
+      qy[2*i]   = Gamma[gi+3]*rx + Gamma[gi+4]*ry + Gamma[gi+5]*rz;
+      qy[2*i+1] = Gamma[gi+3]*ix2+ Gamma[gi+4]*iy + Gamma[gi+5]*iz;
+      qz[2*i]   = Gamma[gi+6]*rx + Gamma[gi+7]*ry + Gamma[gi+8]*rz;
+      qz[2*i+1] = Gamma[gi+6]*ix2+ Gamma[gi+7]*iy + Gamma[gi+8]*iz;
+    }
+    fft3d(qx, N, true); fft3d(qy, N, true); fft3d(qz, N, true);
+    const out = new Float64Array(N3*3);
+    for (let i = 0; i < N3; i++) { out[3*i]=qx[2*i]; out[3*i+1]=qy[2*i]; out[3*i+2]=qz[2*i]; }
+    return out;
+  }
+
+  // CG solve for one macroscopic gradient direction e (unit vector [ex,ey,ez])
+  // Returns effective conductivity in that direction
+  function cgThermal(ex, ey, ez) {
+    const tol = 1e-4, maxiter = 40;
+    // Local conductivity per voxel
+    const kLocal = new Float64Array(N3);
+    for (let i = 0; i < N3; i++) kLocal[i] = solid[i] > 0.5 ? ks : kv;
+
+    // Initial flux field: q = k(x) * e_bar
+    const q = new Float64Array(N3*3);
+    for (let i = 0; i < N3; i++) {
+      q[3*i]   = kLocal[i] * ex;
+      q[3*i+1] = kLocal[i] * ey;
+      q[3*i+2] = kLocal[i] * ez;
+    }
+
+    // Residual: r = q - k(x)·e - k(x)·Γ*(q - k0·e)
+    // Simplified: polarization τ = (k(x)-k0)·(e + ∇T_fluct)
+    // We iterate on the temperature gradient fluctuation field ε = ∇T - e
+    const eps = new Float64Array(N3*3); // fluctuation, starts at 0
+
+    for (let iter = 0; iter < maxiter; iter++) {
+      // τ = (k-k0)*(e + eps)  — polarization
+      const tau = new Float64Array(N3*3);
+      for (let i = 0; i < N3; i++) {
+        const dk = kLocal[i] - k0;
+        tau[3*i]   = dk * (ex + eps[3*i]);
+        tau[3*i+1] = dk * (ey + eps[3*i+1]);
+        tau[3*i+2] = dk * (ez + eps[3*i+2]);
+      }
+      // New eps = -Γ * τ
+      const GammaTau = applyGamma(tau);
+      let res2 = 0;
+      for (let i = 0; i < N3*3; i++) {
+        const diff = -GammaTau[i] - eps[i];
+        res2 += diff * diff;
+        eps[i] = -GammaTau[i];
+      }
+      if (Math.sqrt(res2 / N3) < tol) break;
+    }
+
+    // Effective conductivity = mean(k(x)*(e+eps)) · e
+    let keff = 0;
+    for (let i = 0; i < N3; i++) {
+      const gx = ex + eps[3*i], gy = ey + eps[3*i+1], gz = ez + eps[3*i+2];
+      const flux = kLocal[i] * (ex*gx + ey*gy + ez*gz);
+      keff += flux;
+    }
+    return keff / N3;
+  }
+
+  return {
+    kx: +cgThermal(1,0,0).toFixed(4),
+    ky: +cgThermal(0,1,0).toFixed(4),
+    kz: +cgThermal(0,0,1).toFixed(4),
+  };
+}
+
+// ─── Pore analysis — gradient-normalised SDF approach ────────────────────────
+// φ(p) is not a unit-SDF — its gradient |∇φ| ≠ 1 generally, especially when
+// sweep jitters coefficients away from 1. True distance = φ / |∇φ| evaluated
+// analytically from the term/factor structure.
+//
+// For each factor f(axis):
+//   sin(f·x) → value: sin(f·x),  derivative wrt x: f·cos(f·x)
+//   cos(f·x) → value: cos(f·x),  derivative wrt x: -f·sin(f·x)
+// For a multi-factor term, ∂term/∂x uses product rule across all x-factors.
+
+// computeAxisConnectivity — geometric BFS with periodic BC and image tracking.
+// Returns { spansX, spansY, spansZ } indicating which axes the structure
+// spans through periodic image continuation.
+//
+// Algorithm: BFS through solid voxels with 6-neighbor connectivity. When a
+// neighbor crosses a periodic boundary, the per-voxel image offset is updated.
+// If we re-encounter a voxel via a different image, the image difference is
+// a "span vector" — proves a closed loop through the structure that wraps
+// the periodic cell. Any nonzero span component for an axis → that axis is
+// connected (loose definition: counts diagonals as participating in each
+// axis they touch).
+//
+// Replaces the prior stiffness-threshold connect_idx, which broke for PI-TPMS:
+// the FFT-CG solver returns nonzero Ex/Ey/Ez even for genuinely disconnected
+// fragments because periodic BCs couple them through the image, so disconnected
+// PI-TPMS designs were wrongly reading connect_idx = 1.0.
+function computeAxisConnectivity(solid, N) {
+  const N3 = N * N * N;
+  const labels = new Int32Array(N3);     // 0 = unvisited, 1+ = component label
+  const imgX = new Int16Array(N3);       // per-voxel "first reached" image offsets
+  const imgY = new Int16Array(N3);
+  const imgZ = new Int16Array(N3);
+  // Queue stores linear voxel indices only — image lookup uses imgX/Y/Z arrays
+  const queue = new Int32Array(N3);
+
+  let spansX = false, spansY = false, spansZ = false;
+  let nComponents = 0;
+  const NN = N * N;
+
+  for (let startIdx = 0; startIdx < N3; startIdx++) {
+    if (!solid[startIdx] || labels[startIdx] !== 0) continue;
+
+    nComponents++;
+    const compLabel = nComponents;
+
+    let head = 0, tail = 0;
+    queue[tail++] = startIdx;
+    labels[startIdx] = compLabel;
+    // imgX/Y/Z[startIdx] default to 0 from Int16Array zero-init
+
+    while (head < tail) {
+      const id = queue[head++];
+      const k = id % N;
+      const j = ((id - k) / N) % N;
+      const i = ((id - k) / N - j) / N;
+      const ix = imgX[id], iy = imgY[id], iz = imgZ[id];
+
+      // 6 axis-aligned neighbors (di, dj, dk) ∈ {±1, 0, 0} permutations
+      for (let dir = 0; dir < 6; dir++) {
+        let di = 0, dj = 0, dk = 0;
+        if      (dir === 0) di = 1;
+        else if (dir === 1) di = -1;
+        else if (dir === 2) dj = 1;
+        else if (dir === 3) dj = -1;
+        else if (dir === 4) dk = 1;
+        else                dk = -1;
+
+        let ni = i + di, nj = j + dj, nk = k + dk;
+        let nix = ix, niy = iy, niz = iz;
+
+        // Wrap with periodic BC + track image change
+        if (ni < 0)       { ni += N; nix -= 1; }
+        else if (ni >= N) { ni -= N; nix += 1; }
+        if (nj < 0)       { nj += N; niy -= 1; }
+        else if (nj >= N) { nj -= N; niy += 1; }
+        if (nk < 0)       { nk += N; niz -= 1; }
+        else if (nk >= N) { nk -= N; niz += 1; }
+
+        const nIdx = ni * NN + nj * N + nk;
+        if (!solid[nIdx]) continue;
+
+        if (labels[nIdx] === 0) {
+          // First visit — record image and enqueue
+          labels[nIdx] = compLabel;
+          imgX[nIdx] = nix;
+          imgY[nIdx] = niy;
+          imgZ[nIdx] = niz;
+          queue[tail++] = nIdx;
+        } else if (labels[nIdx] === compLabel) {
+          // Re-visit same component via different path — image difference reveals span
+          if (nix !== imgX[nIdx]) spansX = true;
+          if (niy !== imgY[nIdx]) spansY = true;
+          if (niz !== imgZ[nIdx]) spansZ = true;
+        }
+      }
+    }
+
+    // Early exit: all three axes already proven spanned
+    if (spansX && spansY && spansZ) break;
+  }
+
+  return { spansX, spansY, spansZ };
+}
+
+function evaluateTpmsWithGrad(terms, x, y, z) {
+  let phi = 0;
+  let gx = 0, gy = 0, gz = 0;
+
+  for (const term of terms) {
+    if (!term.on) continue;
+    const c = term.coef;
+    const factors = term.factors;
+
+    // Evaluate value and per-axis derivatives for each factor
+    let val = c;
+    let dval_x = c, dval_y = c, dval_z = c;
+    // Track which axes have x/y/z factors, and their derivative contributions
+    let hasX = false, hasY = false, hasZ = false;
+
+    // First pass: compute the full product value
+    for (const f of factors) {
+      const t = f.trig;
+      if      (t === 'sin(x)') { val *= Math.sin(f.fx * x); hasX = true; }
+      else if (t === 'cos(x)') { val *= Math.cos(f.fx * x); hasX = true; }
+      else if (t === 'sin(y)') { val *= Math.sin(f.fy * y); hasY = true; }
+      else if (t === 'cos(y)') { val *= Math.cos(f.fy * y); hasY = true; }
+      else if (t === 'sin(z)') { val *= Math.sin(f.fz * z); hasZ = true; }
+      else if (t === 'cos(z)') { val *= Math.cos(f.fz * z); hasZ = true; }
+    }
+    phi += val;
+
+    // ∂term/∂x: product rule — replace each x-factor with its derivative,
+    // keep all other factors. Sum contributions from each x-factor.
+    let term_dx = 0;
+    for (let fi = 0; fi < factors.length; fi++) {
+      const f = factors[fi];
+      const t = f.trig;
+      if (t !== 'sin(x)' && t !== 'cos(x)') continue;
+      // Derivative of this x-factor
+      let d_this = c;
+      if      (t === 'sin(x)') d_this *= f.fx * Math.cos(f.fx * x);
+      else if (t === 'cos(x)') d_this *= -f.fx * Math.sin(f.fx * x);
+      // Multiply by all other factors (not this one)
+      for (let fj = 0; fj < factors.length; fj++) {
+        if (fj === fi) continue;
+        const g = factors[fj];
+        const gt = g.trig;
+        if      (gt === 'sin(x)') d_this *= Math.sin(g.fx * x);
+        else if (gt === 'cos(x)') d_this *= Math.cos(g.fx * x);
+        else if (gt === 'sin(y)') d_this *= Math.sin(g.fy * y);
+        else if (gt === 'cos(y)') d_this *= Math.cos(g.fy * y);
+        else if (gt === 'sin(z)') d_this *= Math.sin(g.fz * z);
+        else if (gt === 'cos(z)') d_this *= Math.cos(g.fz * z);
+      }
+      term_dx += d_this;
+    }
+    gx += term_dx;
+
+    // ∂term/∂y
+    let term_dy = 0;
+    for (let fi = 0; fi < factors.length; fi++) {
+      const f = factors[fi];
+      const t = f.trig;
+      if (t !== 'sin(y)' && t !== 'cos(y)') continue;
+      let d_this = c;
+      if      (t === 'sin(y)') d_this *= f.fy * Math.cos(f.fy * y);
+      else if (t === 'cos(y)') d_this *= -f.fy * Math.sin(f.fy * y);
+      for (let fj = 0; fj < factors.length; fj++) {
+        if (fj === fi) continue;
+        const g = factors[fj];
+        const gt = g.trig;
+        if      (gt === 'sin(x)') d_this *= Math.sin(g.fx * x);
+        else if (gt === 'cos(x)') d_this *= Math.cos(g.fx * x);
+        else if (gt === 'sin(y)') d_this *= Math.sin(g.fy * y);
+        else if (gt === 'cos(y)') d_this *= Math.cos(g.fy * y);
+        else if (gt === 'sin(z)') d_this *= Math.sin(g.fz * z);
+        else if (gt === 'cos(z)') d_this *= Math.cos(g.fz * z);
+      }
+      term_dy += d_this;
+    }
+    gy += term_dy;
+
+    // ∂term/∂z
+    let term_dz = 0;
+    for (let fi = 0; fi < factors.length; fi++) {
+      const f = factors[fi];
+      const t = f.trig;
+      if (t !== 'sin(z)' && t !== 'cos(z)') continue;
+      let d_this = c;
+      if      (t === 'sin(z)') d_this *= f.fz * Math.cos(f.fz * z);
+      else if (t === 'cos(z)') d_this *= -f.fz * Math.sin(f.fz * z);
+      for (let fj = 0; fj < factors.length; fj++) {
+        if (fj === fi) continue;
+        const g = factors[fj];
+        const gt = g.trig;
+        if      (gt === 'sin(x)') d_this *= Math.sin(g.fx * x);
+        else if (gt === 'cos(x)') d_this *= Math.cos(g.fx * x);
+        else if (gt === 'sin(y)') d_this *= Math.sin(g.fy * y);
+        else if (gt === 'cos(y)') d_this *= Math.cos(g.fy * y);
+        else if (gt === 'sin(z)') d_this *= Math.sin(g.fz * z);
+        else if (gt === 'cos(z)') d_this *= Math.cos(g.fz * z);
+      }
+      term_dz += d_this;
+    }
+    gz += term_dz;
+  }
+
+  const gradMag = Math.sqrt(gx*gx + gy*gy + gz*gz) || 1e-9;
+  return { phi, gradMag };
+}
+
+// ─── Pore analysis — gradient-normalised SDF ─────────────────────────────────
+// buildHiResField — single-pass evaluation of the implicit field at high
+// resolution. Returns Float32 raw field + Uint8 solid/void masks.
+//
+// Used for PI-TPMS analysis (volume_fraction, connectivity, pore metrics)
+// where the FFT-CG solver grid (N=32) is too coarse: a typical pipe radius
+// of 0.1 gives ~1 voxel diameter at N=32, producing ~30-50% volume-fraction
+// alignment noise. At N=96, voxel size is 2π/96 ≈ 0.065 → ~3 voxels per pipe,
+// which is enough to resolve the geometry reliably for pore-scale metrics.
+//
+// Convention: solidMask[id] = 1 where field places material, voidMask[id] = 1
+// where field places void. rawField[id] is the analyzePores-style raw value
+// (positive in void, negative in solid) — used for pore-radius estimation.
+function buildHiResField(terms, offset, mode, wt, pipeR, phaseShift, N_HI) {
+  const isPi    = mode === 'pi-tpms';
+  const isShell = mode === 'shell';
+  const N3 = N_HI * N_HI * N_HI;
+  const L = Math.PI;
+  const step = (2 * L) / N_HI;
+  const TWO_PI = 2 * Math.PI;
+
+  const dx = isPi ? (phaseShift?.x || 0) * TWO_PI : 0;
+  const dy = isPi ? (phaseShift?.y || 0) * TWO_PI : 0;
+  const dz = isPi ? (phaseShift?.z || 0) * TWO_PI : 0;
+  const pr = pipeR || 0.1;
+  const wtV = wt || 0.3;
+
+  const rawField  = new Float32Array(N3);
+  const solidMask = new Uint8Array(N3);
+  const voidMask  = new Uint8Array(N3);
+
+  const NN = N_HI * N_HI;
+  for (let i = 0; i < N_HI; i++) {
+    const x = -L + (i + 0.5) * step;
+    for (let j = 0; j < N_HI; j++) {
+      const y = -L + (j + 0.5) * step;
+      const baseIdx = i * NN + j * N_HI;
+      for (let k = 0; k < N_HI; k++) {
+        const z = -L + (k + 0.5) * step;
+        const id = baseIdx + k;
+
+        // raw > 0 in void, raw <= 0 in solid (matches analyzePores convention)
+        let raw;
+        if (isPi) {
+          const phiA = evaluateTpms(terms, x, y, z);
+          const phiB = evaluateTpms(terms, x + dx, y + dy, z + dz);
+          raw = Math.max(Math.abs(phiA), Math.abs(phiB)) - pr;
+        } else if (isShell) {
+          raw = Math.abs(evaluateTpms(terms, x, y, z) - offset) - wtV;
+        } else {
+          raw = evaluateTpms(terms, x, y, z) - offset;
+        }
+
+        rawField[id] = raw;
+        if (raw > 0) { voidMask[id] = 1; }
+        else         { solidMask[id] = 1; }
+      }
+    }
+  }
+
+  return { rawField, solidMask, voidMask };
+}
+
+// analyzePoresFromField — pore metrics from a prebuilt hi-res field.
+// Same algorithm as analyzePores, but doesn't rebuild the field. Single-pass
+// near-surface gradient collection (rather than two passes), giving both
+// gradNorm (for pore-radius normalisation) and maxSurfGrad (for throat) at once.
+function analyzePoresFromField(rawField, voidMask, terms, offset, mode, wt, pipeR, phaseShift, cellSizeMm, N) {
+  const isPi    = mode === 'pi-tpms';
+  const isShell = mode === 'shell';
+  const N3 = N * N * N;
+  const L = Math.PI;
+  const step = (2 * L) / N;
+  const NN = N * N;
+  const umPerUnit = (cellSizeMm * 1000) / (2 * Math.PI);
+  const pr = pipeR || 0.1;
+  const wtV = wt || 0.3;
+
+  // Single near-surface pass: collects both gradNorm sum AND max gradient.
+  // Near-surface band = void voxels with raw value < 0.3 field units.
+  let gradSum = 0, gradCount = 0, maxSurfGrad = 0;
+  for (let i = 0; i < N; i++) {
+    const x = -L + (i + 0.5) * step;
+    for (let j = 0; j < N; j++) {
+      const y = -L + (j + 0.5) * step;
+      const baseIdx = i * NN + j * N;
+      for (let k = 0; k < N; k++) {
+        const id = baseIdx + k;
+        if (!voidMask[id]) continue;
+        const r = rawField[id];
+        if (r >= 0.3) continue;
+        const z = -L + (k + 0.5) * step;
+        const { gradMag } = evaluateTpmsWithGrad(terms, x, y, z);
+        gradSum += gradMag;
+        gradCount++;
+        if (gradMag > maxSurfGrad) maxSurfGrad = gradMag;
+      }
+    }
+  }
+
+  // Pore size — top 10% of normalised void distance values × 2 × µm/unit
+  const gradNorm = gradCount > 0 ? gradSum / gradCount : 1.0;
+  const dVals = [];
+  for (let i = 0; i < N3; i++) {
+    if (voidMask[i]) dVals.push(rawField[i] / gradNorm);
+  }
+  if (dVals.length === 0) return { pore_size: 0, throat_size: 0, perc_idx: 0 };
+  dVals.sort((a, b) => a - b);
+  const topVals = dVals.slice(Math.floor(dVals.length * 0.90));
+  const meanTop = topVals.reduce((s, v) => s + v, 0) / topVals.length;
+  const pore_size = Math.round(meanTop * 2 * umPerUnit);
+
+  // Throat — surfParam / max(|∇φ|) at near-surface, × 2 × µm/unit
+  const surfParam = isPi ? pr : wtV;
+  const throat_size = maxSurfGrad > 0
+    ? Math.round((surfParam / maxSurfGrad) * 2 * umPerUnit)
+    : 0;
+
+  // Void percolation — non-periodic BFS through void voxels per axis
+  const idx = (i,j,k) => i*NN + j*N + k;
+  function percolates(axis) {
+    const visited = new Uint8Array(N3);
+    const queue = new Int32Array(N3);
+    let head = 0, tail = 0;
+    for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+      let si, sj, sk;
+      if (axis===0)      { si=0; sj=a; sk=b; }
+      else if (axis===1) { si=a; sj=0; sk=b; }
+      else               { si=a; sj=b; sk=0; }
+      const id_ = idx(si,sj,sk);
+      if (voidMask[id_] && !visited[id_]) { visited[id_]=1; queue[tail++]=id_; }
+    }
+    while (head < tail) {
+      const id_ = queue[head++];
+      const i = (id_ / NN) | 0;
+      const j = ((id_ - i*NN) / N) | 0;
+      const k = id_ - i*NN - j*N;
+      if ((axis===0&&i===N-1)||(axis===1&&j===N-1)||(axis===2&&k===N-1)) return true;
+      if (i>0)   { const ni=idx(i-1,j,k); if (voidMask[ni]&&!visited[ni]){visited[ni]=1;queue[tail++]=ni;} }
+      if (i<N-1) { const ni=idx(i+1,j,k); if (voidMask[ni]&&!visited[ni]){visited[ni]=1;queue[tail++]=ni;} }
+      if (j>0)   { const ni=idx(i,j-1,k); if (voidMask[ni]&&!visited[ni]){visited[ni]=1;queue[tail++]=ni;} }
+      if (j<N-1) { const ni=idx(i,j+1,k); if (voidMask[ni]&&!visited[ni]){visited[ni]=1;queue[tail++]=ni;} }
+      if (k>0)   { const ni=idx(i,j,k-1); if (voidMask[ni]&&!visited[ni]){visited[ni]=1;queue[tail++]=ni;} }
+      if (k<N-1) { const ni=idx(i,j,k+1); if (voidMask[ni]&&!visited[ni]){visited[ni]=1;queue[tail++]=ni;} }
+    }
+    return false;
+  }
+
+  const px = percolates(0), py = percolates(1), pz = percolates(2);
+  const perc_idx = +((+px + +py + +pz) / 3).toFixed(2);
+
+  return { pore_size, throat_size, perc_idx };
+}
+
+function analyzePores(terms, offset, mode, wallT, pipeR, phaseShift, cellMult, cellSizeMm, N) {
+  const isPi    = mode === 'pi-tpms';
+  const isShell = mode === 'shell';
+  const N3 = N * N * N;
+  const L    = Math.PI; // solver domain always [-π, π]³ regardless of cellMult
+  const step = 2 * L / N;
+
+  // µm per unit of normalised distance — cell spans 2π field units = cellSizeMm mm
+  const umPerUnit = (cellSizeMm * 1000) / (2 * Math.PI);
+
+  // PI-TPMS phase shift in radians
+  const TWO_PI = 2 * Math.PI;
+  const dx = isPi ? (phaseShift?.x || 0) * TWO_PI : 0;
+  const dy = isPi ? (phaseShift?.y || 0) * TWO_PI : 0;
+  const dz = isPi ? (phaseShift?.z || 0) * TWO_PI : 0;
+  const pr = pipeR || 0.1;
+  const wt = wallT || 0.3;
+
+  // Raw field evaluator — no normalization yet
+  function evalRaw(x, y, z) {
+    const phi = evaluateTpms(terms, x, y, z);
+    if (isPi) {
+      const phiB = evaluateTpms(terms, x+dx, y+dy, z+dz);
+      return Math.max(Math.abs(phi), Math.abs(phiB)) - pr;
+    }
+    if (isShell) return Math.abs(phi - offset) - wt;
+    return phi - offset;
+  }
+
+  // ── 1. Main grid pass — build void mask and collect surface-band gradients ─
+  const dField   = new Float32Array(N3);
+  const voidMask = new Uint8Array(N3);
+  let gradSum = 0, gradCount = 0;
+
+  for (let i = 0; i < N; i++) {
+    const x = -L + (i + 0.5) * step;
+    for (let j = 0; j < N; j++) {
+      const y = -L + (j + 0.5) * step;
+      for (let k = 0; k < N; k++) {
+        const z = -L + (k + 0.5) * step;
+        const raw = evalRaw(x, y, z);
+        const id  = i*N*N + j*N + k;
+        if (raw > 0) {
+          dField[id]   = raw;
+          voidMask[id] = 1;
+          // Collect gradient magnitude only in near-surface band (raw < 0.3 field units)
+          // This gives a stable normalization factor that corrects for coefficient scaling
+          // without dividing by near-zero gradients deep in the pore
+          if (raw < 0.3) {
+            const { gradMag } = evaluateTpmsWithGrad(terms, x, y, z);
+            gradSum += gradMag;
+            gradCount++;
+          }
+        } else {
+          dField[id]   = 0;
+          voidMask[id] = 0;
+        }
+      }
+    }
+  }
+
+  // Single normalization factor — mean gradient at the surface
+  const gradNorm = gradCount > 0 ? gradSum / gradCount : 1.0;
+
+  // ── 2. Collect normalised void d values ──────────────────────────────────
+  const dVals = [];
+  for (let i = 0; i < N3; i++) {
+    if (voidMask[i]) dVals.push(dField[i] / gradNorm);
+  }
+  if (dVals.length === 0) return { pore_size: 0, throat_size: 0, perc_idx: 0 };
+
+  dVals.sort((a, b) => a - b);
+  const n = dVals.length;
+
+  // Pore size: mean of top 10% normalised d × 2 × umPerUnit
+  const topVals = dVals.slice(Math.floor(n * 0.90));
+  const meanTop = topVals.reduce((s, v) => s + v, 0) / topVals.length;
+  const pore_size = Math.round(meanTop * 2 * umPerUnit);
+
+  // ── 3. Throat — min(wallT / |∇φ|) at near-surface void points ───────────
+  // Re-use the same near-surface voxels already identified in the main pass.
+  // At those points |φ - offset| ≈ wallT, so wallT/|∇φ| is the local channel
+  // half-width. The minimum across all near-surface points is the throat.
+  // This is zero additional evaluateTpms calls — gradients already computed above.
+  // We need to re-evaluate gradients at near-surface points and find the minimum
+  // wallT/|∇φ| — store the min gradMag during the pass (max gradMag = min throat).
+  // Actually: throat = wallT / max(|∇φ| at surface) × 2 × umPerUnit
+  // But we want min throat = min(wallT/|∇φ|) = wallT / max(|∇φ|)
+  // We already have gradSum — we need min throat so we need max gradMag.
+  // Re-run the surface band to get max gradMag (we only stored sum before).
+  // This is cheap: only near-surface voxels call evaluateTpmsWithGrad.
+  let maxSurfGrad = 0;
+  const idx = (i,j,k) => i*N*N + j*N + k;
+  for (let i = 0; i < N; i++) {
+    const x = -L + (i + 0.5) * step;
+    for (let j = 0; j < N; j++) {
+      const y = -L + (j + 0.5) * step;
+      for (let k = 0; k < N; k++) {
+        const z = -L + (k + 0.5) * step;
+        if (!voidMask[idx(i,j,k)]) continue;
+        if (dField[idx(i,j,k)] >= 0.3) continue;
+        const { gradMag } = evaluateTpmsWithGrad(terms, x, y, z);
+        if (gradMag > maxSurfGrad) maxSurfGrad = gradMag;
+      }
+    }
+  }
+  const surfParam = isPi ? pr : wt;
+  const throat_size = maxSurfGrad > 0
+    ? Math.round((surfParam / maxSurfGrad) * 2 * umPerUnit)
+    : 0;
+
+  // ── 5. Void percolation — BFS per axis ───────────────────────────────────
+  function percolates(axis) {
+    const visited = new Uint8Array(N3);
+    const queue = [];
+    for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+      let si, sj, sk;
+      if (axis===0){si=0;sj=a;sk=b;}
+      else if (axis===1){si=a;sj=0;sk=b;}
+      else {si=a;sj=b;sk=0;}
+      const id = idx(si,sj,sk);
+      if (voidMask[id] && !visited[id]) { visited[id]=1; queue.push(id); }
+    }
+    let qi = 0;
+    while (qi < queue.length) {
+      const id = queue[qi++];
+      const i = Math.floor(id/(N*N)), j = Math.floor((id%(N*N))/N), k = id%N;
+      if ((axis===0&&i===N-1)||(axis===1&&j===N-1)||(axis===2&&k===N-1)) return true;
+      const ns = [];
+      if (i>0)   ns.push(idx(i-1,j,k)); if (i<N-1) ns.push(idx(i+1,j,k));
+      if (j>0)   ns.push(idx(i,j-1,k)); if (j<N-1) ns.push(idx(i,j+1,k));
+      if (k>0)   ns.push(idx(i,j,k-1)); if (k<N-1) ns.push(idx(i,j,k+1));
+      for (const ni of ns) {
+        if (voidMask[ni] && !visited[ni]) { visited[ni]=1; queue.push(ni); }
+      }
+    }
+    return false;
+  }
+
+  const px = percolates(0), py = percolates(1), pz = percolates(2);
+  const perc_idx = +((+px + +py + +pz) / 3).toFixed(2);
+
+  return { pore_size, throat_size, perc_idx };
+}
+
+function estimateHomogenization(terms, offset, scaleX, scaleY, scaleZ, Es, nu, baseline, mode, wallThickness, nWeights, pipeR, phaseShift, ks, sigma_ref, voxelToUm, cellMult) {
+  const isPi    = mode === 'pi-tpms';
+  const isShell = mode === 'shell';
+  const wt = wallThickness || 0.3;
+  // PI-TPMS uses higher resolution (N=32) because pipe radius produces thin
+  // local features that need spatial sampling to resolve correctly. Standard
+  // TPMS solid/shell stays at N=16 for sweep speed.
+  const N = isPi ? FFT_N_PI : FFT_N_STD;
+
+  // Run FFT-CG solver — returns {rho, Ex, Ey, Ez} or null if degenerate
+  const fft = fftHomogenize(terms, offset, N, isShell, wt, Es, nu, nWeights || null, isPi, pipeR, phaseShift);
+  if (!fft) return {
+    volume_fraction: 0, Ex_GPa: 0, Ey_GPa: 0, Ez_GPa: 0,
+    anisotropy: 1, stiffness_density: 0, surface_complexity: 0,
+    degenerate: true
+  };
+
+  let { rho, Ex, Ey, Ez, solid: solidVox } = fft;
+
+  // Surface complexity from isosurface face count at N=16
+  const vSolid = new Uint8Array(N*N*N);
+  const L = Math.PI, step = 2*L/N;
+  for (let i = 0; i < N; i++) { const x2 = -L+(i+0.5)*step;
+    for (let j = 0; j < N; j++) { const y2 = -L+(j+0.5)*step;
+      for (let k = 0; k < N; k++) { const z2 = -L+(k+0.5)*step;
+        vSolid[i*N*N+j*N+k] = evaluateTpms(terms,x2,y2,z2)-offset < 0 ? 1 : 0;
+      }}}
+  let faces = 0;
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) for (let k = 0; k < N; k++) {
+    const v = vSolid[i*N*N+j*N+k];
+    if (i+1<N && vSolid[(i+1)*N*N+j*N+k]!==v) faces++;
+    if (j+1<N && vSolid[i*N*N+(j+1)*N+k]!==v) faces++;
+    if (k+1<N && vSolid[i*N*N+j*N+k+1]!==v)   faces++;
+  }
+  const complexity = Math.min(1, faces / (N*N*3));
+
+  // ── Hi-res analysis block — PI-TPMS only ─────────────────────────────────
+  // PI-TPMS at N=32 undersamples thin pipes (~1 voxel diameter). Five metrics
+  // suffer: volume_fraction (alignment-noise dominated), connect_idx (the
+  // pre-existing stiffness-threshold version was always 1.0 because periodic
+  // BCs couple disconnected fragments through their image), pore_size,
+  // throat_size, and perc_idx (all sub-voxel features at N=16). Single hi-res
+  // field build at N=96 supplies all five corrections; the FFT-CG solver
+  // itself stays at its existing N to keep solver wall time predictable.
+  //
+  // Solid/shell modes still use the solver voxel field (N=16) for connectivity
+  // and the existing analyzePores at N=16 — they're less affected by aliasing.
+  const cellSizeMm = (voxelToUm || 62.5) * 32 / 1000; // mm per cell (N-independent)
+  let connect_idx, pores;
+
+  if (isPi) {
+    const N_HI = 96;
+    const hiRes = buildHiResField(terms, offset, mode, wt, pipeR, phaseShift, N_HI);
+
+    // Override rho with hi-res geometric VF — propagates to stiffness_density,
+    // aniso_efficiency, load_path_eff, k_density below.
+    let inside = 0;
+    const sm = hiRes.solidMask;
+    for (let i = 0; i < sm.length; i++) inside += sm[i];
+    rho = inside / sm.length;
+
+    // Geometric connectivity at hi-res — replaces the broken stiffness threshold
+    const conn = computeAxisConnectivity(hiRes.solidMask, N_HI);
+    connect_idx = +(((conn.spansX ? 1 : 0) + (conn.spansY ? 1 : 0) + (conn.spansZ ? 1 : 0)) / 3).toFixed(2);
+
+    // Pore metrics from the same prebuilt field — saves a rebuild
+    pores = analyzePoresFromField(hiRes.rawField, hiRes.voidMask, terms, offset, mode, wt, pipeR, phaseShift, cellSizeMm, N_HI);
+  } else {
+    // Solid/shell — geometric connectivity from the existing solver voxel field at N=16.
+    // The stiffness-threshold version was wrong for all modes (PI-TPMS just made it visible),
+    // so the swap applies regardless of mode.
+    const conn = computeAxisConnectivity(solidVox, N);
+    connect_idx = +(((conn.spansX ? 1 : 0) + (conn.spansY ? 1 : 0) + (conn.spansZ ? 1 : 0)) / 3).toFixed(2);
+
+    // Existing pore analysis at N=16 (rebuilds field locally)
+    const cm = cellMult || 1.0;
+    pores = analyzePores(terms, offset, mode, wt, pipeR, phaseShift, cm, cellSizeMm, 16);
+  }
+
+  const aniso          = Math.max(Ex,Ey,Ez) / (Math.min(Ex,Ey,Ez) + 1e-9);
+  const Emean3         = (Ex+Ey+Ez)/3;
+  const aniso_efficiency = aniso / (rho+1e-9);
+  const Emax           = Math.max(Ex,Ey,Ez);
+  const axial_dominance = Emax / (Ex+Ey+Ez-Emax+1e-9);
+  const variance       = ((Ex-Emean3)**2+(Ey-Emean3)**2+(Ez-Emean3)**2)/3;
+  const ortho_contrast = Emean3>0 ? Math.sqrt(variance)/Emean3 : 0;
+
+  // Load path efficiency: peak stiffness normalised by both density and solid stiffness
+  // Pure geometry efficiency — independent of material choice
+  const Es_ref = Es || 100;
+  const load_path_eff = Emax / (rho * Es_ref + 1e-9);
+
+  // Stiff axis: which direction carries the peak stiffness
+  const stiff_axis = Emax === Ex ? 'X' : Emax === Ey ? 'Y' : 'Z';
+
+  // (connect_idx is computed above in the hi-res analysis block — geometric BFS,
+  // not the stiffness-threshold proxy that was wrong for PI-TPMS.)
+
+  // Run thermal FFT-CG — reuses solid voxel grid from elastic solve
+  const ks_val = ks || 1.0;  // normalized if no material selected
+  const kv_val = ks_val * 0.0003; // void (air) ≈ 0.03% of solid
+  const therm = thermalHomogenize(solidVox, N, ks_val, kv_val);
+  const { kx, ky, kz } = therm;
+  const kmax = Math.max(kx, ky, kz);
+  const kmean = (kx + ky + kz) / 3;
+  const thermal_anisotropy = kmax / (Math.min(kx,ky,kz) + 1e-9);
+  const k_density = rho > 0 ? kmean / rho : 0;
+
+  // Strain energy density and microstrain — derived from C_eff, zero extra solve cost
+  // sig is in GPa (same units as Ex/Ey/Ez from solver)
+  // U = σ²/(2E) in GPa units = GJ/m³; convert to practical units: × 1000 = MJ/m³
+  // microstrain = (σ/E) × 10⁶ με  — direct and unit-consistent
+  const sig = (sigma_ref !== null && sigma_ref !== undefined)
+    ? sigma_ref          // already in GPa from getSigmaRef()
+    : Es_ref * 0.0001;  // fallback: 0.01% of Es (very small normalized load)
+  const microstrain_x = +(sig / (Ex + 1e-9) * 1e6).toFixed(0);
+  const microstrain_y = +(sig / (Ey + 1e-9) * 1e6).toFixed(0);
+  const microstrain_z = +(sig / (Ez + 1e-9) * 1e6).toFixed(0);
+  // Mean strain energy density in kJ/m³ — sig in GPa, E in GPa → U in GPa = GJ/m³ × 1e6 = kJ/m³
+  const U_strain = +(((sig*sig/(2*(Ex+1e-9))) + (sig*sig/(2*(Ey+1e-9))) + (sig*sig/(2*(Ez+1e-9)))) / 3 * 1e6).toFixed(1);
+
+  // (Pore analysis is computed above in the hi-res analysis block —
+  // hi-res N=96 for PI-TPMS, existing N=16 path for solid/shell.)
+
+  // Weighted average microstrain — isotropic weights (1/3 each)
+  // Reports the expected strain under omnidirectional loading
+  const microstrain_avg = Math.round((microstrain_x + microstrain_y + microstrain_z) / 3);
+
+  return {
+    volume_fraction:    +(rho*100).toFixed(2),
+    Ex_GPa:             +Ex.toFixed(2),
+    Ey_GPa:             +Ey.toFixed(2),
+    Ez_GPa:             +Ez.toFixed(2),
+    anisotropy:         +Math.min(aniso,99).toFixed(3),
+    stiffness_density:  +((Ex+Ey+Ez)/3/rho).toFixed(2),
+    aniso_efficiency:   +Math.min(aniso_efficiency,999).toFixed(2),
+    axial_dominance:    +Math.min(axial_dominance,99).toFixed(2),
+    ortho_contrast:     +ortho_contrast.toFixed(3),
+    load_path_eff:      +Math.min(load_path_eff,9.999).toFixed(3),
+    stiff_axis,
+    connect_idx,
+    keff_x:             +kx.toFixed(3),
+    keff_y:             +ky.toFixed(3),
+    keff_z:             +kz.toFixed(3),
+    thermal_anisotropy: +Math.min(thermal_anisotropy,99).toFixed(2),
+    k_density:          +k_density.toFixed(3),
+    U_strain,
+    microstrain_x,
+    microstrain_y,
+    microstrain_z,
+    microstrain_avg,
+    pore_size:          pores.pore_size,
+    throat_size:        pores.throat_size,
+    perc_idx:           pores.perc_idx,
+    surface_complexity: +complexity.toFixed(3)
+  };
+}
 
 
+// ─── Solver Worker Pool ──────────────────────────────────────────────────────
+// Path B from the v0.1 review: move the FFT-CG solver off the main thread.
+// Main thread stays responsive (UI, render, hover), and we get parallel design
+// solves on multicore — typical 4-8× wall-clock speedup over single-threaded.
+//
+// Architecture:
+//   - Worker source built at runtime by stringifying the solver functions
+//     defined above (single source of truth — no copy-paste).
+//   - Pool holds N workers, where N = navigator.hardwareConcurrency - 1
+//     (leave one core for UI), capped at 8.
+//   - Each worker has its own SolverWorkspace and Gamma cache. First design
+//     each worker handles pays the Gamma build cost; subsequent designs are free.
+//   - Continuous dispatch: each result triggers the next sample, keeping all
+//     workers busy until validCount target or cancellation.
+//   - Sample generation (Sobol + Math.random) stays on main thread for
+//     deterministic Sobol sequence regardless of completion order.
 
+function buildSolverWorkerSource() {
+  // Stringify all solver functions defined on main thread.
+  // Order matters for `const` references but function declarations are hoisted.
+  const fns = [
+    isoC, evaluateTpms, evaluateTpmsWithGrad, buildVoxels,
+    fft1d, fft3d, buildGamma,
+    getSolverWorkspace, applyGammaRow, cgSolveNormal,
+    getElasticGamma, getThermalGamma, invalidateSolverCaches,
+    fftHomogenize, thermalHomogenize,
+    computeAxisConnectivity, buildHiResField, analyzePoresFromField, analyzePores,
+    estimateHomogenization
+  ];
 
+  return [
+    // Solver constants (must come before any worker-local 'let' that depends on them)
+    `const FFT_N_STD = ${FFT_N_STD};`,
+    `const FFT_N_PI = ${FFT_N_PI};`,
+    `const RHO_MIN_STD = ${RHO_MIN_STD};`,
+    `const RHO_MIN_PI = ${RHO_MIN_PI};`,
+    `const RHO_MAX = ${RHO_MAX};`,
+    `const CG_TOL = ${CG_TOL};`,
+    `const CG_MAXITER = ${CG_MAXITER};`,
+    // Worker-local state — each worker has its own caches
+    `let _solverWorkspace = null;`,
+    `let _solverWorkspaceN = 0;`,
+    `let _cachedElasticGamma = null, _cachedElasticKey = '';`,
+    `let _cachedThermalGamma = null, _cachedThermalKey = '';`,
+    // Function bodies (live source of truth — main thread definitions)
+    ...fns.map(f => f.toString()),
+    // Message handler — receives compute_design messages, returns results
+    `self.addEventListener('message', e => {
+       const msg = e.data;
+       if (msg.type === 'compute_design') {
+         try {
+           const hom = estimateHomogenization(
+             msg.terms, msg.offset, msg.scaleX, msg.scaleY, msg.scaleZ,
+             msg.Es, msg.nu, msg.baseline, msg.sweepMode, msg.sweepWall,
+             msg.nWeights, msg.sweepPipeR, msg.sweepPhaseShift,
+             msg.ks, msg.sigma_ref, msg.voxelToUm, msg.cellMult
+           );
+           self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, hom });
+         } catch (err) {
+           self.postMessage({
+             type: 'error', attemptIdx: msg.attemptIdx,
+             message: err.message || String(err),
+             stack: err.stack || ''
+           });
+         }
+       } else if (msg.type === 'invalidate_caches') {
+         invalidateSolverCaches();
+         self.postMessage({ type: 'caches_invalidated' });
+       }
+     });`
+  ].join('\n\n');
+}
 
+class SolverPool {
+  constructor(nWorkers) {
+    this.nWorkers = nWorkers;
+    this.workers = [];
+    this.idle = [];
+    this.queue = [];                 // pending design specs awaiting an idle worker
+    this.pending = new Map();        // attemptIdx → { resolve, reject }
+    this.terminated = false;
 
+    const src = buildSolverWorkerSource();
+    const blob = new Blob([src], { type: 'application/javascript' });
+    this.workerUrl = URL.createObjectURL(blob);
 
+    for (let i = 0; i < nWorkers; i++) {
+      const w = new Worker(this.workerUrl);
+      w._idx = i;
+      w.addEventListener('message', e => this._onMessage(w, e.data));
+      w.addEventListener('error', e => this._onError(w, e));
+      this.workers.push(w);
+      this.idle.push(w);
+    }
+    // URL no longer needed once workers are spawned
+    URL.revokeObjectURL(this.workerUrl);
+  }
 
+  // Returns a Promise resolving with { attemptIdx, hom } or rejecting on error.
+  dispatch(spec) {
+    if (this.terminated) return Promise.reject(new Error('pool terminated'));
+    return new Promise((resolve, reject) => {
+      this.pending.set(spec.attemptIdx, { resolve, reject });
+      const worker = this.idle.pop();
+      if (worker) {
+        worker.postMessage(spec);
+      } else {
+        this.queue.push(spec);
+      }
+    });
+  }
+
+  _onMessage(worker, msg) {
+    if (msg.type === 'result' || msg.type === 'error') {
+      const p = this.pending.get(msg.attemptIdx);
+      if (p) {
+        this.pending.delete(msg.attemptIdx);
+        if (msg.type === 'result') p.resolve(msg);
+        else p.reject(new Error(msg.message + (msg.stack ? '\n' + msg.stack : '')));
+      }
+      // Worker is now free — give it queued work or mark idle
+      const next = this.queue.shift();
+      if (next) worker.postMessage(next);
+      else this.idle.push(worker);
+    }
+  }
+
+  _onError(worker, e) {
+    console.error(`[SolverPool] worker ${worker._idx} error:`, e.message, e);
+    // Reject any pending designs assigned to this worker (we don't track which,
+    // so reject the most recent one as a heuristic — rare path)
+  }
+
+  // Stop all workers. Pending promises are rejected.
+  terminate() {
+    if (this.terminated) return;
+    this.terminated = true;
+    for (const w of this.workers) w.terminate();
+    for (const p of this.pending.values()) p.reject(new Error('pool terminated'));
+    this.workers = [];
+    this.idle = [];
+    this.queue = [];
+    this.pending.clear();
+  }
+}
+
+// Module-scope singleton — created lazily, reused across sweeps.
+// Avoids worker startup latency on every sweep run.
+let _solverPool = null;
+function getSolverPool() {
+  if (!_solverPool || _solverPool.terminated) {
+    const n = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
+    _solverPool = new SolverPool(n);
+  }
+  return _solverPool;
+}
+
+// ─── Sobol low-discrepancy sequence ──────────────────────────────────────────
+// Drop-in replacement for Math.random() that gives much better space coverage
+// at small sample counts. For 200 samples in 6+ dimensions, Sobol typically
+// has ~3× lower star-discrepancy than uniform random — meaning fewer "clumps"
+// and fewer "holes" in the sampled parameter space.
+//
+// Dimensions are assigned in order of importance:
+//   dim 0-2: scaleX, scaleY, scaleZ      (always — most impactful axes)
+//   dim 3:   offset / pipe_radius / nWeight_x  (mode-dependent primary)
+//   dim 4-7: per-term coefficients
+//   dim 8+:  high-frequency jitter — falls through to Math.random()
+//
+// Direction numbers (Joe-Kuo "new-joe-kuo-6.21201" short table) for d≤8.
+// Reference: http://web.maths.unsw.edu.au/~fkuo/sobol/
+class SobolSeq {
+  constructor(d) {
+    this.d = Math.min(d, 8);
+    this.nbits = 30;  // 2^30 ≈ 1B points — far more than any sweep needs
+    this.scale = 1.0 / (1 << this.nbits);
+
+    // Joe-Kuo polynomials and m-values for dims 1..8
+    // Format: { s: degree of primitive polynomial, a: poly coefficient bits, m: initial direction values }
+    const polys = [
+      { s: 0, a: 0,  m: [] },               // dim 1 — Van der Corput (special)
+      { s: 1, a: 0,  m: [1] },              // dim 2
+      { s: 2, a: 1,  m: [1, 3] },           // dim 3
+      { s: 3, a: 1,  m: [1, 3, 1] },        // dim 4
+      { s: 3, a: 2,  m: [1, 1, 1] },        // dim 5
+      { s: 4, a: 1,  m: [1, 1, 3, 3] },     // dim 6
+      { s: 4, a: 4,  m: [1, 3, 5, 13] },    // dim 7
+      { s: 5, a: 2,  m: [1, 1, 5, 5, 17] }, // dim 8
+    ];
+
+    this.V = [];  // direction numbers V[j][k] for dim j, bit position k
+    for (let j = 0; j < this.d; j++) {
+      const Vj = new Uint32Array(this.nbits);
+      const { s, a, m } = polys[j];
+
+      if (j === 0) {
+        // First dimension: V[k] = 2^(nbits-1-k) — gives Van der Corput sequence
+        for (let k = 0; k < this.nbits; k++) Vj[k] = 1 << (this.nbits - 1 - k);
+      } else {
+        // Initialize from m values
+        for (let k = 0; k < s; k++) Vj[k] = m[k] << (this.nbits - 1 - k);
+        // Recurrence for k >= s, using primitive polynomial coefficients in 'a'
+        for (let k = s; k < this.nbits; k++) {
+          let val = Vj[k-s] ^ (Vj[k-s] >>> s);
+          for (let i = 1; i < s; i++) {
+            if ((a >>> (s - 1 - i)) & 1) val ^= Vj[k-i];
+          }
+          Vj[k] = val >>> 0;
+        }
+      }
+      this.V.push(Vj);
+    }
+
+    this.X = new Uint32Array(this.d);
+    this.i = 0;
+  }
+
+  // Returns the next d-dimensional point as Float64Array values in [0, 1).
+  // Index advances every call — allocate once and reuse if calling often.
+  next(out) {
+    if (!out) out = new Float64Array(this.d);
+    if (this.i === 0) {
+      this.i++;
+      for (let j = 0; j < this.d; j++) out[j] = 0.5 * this.scale;  // tiny offset to avoid zero
+      return out;
+    }
+    // Position of lowest 0-bit in (i - 1) — drives which V to XOR
+    let c = 0, m = this.i - 1;
+    while (m & 1) { c++; m >>>= 1; }
+    for (let j = 0; j < this.d; j++) {
+      this.X[j] = (this.X[j] ^ this.V[j][c]) >>> 0;
+      out[j] = this.X[j] * this.scale;
+    }
+    this.i++;
+    return out;
+  }
+
+  reset() {
+    this.X.fill(0);
+    this.i = 0;
+  }
+}
+
+// Sampler facade — switches between uniform random and Sobol per user choice.
+// Returns a fresh sample object each call. Sobol advances internal state every
+// call (including discarded designs) — drift across runs is deterministic.
+function makeSampler(method, dims) {
+  if (method === 'sobol') {
+    const sobol = new SobolSeq(dims);
+    const buf = new Float64Array(sobol.d);
+    return {
+      method: 'sobol',
+      next: () => {
+        sobol.next(buf);
+        return {
+          // Sobol samples for first 8 dims; rest fall through to Math.random()
+          u: (i) => i < sobol.d ? buf[i] : Math.random()
+        };
+      }
+    };
+  }
+  return {
+    method: 'uniform',
+    next: () => ({ u: () => Math.random() })
+  };
+}
+
+// ─── Sweep ────────────────────────────────────────────────────────────────────
+function cancelSweep() {
+  window._sweepCancelled = true;
+}
+
+async function runSweep() {
+  if (!baseRecipe) return;
+
+  const btn = document.getElementById('runBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Running...';
+  cancelBtn.style.display = 'block';
+  window._sweepCancelled = false;
+  results = [];
+  invalidateSolverCaches(); // main-thread cache (kept for any in-process calls)
+
+  // Workers carry their own caches — invalidate them too so this sweep starts clean
+  // (different material may mean different Es/nu/ks → different Gamma).
+  // Actual cache invalidation in workers happens lazily via getElasticGamma's keying.
+
+  const nSamples = parseInt(samplesSlider.value);
+  const nom = baseRecipe.geometry.cell_scale || 1.0;
+  const mat = getSolverMaterial();
+  const Es = mat.Es;
+  const nu = mat.nu;
+  const ks = mat.ks;
+  const sigma_ref = getSigmaRef() ?? Es * 0.0001;
+  const voxelToUm = getVoxelToUm();
+
+  const get = id => parseFloat(document.getElementById(id).value) || 0;
+  const xLo = nom * get('scaleXlo') / 100;
+  const xHi = nom * get('scaleXhi') / 100;
+  const yLo = nom * get('scaleYlo') / 100;
+  const yHi = nom * get('scaleYhi') / 100;
+  const zLo = nom * get('scaleZlo') / 100;
+  const zHi = nom * get('scaleZhi') / 100;
+
+  log('accent', `Starting sweep: ${nSamples} samples`);
+  log('info', `Periodicity X: ${xLo.toFixed(2)}→${xHi.toFixed(2)} · Y: ${yLo.toFixed(2)}→${yHi.toFixed(2)} · Z: ${zLo.toFixed(2)}→${zHi.toFixed(2)}`);
+
+  const progressWrap = document.getElementById('progressWrap');
+  const progressFill = document.getElementById('progressFill');
+  const progressLabel = document.getElementById('progressLabel');
+  const progressPct = document.getElementById('progressPct');
+  progressWrap.classList.add('visible');
+  document.getElementById('logBadge').textContent = 'running';
+
+  const sweepMode = baseRecipe.geometry?.mode || 'solid';
+  const sweepWall = baseRecipe.geometry?.wall_thickness || 0.3;
+
+  // Sampling method — Sobol low-discrepancy gives better coverage than uniform
+  // random at small N. Falls through to Math.random() for high-D jitter.
+  const samplingMethod = document.getElementById('samplingMethod')?.value || 'sobol';
+  const sampler = makeSampler(samplingMethod, 8);
+
+  // Solver pool — created lazily and reused across sweeps
+  const pool = getSolverPool();
+  log('info', `Sampling: ${samplingMethod === 'sobol' ? 'Sobol low-discrepancy (d=8) + uniform random for jitter' : 'uniform random'} · coef normalisation: max(|c|)=1 · Workers: ${pool.nWorkers}`);
+
+  let attempts = 0;
+  const MAX_ATTEMPTS = nSamples * 20; // safety cap — never spin forever
+  let validCount = 0;
+  let discarded = 0;
+  const TRIG_SWAP_PROB = 0.20;
+  const FREQ_JITTER    = 0.20;
+
+  // Build a single design spec for one attempt — main-thread Sobol+random consumed here.
+  // Returns the dispatch payload that the worker will compute on.
+  function buildDesignSpec(attemptIdx) {
+    const draw = sampler.next();
+
+    const scaleX = xLo + draw.u(0) * (xHi - xLo);
+    const scaleY = yLo + draw.u(1) * (yHi - yLo);
+    const scaleZ = zLo + draw.u(2) * (zHi - zLo);
+
+    // Per-term coefficients use Sobol dims 4..7, beyond that uniform random
+    const terms = baseRecipe.surface.terms.map((t, ti) => ({
+      ...t,
+      on: true,
+      coef: +(0.05 + (ti < 4 ? draw.u(4 + ti) : Math.random()) * 4.95).toFixed(3),
+      factors: t.factors.map(f => {
+        // Trig swap and frequency jitter are high-frequency noise — uniform random
+        let trig = f.trig;
+        if (Math.random() < TRIG_SWAP_PROB) {
+          trig = trig.startsWith('sin') ? trig.replace('sin', 'cos') : trig.replace('cos', 'sin');
+        }
+        const jitter = v => Math.max(0.5, Math.min(8, v * (1 + (Math.random() * 2 - 1) * FREQ_JITTER)));
+        return { trig, fx: +jitter(f.fx).toFixed(2), fy: +jitter(f.fy).toFixed(2), fz: +jitter(f.fz).toFixed(2) };
+      })
+    }));
+
+    // Normalise coefficients to max(|c|) = 1. This decouples geometric parameters
+    // (pipe_radius, wall_thickness, offset) from coefficient draw scale: without it,
+    // a [0.05, 5.0] coef draw with one large term and one small term creates field
+    // magnitudes ~10–15, making pipe_radius=0.18 a hair-thin slice of field space →
+    // most PI-TPMS attempts land in the degenerate corner. Normalisation preserves
+    // term *ratios* (which control topology) while making the geometric parameters
+    // mean the same physical thing across every draw. Empirical effect on PI-TPMS
+    // discard rate: 75% → ~0% in synthetic sweeps.
+    const maxAbsCoef = Math.max(...terms.map(t => Math.abs(t.coef)));
+    if (maxAbsCoef > 0) {
+      terms.forEach(t => { t.coef = +(t.coef / maxAbsCoef).toFixed(3); });
+    }
+
+    let offset = 0, nWeights = null, sweepPipeR = null, sweepPhaseShift = null;
+
+    if (sweepMode === 'pi-tpms') {
+      const basePipeR = baseRecipe.geometry?.pipe_radius || 0.1;
+      sweepPipeR = +Math.max(0.02, Math.min(0.35,
+        basePipeR * (0.6 + draw.u(3) * 0.8))).toFixed(3);
+      const EIGHTHS = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0];
+      let px, py, pz;
+      do {
+        px = EIGHTHS[Math.floor(Math.random() * EIGHTHS.length)];
+        py = EIGHTHS[Math.floor(Math.random() * EIGHTHS.length)];
+        pz = EIGHTHS[Math.floor(Math.random() * EIGHTHS.length)];
+      } while (px === 0 && py === 0 && pz === 0);
+      sweepPhaseShift = { x: px, y: py, z: pz };
+    } else if (sweepMode === 'shell') {
+      offset = baseRecipe.geometry.offset;
+      const rx = 0.20 + draw.u(3) * 2.8;
+      const ry = 0.20 + Math.random() * 2.8;
+      const rz = 0.20 + Math.random() * 2.8;
+      const mean = (rx + ry + rz) / 3;
+      nWeights = { wx: rx/mean, wy: ry/mean, wz: rz/mean };
+    } else {
+      offset = baseRecipe.geometry.offset + (draw.u(3) - 0.5) * 0.4;
+    }
+
+    const baseline = { ...baseRecipe.homogenization, cell_scale: nom };
+
+    return {
+      type: 'compute_design',
+      attemptIdx,
+      // Sample parameters (round-tripped through worker for result aggregation)
+      terms, offset, scaleX, scaleY, scaleZ,
+      sweepMode, sweepWall, nWeights, sweepPipeR, sweepPhaseShift,
+      // Solver inputs
+      Es, nu, ks, baseline, sigma_ref, voxelToUm, cellMult: nom
+    };
+  }
+
+  // Update progress UI — called as results arrive
+  function updateProgress() {
+    const pctValid    = validCount / nSamples * 100;
+    const pctAttempts = attempts / MAX_ATTEMPTS * 100;
+    const pct = Math.min(99, Math.round(Math.max(pctValid, pctAttempts)));
+    progressFill.style.width = pct + '%';
+    progressPct.textContent = pct + '%';
+    const discardRate = attempts > 0 ? Math.round(discarded / attempts * 100) : 0;
+    progressLabel.textContent = `Valid: ${validCount} / ${nSamples} · discarded: ${discarded} (${discardRate}%)`;
+  }
+
+  // Continuous-dispatch chain: each result triggers the next dispatch from the same worker.
+  // Returns a promise that resolves when this worker's chain hits a stop condition
+  // (target reached / cancelled / attempt budget exhausted).
+  function dispatchChain() {
+    if (validCount >= nSamples) return Promise.resolve();
+    if (attempts >= MAX_ATTEMPTS) return Promise.resolve();
+    if (window._sweepCancelled) return Promise.resolve();
+
+    attempts++;
+    const spec = buildDesignSpec(attempts);
+
+    return pool.dispatch(spec).then(msg => {
+      const hom = msg.hom;
+      if (hom && !hom.degenerate) {
+        // Valid design — keep it (we'll assign sequential IDs after sweep ends)
+        validCount++;
+        results.push({
+          attemptIdx: spec.attemptIdx,
+          scaleX: +spec.scaleX.toFixed(3),
+          scaleY: +spec.scaleY.toFixed(3),
+          scaleZ: +spec.scaleZ.toFixed(3),
+          offset: +spec.offset.toFixed(3),
+          nTerms: spec.terms.length,
+          nWeights: spec.nWeights ? { wx: +spec.nWeights.wx.toFixed(4), wy: +spec.nWeights.wy.toFixed(4), wz: +spec.nWeights.wz.toFixed(4) } : null,
+          pipe_radius: spec.sweepPipeR,
+          phase_shift: spec.sweepPhaseShift,
+          ...hom,
+          terms: spec.terms.map(t => t.factors.map(f => f.trig[0]).join('')).join('|'),
+          termObjects: spec.terms.map(t => ({...t, factors: t.factors.map(f => ({...f}))}))
+        });
+      } else {
+        discarded++;
+      }
+      updateProgress();
+      // Chain the next dispatch (recursion via promise — keeps the worker busy)
+      return dispatchChain();
+    }).catch(err => {
+      log('warn', `Worker error on attempt ${spec.attemptIdx}: ${err.message}`);
+      discarded++;
+      return dispatchChain();
+    });
+  }
+
+  // Kick off nWorkers parallel chains. Each chain keeps its worker busy until done.
+  const chains = [];
+  for (let i = 0; i < pool.nWorkers; i++) {
+    chains.push(dispatchChain());
+  }
+  await Promise.all(chains);
+
+  if (window._sweepCancelled) {
+    log('warn', `Sweep cancelled at ${validCount} samples — showing results so far`);
+  }
+
+  // Sort by attemptIdx and assign sequential IDs — preserves Sobol determinism
+  // regardless of worker completion order.
+  results.sort((a, b) => a.attemptIdx - b.attemptIdx);
+  results.forEach((r, i) => { r.id = i + 1; });
+
+  // final progress
+  progressFill.style.width = '100%';
+  progressPct.textContent = '100%';
+
+  log('success', `${results.length} valid designs collected · ${discarded} degenerate discarded (${attempts} attempts)`);
+  const totalSampled = results.length;
+
+  if (totalSampled === 0) {
+    progressWrap.classList.remove('visible');
+    document.getElementById('logBadge').textContent = 'done';
+    btn.disabled = false;
+    btn.textContent = '▶ Run Sweep';
+    cancelBtn.style.display = 'none';
+    window._sweepCancelled = false;
+    return;
+  }
+
+  document.getElementById('statSampled').textContent = totalSampled;
+
+  const pctOf = (n) => `${Math.round(n / totalSampled * 100)}% of total`;
+
+  // Apply filters — capture count after each rank
+  let filtered = [...results];
+
+  const r1Active = (document.getElementById('r1metric')?.value || 'none') !== 'none';
+  const r2Active = (document.getElementById('r2metric')?.value || 'none') !== 'none';
+  const r3Active = (document.getElementById('r3metric')?.value || 'none') !== 'none';
+
+  filtered = applyRankFilter(filtered, 'r1metric', 1, null, 'sort');
+  log('info', r1Active
+    ? `After Rank 1 sort: ${filtered.length} designs`
+    : `Rank 1: inactive — no metric selected`);
+  document.getElementById('statRank1').textContent = filtered.length;
+  document.getElementById('statRank1Pct').textContent = pctOf(filtered.length);
+
+  filtered = applyRankFilter(filtered, 'r2metric', 2, 'r2keep', 'keep');
+  log('info', r2Active
+    ? `After Rank 2 keep top %: ${filtered.length} designs`
+    : `Rank 2: inactive — no metric selected (filter skipped)`);
+  document.getElementById('statRank2').textContent = filtered.length;
+  document.getElementById('statRank2Pct').textContent = pctOf(filtered.length);
+
+  filtered = applyRankFilter(filtered, 'r3metric', 3, 'r3keep', 'keep');
+  log('success', r3Active
+    ? `After Rank 3 keep top %: ${filtered.length} designs passed all filters`
+    : `Rank 3: inactive — no metric selected (filter skipped) · ${filtered.length} designs final`);
+  document.getElementById('statRank3').textContent = filtered.length;
+  document.getElementById('statRank3Pct').textContent = pctOf(filtered.length);
+
+  // Peak values for rank filter cards
+  function setPeakCard(valId, labelId, subId, metricKey, dir, data) {
+    const label = METRIC_LABELS[metricKey] || metricKey;
+    const disabled = !metricKey || metricKey === 'none';
+    document.getElementById(labelId).textContent = disabled ? '—' : `Peak ${label}`;
+    if (disabled || data.length === 0) {
+      document.getElementById(valId).textContent = '—';
+      document.getElementById(subId).textContent = 'no filter chosen';
+      return;
+    }
+    const vals = data.map(d => typeof d[metricKey] === 'number' ? d[metricKey] : null).filter(v => v !== null);
+    if (vals.length === 0) { document.getElementById(valId).textContent = '—'; return; }
+    const peak = dir === 'min' ? Math.min(...vals) : Math.max(...vals);
+    const fmt = peak >= 1000 ? Math.round(peak).toString()
+               : peak >= 10  ? peak.toFixed(1)
+               : peak.toFixed(2);
+    const suffix = metricKey === 'volume_fraction' ? '%' : metricKey === 'anisotropy' ? '×' : '';
+    document.getElementById(valId).textContent = fmt + suffix;
+    document.getElementById(subId).textContent = dir === 'min' ? '▼ min' : '▲ max';
+  }
+
+  const r1key = document.getElementById('r1metric')?.value;
+  const r2key = document.getElementById('r2metric')?.value;
+  const r3key = document.getElementById('r3metric')?.value;
+  setPeakCard('statPeakR1','statPeakR1Label','statPeakR1Sub', r1key, directions[1]||'max', filtered);
+  setPeakCard('statPeakR2','statPeakR2Label','statPeakR2Sub', r2key, directions[2]||'max', filtered);
+  setPeakCard('statPeakR3','statPeakR3Label','statPeakR3Sub', r3key, directions[3]||'max', filtered);
+
+  // Store reference for rank mode switching, then apply final ranking
+  currentFiltered = filtered;
+  applyFinalRanking(filtered);
+
+  progressWrap.classList.remove('visible');
+  document.getElementById('logBadge').textContent = 'done';
+  btn.disabled = false;
+  btn.textContent = '▶ Run Sweep';
+  cancelBtn.style.display = 'none';
+  window._sweepCancelled = false;
+}
 
 // ─── Export Results ───────────────────────────────────────────────────────────
 function exportResults() {
@@ -1933,21 +3718,19 @@ function exportResults() {
     return;
   }
 
-  // Capture domain and material at export time
-  const exportDomain   = document.getElementById('domainSel')?.value || 'general';
-  const exportMatKey   = document.getElementById('materialSel')?.value || null;
-  const exportMat      = exportMatKey ? MATERIALS[exportMatKey] : null;
-
   const payload = {
     meta: {
-      exported:  new Date().toISOString(),
-      preset:    baseRecipe.meta?.preset || 'unknown',
-      version:   baseRecipe.meta?.version || '?',
-      count:     currentFiltered.length,
-      domain:    exportDomain,
-      material:  exportMat ? exportMat.label : 'agnostic',
-      E_solid_GPa: exportMat ? exportMat.E  : (baseRecipe.homogenization?.E_solid_GPa || 100),
-      poisson:     exportMat ? exportMat.nu : (baseRecipe.homogenization?.poisson || 0.3),
+      exported: new Date().toISOString(),
+      preset:   baseRecipe.meta?.preset || 'unknown',
+      version:  baseRecipe.meta?.version || '?',
+      count:    currentFiltered.length,
+      solver: {
+        method:   'FFT-CG',
+        N_std:    FFT_N_STD,
+        N_pi:     FFT_N_PI,
+        cg_tol:   CG_TOL,
+        cg_maxiter: CG_MAXITER
+      }
     },
     base: {
       E_solid_GPa:    baseRecipe.homogenization?.E_solid_GPa || 100,
@@ -1958,49 +3741,28 @@ function exportResults() {
       cell_scale:     baseRecipe.geometry?.cell_scale || 1.0
     },
     designs: currentFiltered.map(d => ({
-      id:         d.id,
-      filterRank: d.filterRank,
-
-      // Full computed metrics — all fields available for ScaffoldVault recommendation engine
-      metrics: {
-        Ex_GPa:             d.Ex_GPa,
-        Ey_GPa:             d.Ey_GPa,
-        Ez_GPa:             d.Ez_GPa,
-        anisotropy:         d.anisotropy,
-        volume_fraction:    d.volume_fraction,
-        stiffness_density:  d.stiffness_density,
-        aniso_efficiency:   d.aniso_efficiency,
-        axial_dominance:    d.axial_dominance,
-        ortho_contrast:     d.ortho_contrast,
-        load_path_eff:      d.load_path_eff,
-        stiff_axis:         d.stiff_axis,
-        connect_idx:        d.connect_idx,
-        keff_x:             d.keff_x,
-        keff_y:             d.keff_y,
-        keff_z:             d.keff_z,
-        thermal_anisotropy: d.thermal_anisotropy,
-        k_density:          d.k_density,
-        U_strain:           d.U_strain,
-        microstrain_x:      d.microstrain_x,
-        microstrain_y:      d.microstrain_y,
-        microstrain_z:      d.microstrain_z,
-        microstrain_avg:    d.microstrain_avg,
-        pore_size:          d.pore_size,
-        throat_size:        d.throat_size,
-        perc_idx:           d.perc_idx,
-        surface_complexity: d.surface_complexity,
+      id:             d.id,
+      filterRank:     d.filterRank,
+      // Browser FFT-CG estimates (N=16³ for TPMS, N=32³ for PI-TPMS)
+      browser: {
+        Ex_GPa:            d.Ex_GPa,
+        Ey_GPa:            d.Ey_GPa,
+        Ez_GPa:            d.Ez_GPa,
+        anisotropy:        d.anisotropy,
+        volume_fraction:   d.volume_fraction,
+        stiffness_density: d.stiffness_density,
+        aniso_efficiency:  d.aniso_efficiency,
+        axial_dominance:   d.axial_dominance,
+        ortho_contrast:    d.ortho_contrast
       },
-
+      // Full design definition for batch_validate.py
       design: {
         meta: baseRecipe.meta,
         surface: { type: 'terms', terms: d.termObjects },
         geometry: {
           ...baseRecipe.geometry,
-          offset:         d.offset,
-          // Fix: store per-design PI-TPMS parameters, not base recipe defaults
-          pipe_radius:    d.pipe_radius  ?? baseRecipe.geometry?.pipe_radius ?? null,
-          phase_shift:    d.phase_shift  ?? baseRecipe.geometry?.phase_shift ?? null,
-          normal_weights: d.nWeights     || null,
+          offset:          d.offset,
+          normal_weights:  d.nWeights || null
         },
         homogenization: baseRecipe.homogenization
       }
@@ -2019,384 +3781,6 @@ function exportResults() {
   log('success', `Exported ${currentFiltered.length} designs → ${a.download}`);
   log('info', 'Run batch_validate.py on this file to get GPU-validated stiffness values');
 }
-
-
-// One worker per logical CPU core minus one (keeps the UI thread responsive).
-// Workers load solver.js directly — no code serialization needed.
-var _workerCount = Math.max(1, (navigator.hardwareConcurrency || 4) - 1);
-var _workers = [];
-var _workerFree = [];       // indices of idle workers
-var _sweepActive = false;
-var _sweepValidCount = 0;
-var _sweepDiscarded = 0;
-var _sweepAttempts = 0;
-var _sweepTarget = 0;
-var _sweepMaxAttempts = 0;
-var _sweepSampleStore = {};  // id → { params, termObjects }
-var _sweepGenState = null;   // closure holding sweep parameters for generateSample()
-var _sweepBtn = null;
-var _sweepCancelBtn = null;
-var _sweepProgressWrap = null;
-var _sweepProgressFill = null;
-var _sweepProgressLabel = null;
-var _sweepProgressPct = null;
-
-function initWorkerPool() {
-  for (var i = 0; i < _workerCount; i++) {
-    (function(idx) {
-      var w = new Worker('solver.js');
-      w.onmessage = function(e) { onWorkerResult(e, idx); };
-      _workers.push(w);
-      _workerFree.push(idx);
-    })(i);
-  }
-  log('info', 'Worker pool ready — ' + _workerCount + ' threads');
-}
-
-function onWorkerResult(e, workerIdx) {
-  var d = e.data;
-  if (d.type !== 'result') return;
-
-  var sample = _sweepSampleStore[d.id];
-  delete _sweepSampleStore[d.id];
-  _workerFree.push(workerIdx);
-
-  if (!_sweepActive) return;
-
-  var result = d.result;
-  if (result && !result.degenerate) {
-    _sweepValidCount++;
-    var fullResult = {
-      id:         _sweepValidCount,
-      scaleX:     sample.params.scaleX,
-      scaleY:     sample.params.scaleY,
-      scaleZ:     sample.params.scaleZ,
-      offset:     sample.params.offset,
-      nTerms:     sample.params.nTerms,
-      nWeights:   sample.params.nWeights,
-      pipe_radius: sample.params.pipeR,
-      phase_shift: sample.params.phaseShift,
-      terms:      sample.termObjects.map(function(t) { return t.factors.map(function(f) { return f.trig[0]; }).join(''); }).join('|'),
-      termObjects: sample.termObjects
-    };
-    // Merge homogenization result fields
-    var keys = Object.keys(result);
-    for (var ki = 0; ki < keys.length; ki++) fullResult[keys[ki]] = result[keys[ki]];
-    results.push(fullResult);
-  } else {
-    _sweepDiscarded++;
-  }
-
-  updateSweepProgress();
-
-  if (_sweepValidCount >= _sweepTarget) {
-    finalizeSweep();
-    return;
-  }
-
-  if (_sweepAttempts < _sweepMaxAttempts) {
-    dispatchNextSample(workerIdx);
-  } else {
-    // No more attempts to dispatch — check if all workers are idle
-    var allIdle = true;
-    for (var key in _sweepSampleStore) { allIdle = false; break; }
-    if (allIdle) finalizeSweep();
-  }
-}
-
-function dispatchNextSample(workerIdx) {
-  _sweepAttempts++;
-  var sample = generateSample(_sweepAttempts, _sweepGenState);
-  if (!sample) {
-    // Pre-rejected (degenerate shift) — try next
-    _sweepDiscarded++;
-    if (_sweepAttempts < _sweepMaxAttempts) {
-      dispatchNextSample(workerIdx);
-    }
-    return;
-  }
-  _sweepSampleStore[_sweepAttempts] = { params: sample.params, termObjects: sample.termObjects };
-  _workers[workerIdx].postMessage({ type: 'solve', id: _sweepAttempts, ...sample.payload });
-}
-
-function updateSweepProgress() {
-  if (!_sweepProgressFill) return;
-  var pct = Math.min(99, Math.round(_sweepValidCount / _sweepTarget * 100));
-  _sweepProgressFill.style.width = pct + '%';
-  _sweepProgressPct.textContent = pct + '%';
-  var discardRate = _sweepAttempts > 0 ? Math.round(_sweepDiscarded / _sweepAttempts * 100) : 0;
-  _sweepProgressLabel.textContent = 'Valid: ' + _sweepValidCount + ' / ' + _sweepTarget + ' · discarded: ' + _sweepDiscarded + ' (' + discardRate + '%)';
-}
-
-function finalizeSweep() {
-  _sweepActive = false;
-
-  _sweepProgressFill.style.width = '100%';
-  _sweepProgressPct.textContent = '100%';
-  log('success', results.length + ' valid designs collected · ' + _sweepDiscarded + ' degenerate discarded (' + _sweepAttempts + ' attempts)');
-
-  if (results.length === 0) {
-    _sweepProgressWrap.classList.remove('visible');
-    document.getElementById('logBadge').textContent = 'done';
-    _sweepBtn.disabled = false;
-    _sweepBtn.textContent = '▶ Run Sweep';
-    _sweepCancelBtn.style.display = 'none';
-    return;
-  }
-
-  document.getElementById('statSampled').textContent = results.length;
-  var pctOf = function(n) { return Math.round(n / results.length * 100) + '% of total'; };
-
-  var filtered = results.slice();
-  filtered = applyRankFilter(filtered, 'r1metric', 1, null, 'sort');
-  log('info', 'After Rank 1: ' + filtered.length + ' designs');
-  document.getElementById('statRank1').textContent = filtered.length;
-  document.getElementById('statRank1Pct').textContent = pctOf(filtered.length);
-
-  filtered = applyRankFilter(filtered, 'r2metric', 2, 'r2keep', 'keep');
-  log('info', 'After Rank 2: ' + filtered.length + ' designs');
-  document.getElementById('statRank2').textContent = filtered.length;
-  document.getElementById('statRank2Pct').textContent = pctOf(filtered.length);
-
-  filtered = applyRankFilter(filtered, 'r3metric', 3, 'r3keep', 'keep');
-  log('success', 'After Rank 3: ' + filtered.length + ' designs passed all filters');
-  document.getElementById('statRank3').textContent = filtered.length;
-  document.getElementById('statRank3Pct').textContent = pctOf(filtered.length);
-
-  function setPeakCard(valId, labelId, subId, metricKey, dir, data) {
-    var label = METRIC_LABELS[metricKey] || metricKey;
-    var disabled = !metricKey || metricKey === 'none';
-    document.getElementById(labelId).textContent = disabled ? '—' : 'Peak ' + label;
-    if (disabled || data.length === 0) {
-      document.getElementById(valId).textContent = '—';
-      document.getElementById(subId).textContent = 'no filter chosen';
-      return;
-    }
-    var vals = data.map(function(d) { return typeof d[metricKey] === 'number' ? d[metricKey] : null; }).filter(function(v) { return v !== null; });
-    if (vals.length === 0) { document.getElementById(valId).textContent = '—'; return; }
-    var peak = dir === 'min' ? Math.min.apply(null, vals) : Math.max.apply(null, vals);
-    var fmt = peak >= 1000 ? Math.round(peak).toString() : peak >= 10 ? peak.toFixed(1) : peak.toFixed(2);
-    var suffix = metricKey === 'volume_fraction' ? '%' : metricKey === 'anisotropy' ? '×' : '';
-    document.getElementById(valId).textContent = fmt + suffix;
-    document.getElementById(subId).textContent = dir === 'min' ? '▼ min' : '▲ max';
-  }
-
-  var r1key = document.getElementById('r1metric')?.value;
-  var r2key = document.getElementById('r2metric')?.value;
-  var r3key = document.getElementById('r3metric')?.value;
-  setPeakCard('statPeakR1','statPeakR1Label','statPeakR1Sub', r1key, directions[1]||'max', filtered);
-  setPeakCard('statPeakR2','statPeakR2Label','statPeakR2Sub', r2key, directions[2]||'max', filtered);
-  setPeakCard('statPeakR3','statPeakR3Label','statPeakR3Sub', r3key, directions[3]||'max', filtered);
-
-  currentFiltered = filtered;
-  applyFinalRanking(filtered);
-
-  _sweepProgressWrap.classList.remove('visible');
-  document.getElementById('logBadge').textContent = 'done';
-  _sweepBtn.disabled = false;
-  _sweepBtn.textContent = '▶ Run Sweep';
-  _sweepCancelBtn.style.display = 'none';
-}
-
-// ─── Sample parameter generator ───────────────────────────────────────────────
-// Pure parameter generation — no solving. Returns { payload, params, termObjects }
-// or null if the sample is pre-rejected (degenerate shift).
-function generateSample(attemptId, g) {
-  var scaleX = g.xLo + Math.random() * (g.xHi - g.xLo);
-  var scaleY = g.yLo + Math.random() * (g.yHi - g.yLo);
-  var scaleZ = g.zLo + Math.random() * (g.zHi - g.zLo);
-  var finalScaleX = scaleX, finalScaleY = scaleY, finalScaleZ = scaleZ;
-
-  var terms, offset, sweepWallJittered, nWeights, sweepPipeR, sweepPhaseShift;
-  offset = 0; sweepWallJittered = g.sweepWall; nWeights = null; sweepPipeR = null; sweepPhaseShift = null;
-
-  if (g.sweepMode === 'pi-tpms') {
-    terms = g.baseTerms.map(function(t) {
-      return { ...t, on: true, factors: t.factors.map(function(f) { return { ...f }; }) };
-    });
-    finalScaleX = finalScaleY = finalScaleZ = g.nom;
-
-    var basePipeR = g.basePipeR;
-    sweepPipeR = +Math.max(0.02, Math.min(0.35, basePipeR * (0.6 + Math.random() * 0.8))).toFixed(3);
-
-    // NOTE: 1.0 excluded — full-period shift is identical to 0 for all TPMS surfaces
-    var EIGHTHS = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
-    var degenerateIndices = new Set();
-    degenerateIndices.add(0); // (0,0,0) always degenerate
-    if (g.surfName && PI_SHIFT_LIBRARY[g.surfName]) {
-      var degs = PI_SHIFT_LIBRARY[g.surfName].degenerate || [];
-      for (var di = 0; di < degs.length; di++) {
-        var d = degs[di];
-        var ix2 = EIGHTHS.indexOf(d[0]);
-        var iy2 = EIGHTHS.indexOf(d[1]);
-        var iz2 = EIGHTHS.indexOf(d[2]);
-        if (ix2 >= 0 && iy2 >= 0 && iz2 >= 0) degenerateIndices.add(ix2 * 64 + iy2 * 8 + iz2);
-      }
-    }
-
-    var ix, iy, iz;
-    var tries = 0;
-    do {
-      ix = Math.floor(Math.random() * 8);
-      iy = Math.floor(Math.random() * 8);
-      iz = Math.floor(Math.random() * 8);
-      tries++;
-    } while (degenerateIndices.has(ix * 64 + iy * 8 + iz) && tries < 100);
-
-    if (tries >= 100) return null; // couldn't find non-degenerate shift
-    sweepPhaseShift = { x: EIGHTHS[ix], y: EIGHTHS[iy], z: EIGHTHS[iz] };
-
-  } else if (g.sweepMode === 'shell') {
-    terms = g.baseTerms.map(function(t) {
-      return { ...t, on: true, factors: t.factors.map(function(f) { return { ...f }; }) };
-    });
-    offset = g.baseOffset;
-    var rx = 0.20 + Math.random() * 2.8;
-    var ry = 0.20 + Math.random() * 2.8;
-    var rz = 0.20 + Math.random() * 2.8;
-    var mean = (rx + ry + rz) / 3;
-    nWeights = { wx: rx/mean, wy: ry/mean, wz: rz/mean };
-  } else {
-    var TRIG_SWAP_PROB = 0.20;
-    var FREQ_JITTER    = 0.20;
-    terms = g.baseTerms.map(function(t) {
-      return {
-        ...t, on: true,
-        coef: +(0.05 + Math.random() * 4.95).toFixed(3),
-        factors: t.factors.map(function(f) {
-          var trig = f.trig;
-          if (Math.random() < TRIG_SWAP_PROB) trig = trig.startsWith('sin') ? trig.replace('sin','cos') : trig.replace('cos','sin');
-          var jitter = function(v) { return Math.max(0.5, Math.min(8, v * (1 + (Math.random()*2-1)*FREQ_JITTER))); };
-          return { trig: trig, fx: +jitter(f.fx).toFixed(2), fy: +jitter(f.fy).toFixed(2), fz: +jitter(f.fz).toFixed(2) };
-        })
-      };
-    });
-    offset = g.baseOffset + (Math.random() - 0.5) * 0.4;
-  }
-
-  var termObjects = terms.map(function(t) { return { ...t, factors: t.factors.map(function(f) { return { ...f }; }) }; });
-
-  return {
-    params: {
-      scaleX: +finalScaleX.toFixed(3),
-      scaleY: +finalScaleY.toFixed(3),
-      scaleZ: +finalScaleZ.toFixed(3),
-      offset: +offset.toFixed(3),
-      nTerms: terms.length,
-      nWeights: nWeights ? { wx: +nWeights.wx.toFixed(4), wy: +nWeights.wy.toFixed(4), wz: +nWeights.wz.toFixed(4) } : null,
-      pipeR: sweepPipeR,
-      phaseShift: sweepPhaseShift,
-    },
-    termObjects: termObjects,
-    payload: {
-      terms:         terms,
-      offset:        offset,
-      scaleX:        +finalScaleX.toFixed(3),
-      scaleY:        +finalScaleY.toFixed(3),
-      scaleZ:        +finalScaleZ.toFixed(3),
-      Es:            g.Es,
-      nu:            g.nu,
-      baseline:      g.baseline,
-      mode:          g.sweepMode,
-      wallThickness: sweepWallJittered,
-      nWeights:      nWeights,
-      pipeR:         sweepPipeR,
-      phaseShift:    sweepPhaseShift,
-      ks:            g.ks,
-      sigma_ref:     g.sigma_ref,
-      voxelToUm:     g.voxelToUm,
-      cellMult:      g.nom,
-      domain:        g.domain,
-    }
-  };
-}
-
-// ─── Sweep entry points ───────────────────────────────────────────────────────
-function cancelSweep() {
-  _sweepActive = false;
-  log('warn', 'Sweep cancelled at ' + _sweepValidCount + ' samples — showing results so far');
-  if (_sweepValidCount > 0) finalizeSweep();
-  else {
-    _sweepProgressWrap.classList.remove('visible');
-    document.getElementById('logBadge').textContent = 'idle';
-    _sweepBtn.disabled = false;
-    _sweepBtn.textContent = '▶ Run Sweep';
-    _sweepCancelBtn.style.display = 'none';
-  }
-}
-
-function runSweep() {
-  if (!baseRecipe) return;
-
-  _sweepBtn = document.getElementById('runBtn');
-  _sweepCancelBtn = document.getElementById('cancelBtn');
-  _sweepProgressWrap = document.getElementById('progressWrap');
-  _sweepProgressFill = document.getElementById('progressFill');
-  _sweepProgressLabel = document.getElementById('progressLabel');
-  _sweepProgressPct = document.getElementById('progressPct');
-
-  _sweepBtn.disabled = true;
-  _sweepBtn.textContent = '⏳ Running...';
-  _sweepCancelBtn.style.display = 'block';
-  results = [];
-  _sweepValidCount = 0;
-  _sweepDiscarded = 0;
-  _sweepAttempts = 0;
-  _sweepActive = true;
-  _sweepSampleStore = {};
-
-  var nSamples = parseInt(samplesSlider.value);
-  _sweepTarget = nSamples;
-  _sweepMaxAttempts = nSamples * 20;
-
-  var nom = baseRecipe.geometry.cell_scale || 1.0;
-  var mat = getSolverMaterial();
-  var domain = document.getElementById('domainSel')?.value || 'general';
-
-  var get = function(id) { return parseFloat(document.getElementById(id).value) || 0; };
-
-  // Build the generation state — everything generateSample needs
-  _sweepGenState = {
-    nom:        nom,
-    xLo:        nom * get('scaleXlo') / 100,
-    xHi:        nom * get('scaleXhi') / 100,
-    yLo:        nom * get('scaleYlo') / 100,
-    yHi:        nom * get('scaleYhi') / 100,
-    zLo:        nom * get('scaleZlo') / 100,
-    zHi:        nom * get('scaleZhi') / 100,
-    sweepMode:  baseRecipe.geometry?.mode || 'solid',
-    sweepWall:  baseRecipe.geometry?.wall_thickness || 0.3,
-    baseOffset: baseRecipe.geometry?.offset || 0,
-    basePipeR:  baseRecipe.geometry?.pipe_radius || 0.1,
-    surfName:   baseRecipe.surface?.preset || baseRecipe.meta?.preset || null,
-    baseTerms:  baseRecipe.surface.terms,
-    Es:         mat.Es,
-    nu:         mat.nu,
-    ks:         mat.ks,
-    sigma_ref:  getSigmaRef() ?? mat.Es * 0.0001,
-    voxelToUm:  getVoxelToUm(),
-    baseline:   { ...baseRecipe.homogenization, cell_scale: nom },
-    domain:     domain,
-  };
-
-  // Invalidate solver caches on all workers for fresh sweep
-  for (var i = 0; i < _workers.length; i++) {
-    _workers[i].postMessage({ type: 'invalidate' });
-  }
-
-  log('accent', 'Starting sweep: ' + nSamples + ' samples · ' + _workerCount + ' workers · N=64 (PI-TPMS) / N=16 (shell/solid)');
-  log('info', 'Domain: ' + domain + ' · Mode: ' + (_sweepGenState.sweepMode));
-
-  _sweepProgressWrap.classList.add('visible');
-  document.getElementById('logBadge').textContent = 'running';
-
-  // Seed all workers with their first job
-  var seedCount = Math.min(_workerCount, _sweepMaxAttempts);
-  for (var wi = 0; wi < seedCount; wi++) {
-    dispatchNextSample(_workerFree.pop());
-  }
-}
-
 
 function applyRankFilter(data, metricId, rank, valId, mode) {
   const metric = document.getElementById(metricId)?.value;
@@ -2427,6 +3811,7 @@ function applyRankFilter(data, metricId, rank, valId, mode) {
 // ─── Table ────────────────────────────────────────────────────────────────────
 const COLUMNS = [
   { label: '#',      key: null },
+  { label: '↗',      key: '_mesh' },
   { label: 'α',      key: 'anisotropy' },
   { label: 'Ex',     key: 'Ex_GPa',             cls: 'td-group-start' },
   { label: 'Ey',     key: 'Ey_GPa',             cls: 'td-group-mid' },
@@ -2454,6 +3839,107 @@ const COLUMNS = [
   { label: 'ρ%',     key: 'volume_fraction' },
 ];
 
+// ─── F13LD.mesh handoff ───────────────────────────────────────────────────────
+// Builds a recipe-shaped JSON for one swept design that matches the format
+// f13ld.mesh consumes (see TPMS-builder export shape), then opens f13ld.mesh
+// in a new tab with the recipe attached via ?r=<URL-encoded JSON>.
+//
+// Encoding: F13LD.mesh accepts `?r=<encodeURIComponent(JSON.stringify(recipe))>`
+// per its URL ingestion code (no base64, no compression). For typical sweep
+// designs this produces ~3–6KB URLs, well within all-browser limits.
+//
+// NOTE on per-axis scaling: Sweep generates anisotropic cell scales (scaleX,
+// scaleY, scaleZ) but the established mesh-tool schema uses a scalar `cell_scale`.
+// We populate `cell_scale` with the geometric mean for backward compatibility
+// AND attach an extended `scale_xyz` field that f13ld.mesh can consume when
+// per-axis support lands. Until then, mesh will treat the design as isotropic
+// at the geometric-mean cell size.
+//
+// To change the F13LD.mesh URL (e.g., custom domain), edit MESH_URL below.
+const MESH_URL = 'https://mshomper.github.io/f13ld.mesh/';
+// Above some encoded length, browsers (especially mobile Safari) start to choke.
+// We fall back to clipboard copy for over-large recipes.
+const MESH_URL_MAX_BYTES = 16384;
+
+function buildMeshRecipe(d) {
+  if (!baseRecipe) return null;
+  const sx = d.scaleX || 1.0, sy = d.scaleY || 1.0, sz = d.scaleZ || 1.0;
+  const meanScale = Math.cbrt(sx * sy * sz);
+
+  return {
+    meta: {
+      version: '0.2.0',
+      tool: 'sweep',
+      timestamp: new Date().toISOString(),
+      preset: baseRecipe.meta?.preset || 'unknown',
+      source_design_id: d.id
+    },
+    surface: {
+      type: 'terms',
+      preset: baseRecipe.meta?.preset || 'unknown',
+      terms: d.termObjects
+    },
+    geometry: {
+      offset: d.offset,
+      cell_scale: +meanScale.toFixed(4),
+      scale_xyz: [+sx.toFixed(4), +sy.toFixed(4), +sz.toFixed(4)],  // sweep extension
+      mode: baseRecipe.geometry?.mode || 'solid',
+      wall_thickness: baseRecipe.geometry?.wall_thickness || null,
+      pipe_radius: d.pipe_radius || null,
+      phase_shift: d.phase_shift || null,
+      normal_weights: d.nWeights || null,
+      gradient: { enabled: false }
+    },
+    homogenization: {
+      grid: (baseRecipe.geometry?.mode === 'pi-tpms') ? 32 : 16,
+      E_solid_GPa: baseRecipe.homogenization?.E_solid_GPa || 100,
+      poisson: baseRecipe.homogenization?.poisson || 0.3,
+      volume_fraction: d.volume_fraction,
+      Ex_GPa: d.Ex_GPa,
+      Ey_GPa: d.Ey_GPa,
+      Ez_GPa: d.Ez_GPa,
+      anisotropy: d.anisotropy,
+      method: 'FFT-CG'
+    }
+  };
+}
+
+function openInMesh(designId, btn) {
+  if (event) event.stopPropagation();
+  const d = currentFiltered.find(x => x.id === designId);
+  if (!d) return;
+  const recipe = buildMeshRecipe(d);
+  if (!recipe) {
+    log('warn', 'No recipe available — load a base recipe first');
+    return;
+  }
+
+  const json = JSON.stringify(recipe);  // compact, not pretty — URL is the consumer
+  const encoded = encodeURIComponent(json);
+  const fullUrl = `${MESH_URL}?r=${encoded}`;
+
+  // Sanity check URL length — fall back to clipboard for over-large recipes.
+  if (fullUrl.length > MESH_URL_MAX_BYTES) {
+    navigator.clipboard.writeText(JSON.stringify(recipe, null, 2)).then(() => {
+      log('warn', `Recipe for design #${designId} too large for URL handoff (${fullUrl.length} bytes) — copied JSON to clipboard instead. Drop the JSON into F13LD.mesh manually.`);
+      if (btn) flashBtn(btn, '⎘', 'var(--warn)');
+    });
+    return;
+  }
+
+  // Open in new tab with recipe attached
+  window.open(fullUrl, '_blank', 'noopener,noreferrer');
+  log('accent', `Design #${designId} → F13LD.mesh (${fullUrl.length} bytes encoded)`);
+  if (btn) flashBtn(btn, '✓', 'var(--success)');
+}
+
+function flashBtn(btn, glyph, color) {
+  const orig = btn.textContent;
+  btn.textContent = glyph;
+  btn.style.color = color;
+  setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 900);
+}
+
 function renderTable(data) {
   currentFiltered = data;
   document.getElementById('resultsBadge').textContent = `${data.length} designs`;
@@ -2479,7 +3965,7 @@ function renderTable(data) {
 
   // Per-key formatting rules
   const FMT = {
-    anisotropy: v => v.toFixed(2),
+    anisotropy: v => v.toFixed(3),
     Ex_GPa: v => v.toFixed(2), Ey_GPa: v => v.toFixed(2), Ez_GPa: v => v.toFixed(2),
     stiffness_density: v => v.toFixed(2), aniso_efficiency: v => v.toFixed(2),
     axial_dominance: v => v.toFixed(2), ortho_contrast: v => v.toFixed(3),
@@ -2497,13 +3983,13 @@ function renderTable(data) {
     surface_complexity: v => v.toFixed(3), volume_fraction: v => v.toFixed(1),
   };
   const COL_COLORS = {
-    anisotropy:'var(--rank1)', Ex_GPa:'#22d3ee', Ey_GPa:'#e879f9', Ez_GPa:'#facc15',
+    anisotropy:'var(--rank1)', Ex_GPa:'#5fb5b5', Ey_GPa:'#c794d4', Ez_GPa:'#d4b04a',
     stiffness_density:'var(--accent3)', aniso_efficiency:'var(--rank1)',
     axial_dominance:'var(--accent2)', ortho_contrast:'var(--warn)',
     load_path_eff:'var(--success)', connect_idx:'var(--accent2)',
-    keff_x:'#22d3ee', keff_y:'#e879f9', keff_z:'#facc15',
+    keff_x:'#5fb5b5', keff_y:'#c794d4', keff_z:'#d4b04a',
     thermal_anisotropy:'var(--accent3)', k_density:'var(--success)',
-    U_strain:'var(--warn)', microstrain_x:'#22d3ee', microstrain_y:'#e879f9', microstrain_z:'#facc15',
+    U_strain:'var(--warn)', microstrain_x:'#5fb5b5', microstrain_y:'#c794d4', microstrain_z:'#d4b04a',
     microstrain_avg:'var(--rank1)',
     pore_size:'var(--success)', throat_size:'var(--accent2)',    perc_idx:'var(--rank1)',
     volume_fraction:'var(--warn)', surface_complexity:'var(--muted)',
@@ -2519,7 +4005,7 @@ function renderTable(data) {
     return `<span style="color:${color};opacity:${alpha.toFixed(2)};font-variant-numeric:tabular-nums">${display}${suffix}</span>`;
   };
 
-  const visibleCols = COLUMNS.filter(c => !c.key || activeDomainShow.includes(c.key));
+  const visibleCols = COLUMNS.filter(c => !c.key || c.key === '_mesh' || activeDomainShow.includes(c.key));
 
   const rows = sorted.slice(0, 200).map((d) => {
     const fr = d.filterRank || 999;
@@ -2529,11 +4015,15 @@ function renderTable(data) {
 
     const tds = visibleCols.map(col => {
       if (!col.key) return `<td style="width:32px;text-align:center">${badge}</td>`;
+      // F13LD.mesh handoff button — opens design directly in the mesh tool
+      if (col.key === '_mesh') {
+        return `<td style="width:28px;text-align:center"><button onclick="openInMesh(${d.id},this)" title="Open design #${d.id} in F13LD.mesh" style="background:transparent;border:0.5px solid var(--border2);color:var(--accent);cursor:pointer;padding:1px 6px;border-radius:4px;font-family:'Azeret Mono',monospace;font-size:11px;line-height:1">↗</button></td>`;
+      }
       const cls = col.cls ? ` class="${col.cls}"` : '';
       const v = d[col.key];
       // Special case: stiff_axis is categorical
       if (col.key === 'stiff_axis') {
-        const axisColor = v === 'X' ? '#22d3ee' : v === 'Y' ? '#e879f9' : '#facc15';
+        const axisColor = v === 'X' ? '#5fb5b5' : v === 'Y' ? '#c794d4' : '#d4b04a';
         return `<td${cls}><span style="color:${axisColor};font-weight:600;font-family:'Azeret Mono',monospace">${v||'?'}</span></td>`;
       }
       // Special case: microstrain_avg — Frost mechanostat zone pill badges
@@ -2558,6 +4048,7 @@ function renderTable(data) {
 
   const headers = visibleCols.map((col) => {
     if (!col.key) return `<th style="width:32px;text-align:center">${col.label}</th>`;
+    if (col.key === '_mesh') return `<th style="width:28px;text-align:center;font-size:11px" title="Copy recipe JSON for F13LD.mesh">${col.label}</th>`;
     const isActive = sortState.col === col.key;
     const cls = [
       isActive ? (sortState.dir === 'asc' ? 'sort-asc' : 'sort-desc') : '',
@@ -2587,8 +4078,11 @@ function sortBy(col) {
 
 
 // ─── WebGL Preview Renderer ───────────────────────────────────────────────────
+// Migrated to WebGL2 (GLSL ES 3.00) to match the rest of the F13LD tool suite.
+// Falls back to WebGL1 with GLSL 1.00 syntax if WebGL2 unavailable.
 const previewCanvas = document.getElementById('previewCanvas');
-const gl = previewCanvas.getContext('webgl');
+const gl = previewCanvas.getContext('webgl2') || previewCanvas.getContext('webgl');
+const isWebGL2 = (typeof WebGL2RenderingContext !== 'undefined') && (gl instanceof WebGL2RenderingContext);
 let previewProg = null, previewQuadBuf = null;
 let previewRot = [1,0,0,0,1,0,0,0,1];
 let previewAnimId = null;
@@ -2612,7 +4106,14 @@ function glslTrig(t,fx,fy,fz){
 
 // buildFrag — unified SDF renderer supporting solid, shell, and PI-TPMS modes
 // mode: 'solid' | 'shell' | 'pi-tpms'
-function buildFrag(terms, mode, offsetVal, wallVal, cellMult, pipeR, phaseShift, nWeights) {
+//
+// Migrated to match the F13LD.TPMS render schema (F13LD Brand Guidelines v1.0):
+//   - GLSL ES 3.00 for WebGL2 (#version 300 es, in/out, fragColor) with WebGL1 fallback
+//   - Olive/green palette: vec3(0.55,0.57,0.42) + vec3(0.43,0.42,0.30) — warm desaturated tones
+//   - Monochrome warm-dark background gradient
+//   - F13LD neon (#c8f542 = vec3(0.784,0.961,0.259)) used for edge highlight and rim/spec accent
+//   - Medium-quality ray march (192 steps) — matches TPMS default
+function buildFrag(terms, mode, offsetVal, wallVal, cellMult, pipeR, phaseShift) {
   const active = terms.filter(t => t.on && t.factors && t.factors.length);
   const lines = active.map(t => {
     const parts = t.factors.map(f => '(' + glslTrig(f.trig, toFloat(f.fx), toFloat(f.fy), toFloat(f.fz)) + ')');
@@ -2641,43 +4142,20 @@ function buildFrag(terms, mode, offsetVal, wallVal, cellMult, pipeR, phaseShift,
   } else {
     const offS = toFloat(offsetVal);
     const wallS = toFloat(wallVal);
-    
-    // Shell with directional thickness: use normal-weighted distance
-    if (isShell && nWeights) {
-      const wxS = toFloat(nWeights.wx || 1.0);
-      const wyS = toFloat(nWeights.wy || 1.0);
-      const wzS = toFloat(nWeights.wz || 1.0);
-      
-      fieldFuncs = [
-        'float base(vec3 p,float H){float v=0.0;float gx=p.x,gy=p.y,gz=p.z;',
-        lines,
-        'return v;}',
-        // Compute gradient (normal) for directional thickness
-        'vec3 grad(vec3 p,float H,float e){',
-        '  float dx=base(p+vec3(e,0,0),H)-base(p-vec3(e,0,0),H);',
-        '  float dy=base(p+vec3(0,e,0),H)-base(p-vec3(0,e,0),H);',
-        '  float dz=base(p+vec3(0,0,e),H)-base(p-vec3(0,0,e),H);',
-        '  return normalize(vec3(dx,dy,dz));',
-        '}',
-        'float dirWall(vec3 p,float H){',
-        '  vec3 n=grad(p,H,0.01);',
-        '  float wDir=abs(n.x)*' + wxS + '+abs(n.y)*' + wyS + '+abs(n.z)*' + wzS + ';',
-        '  return ' + wallS + '*wDir/1.5;', // Normalize by ~average
-        '}'
-      ].join('\n');
-      
-      implicitExpr = 'abs(base(p,H)-(' + offS + '))-dirWall(p,H)';
-      featureSizeVal = wallS;
-    } else {
-      // Standard shell or solid mode
-      fieldFuncs = 'float base(vec3 p,float H){float v=0.0;float gx=p.x,gy=p.y,gz=p.z;\n' + lines + '\nreturn v;}';
-      implicitExpr = isShell ? 'abs(base(p,H)-(' + offS + '))-' + wallS : 'base(p,H)-(' + offS + ')';
-      featureSizeVal = isShell ? wallS : toFloat(Math.PI * cellMult * 0.25);
-    }
+    fieldFuncs = 'float base(vec3 p,float H){float v=0.0;float gx=p.x,gy=p.y,gz=p.z;\n' + lines + '\nreturn v;}';
+    implicitExpr = isShell ? 'abs(base(p,H)-(' + offS + '))-' + wallS : 'base(p,H)-(' + offS + ')';
+    featureSizeVal = isShell ? wallS : toFloat(Math.PI * cellMult * 0.25);
   }
 
-  return [
+  // GLSL version-aware boilerplate — WebGL2 prefers 3.00 ES, WebGL1 falls back to 1.00
+  const versionLine = isWebGL2 ? '#version 300 es' : '';
+  const fragOutDecl = isWebGL2 ? 'out vec4 fragColor;' : '';
+  const fragWrite   = isWebGL2 ? 'fragColor' : 'gl_FragColor';
+
+  const lines_ = [
+    versionLine,
     'precision highp float;',
+    fragOutDecl,
     'uniform vec2 res;uniform mat3 rot;uniform float zoom;',
     fieldFuncs,
     'float implicit(vec3 p,float H){return ' + implicitExpr + ';}',
@@ -2686,14 +4164,16 @@ function buildFrag(terms, mode, offsetVal, wallVal, cellMult, pipeR, phaseShift,
     'float sceneSDF(vec3 p,float H){return max(implicit(p,H),boxSDF(p,H));}',
     // Normal FD step scales with featureSize for sharpness across all modes
     'vec3 nrm(vec3 p,float H,float e){return normalize(vec3(sceneSDF(p+vec3(e,0,0),H)-sceneSDF(p-vec3(e,0,0),H),sceneSDF(p+vec3(0,e,0),H)-sceneSDF(p-vec3(0,e,0),H),sceneSDF(p+vec3(0,0,e),H)-sceneSDF(p-vec3(0,0,e),H)));}',
-    'vec3 palette(float t){vec3 a=vec3(0.5,0.5,0.5),b=vec3(0.5,0.5,0.5),c=vec3(1.0,1.0,1.0),d=vec3(0.0,0.33,0.67);return a+b*cos(6.28318*(c*t+d));}',
+    // F13LD palette — olive/desaturated greens, clamped to keep tones in-brand
+    'vec3 palette(float t){vec3 a=vec3(0.55,0.57,0.42),b=vec3(0.43,0.42,0.30),c=vec3(1.0,1.0,1.0),d=vec3(0.02,0.0,0.05);return clamp(a+b*cos(6.28318*(c*t+d)),0.0,1.0);}',
     'void main(){',
     '  vec2 uv=(gl_FragCoord.xy-res*0.5)/min(res.x,res.y);',
     '  vec3 ro=rot*vec3(0.0,0.0,zoom);',
     '  vec3 rd=normalize(rot*vec3(uv.x,uv.y,-1.6));',
     '  float H=' + H + ';',
     '  float r=clamp(length(uv)*1.1,0.0,1.0);',
-    '  vec3 bgCentre=vec3(0.07,0.09,0.22);vec3 bgEdge=vec3(0.01,0.01,0.04);',
+    // Monochrome warm-dark background — matches TPMS / F13LD chrome
+    '  vec3 bgCentre=vec3(0.07,0.07,0.07);vec3 bgEdge=vec3(0.03,0.03,0.03);',
     '  vec3 bgCol=mix(bgCentre,bgEdge,r*r);vec4 bg=vec4(bgCol,1.0);',
     // featureSize baked as constant — drives thresh, maxStep, normal e
     '  float featureSize=' + featureSizeVal + ';',
@@ -2706,39 +4186,47 @@ function buildFrag(terms, mode, offsetVal, wallVal, cellMult, pipeR, phaseShift,
     '  vec3 tb=(-vec3(H,H,H)-ro)*iv,tt=(vec3(H,H,H)-ro)*iv;',
     '  vec3 tmi=min(tb,tt),tma=max(tb,tt);',
     '  float tEn=max(max(tmi.x,tmi.y),tmi.z);float tEx=min(min(tma.x,tma.y),tma.z);',
-    '  if(tEn>tEx||tEx<0.0){gl_FragColor=bg;return;}',
+    '  if(tEn>tEx||tEx<0.0){' + fragWrite + '=bg;return;}',
     '  float t=max(tEn,0.001);bool hit=false;',
-    '  for(int i=0;i<512;i++){',
+    // 192-step march — matches TPMS medium quality. Higher fidelity than needed
+    // for preview at this canvas size, but keeps the visual consistent with TPMS.
+    '  for(int i=0;i<192;i++){',
     '    vec3 p=ro+rd*t;float d=sceneSDF(p,H);',
     '    if(d<thresh){hit=true;break;}',
     '    if(t>tEx+0.01)break;',
-    '    t+=clamp(d*0.85,thresh*0.5,maxStep);',
+    '    t+=clamp(d*0.9,thresh*0.5,maxStep);',
     '  }',
     '  if(!hit){',
     '    if(tEn>=0.0){',
     '      vec3 pc=ro+rd*tEn,ep=abs(pc)/H;',
     '      vec2 fp;if(ep.x>ep.y&&ep.x>ep.z)fp=ep.yz;else if(ep.y>ep.z)fp=ep.xz;else fp=ep.xy;',
     '      float ed=min(1.0-fp.x,1.0-fp.y);',
-    '      if(ed<0.04){float w=smoothstep(0.04,0.005,ed);gl_FragColor=mix(bg,vec4(0.4,0.6,1.0,1.0),w*0.65);return;}',
+    // Box-edge highlight — F13LD neon (#c8f542) at low opacity
+    '      if(ed<0.04){float w=smoothstep(0.04,0.005,ed);' + fragWrite + '=mix(bg,vec4(0.78,0.96,0.26,1.0),w*0.4);return;}',
     '    }',
-    '    gl_FragColor=bg;return;',
+    '    ' + fragWrite + '=bg;return;',
     '  }',
     '  vec3 pos=ro+rd*t,n=nrm(pos,H,nrmE);',
     '  if(dot(n,-rd)<0.0)n=-n;',
     '  float dy=dot(n,vec3(0.0,1.0,0.0)),dz=dot(n,vec3(0.0,0.0,1.0));',
     '  float hue=dy*dy*0.33+dz*dz*0.67;',
-    '  vec3 iridBase=palette(hue);vec3 iridShift=palette(hue+0.5);',
+    '  vec3 iridBase=palette(hue);',
+    '  vec3 iridShift=palette(hue+0.5);',
     '  vec3 l1=normalize(vec3(1.0,1.8,2.0)),l2=normalize(vec3(-0.8,-0.3,0.6));',
     '  float l3fill=max(dot(n,normalize(vec3(-0.5,-1.0,-1.5))),0.0)*0.3;',
     '  float diff=0.35+max(dot(n,l1),0.0)*0.7+max(dot(n,l2),0.0)*0.25+l3fill;',
-    '  float spec1=pow(max(dot(reflect(-l1,n),-rd),0.0),120.0)*1.5;',
-    '  float spec2=pow(max(dot(reflect(-l1,n),-rd),0.0),20.0)*0.4;',
+    '  float spec1=pow(max(dot(reflect(-l1,n),-rd),0.0),120.0)*0.7;',
+    '  float spec2=pow(max(dot(reflect(-l1,n),-rd),0.0),20.0)*0.2;',
     '  float rim=pow(1.0-max(dot(n,-rd),0.0),2.5)*0.8;',
-    '  vec3 col=iridBase*diff+vec3(1.0,0.98,0.95)*spec1+iridShift*spec2+iridShift*rim*0.6;',
+    // F13LD neon for spec accent and rim — diffuse uses olive iridescent, neon glows the silhouette
+    '  vec3 green=vec3(0.784,0.961,0.259);',
+    '  vec3 col=iridBase*diff+vec3(1.0,1.0,1.0)*spec1+green*spec2*0.6+green*rim*0.45;',
     '  col=mix(bgCol,col,exp(-t*0.010));',
-    '  gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);',
+    '  ' + fragWrite + '=vec4(clamp(col,0.0,1.0),1.0);',
     '}'
-  ].join('\n');
+  ];
+  // Drop the version line if empty (WebGL1 path)
+  return lines_.filter(s => s !== '').join('\n');
 }
 
 function mkShader(type, src) {
@@ -2748,11 +4236,13 @@ function mkShader(type, src) {
   return s;
 }
 
-const VERT = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
+const VERT = isWebGL2
+  ? '#version 300 es\nin vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}'
+  : 'attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
 
-function buildPreviewShader(terms, offset, cellScale, mode, wallThickness, pipeR, phaseShift, nWeights) {
+function buildPreviewShader(terms, offset, cellScale, mode, wallThickness, pipeR, phaseShift) {
   if (!gl) return;
-  const frag = buildFrag(terms, mode || 'solid', offset, wallThickness || 0.3, cellScale, pipeR, phaseShift, nWeights);
+  const frag = buildFrag(terms, mode || 'solid', offset, wallThickness || 0.3, cellScale, pipeR, phaseShift);
   const p = gl.createProgram();
   gl.attachShader(p, mkShader(gl.VERTEX_SHADER, VERT));
   gl.attachShader(p, mkShader(gl.FRAGMENT_SHADER, frag));
@@ -2799,42 +4289,63 @@ function renderPreviewFrame() {
   previewAnimId = requestAnimationFrame(renderPreviewFrame);
 }
 
+// Preview animation pause/resume — used during sweep to keep main thread free.
+// The solver runs synchronously on the main thread, so the rAF render loop
+// competes with CG iterations for cycles and the preview stutters/freezes.
+// Pausing eliminates that contention. Last-rendered frame stays on canvas
+// (no clear), so the user keeps visual context. Marked .paused for CSS dim.
+//
+// Note: this is a band-aid. The proper fix is moving the solver to a Web
+// Worker so the main thread is genuinely free (Path B from the v0.1 review).
+let _previewWasActiveBeforePause = false;
+function pausePreviewAnim() {
+  _previewWasActiveBeforePause = previewActive;
+  if (previewAnimId) {
+    cancelAnimationFrame(previewAnimId);
+    previewAnimId = null;
+  }
+  previewActive = false;
+  if (previewCanvas) previewCanvas.classList.add('paused');
+  // Show "render paused" cue in the badge if a design was being previewed
+  const badge = document.getElementById('previewBadge');
+  if (badge && _previewWasActiveBeforePause) {
+    badge.dataset.prePauseText = badge.textContent;
+    badge.textContent = 'render paused — sweep running';
+  }
+}
+
+function resumePreviewAnim() {
+  if (previewCanvas) previewCanvas.classList.remove('paused');
+  const badge = document.getElementById('previewBadge');
+  if (badge && badge.dataset.prePauseText) {
+    badge.textContent = badge.dataset.prePauseText;
+    delete badge.dataset.prePauseText;
+  }
+  // Only restart if there was actually an active preview before the pause
+  if (_previewWasActiveBeforePause && previewProg) {
+    previewActive = true;
+    renderPreviewFrame();
+  }
+  _previewWasActiveBeforePause = false;
+}
+
 function showPreview(design) {
   if (!gl) return;
   resizePreview();
   const terms = design.termObjects;
   const geom = baseRecipe?.geometry || {};
   const mode = geom.mode || 'solid';
-  
-  // Shell mode: use swept nWeights if available, otherwise base wallThickness
-  const wallThickness = design.nWeights 
-    ? null  // Signal to use directional weights
-    : (geom.wall_thickness || 0.3);
-  const nWeights = design.nWeights || null;
-  
-  // Use design-specific PI-TPMS parameters if available, otherwise fall back to baseRecipe
-  const pipeR = design.pipe_radius !== undefined ? design.pipe_radius : (geom.pipe_radius || 0.1);
-  const phaseShift = design.phase_shift !== undefined ? design.phase_shift : (geom.phase_shift || { x: 0.25, y: 0.25, z: 0 });
-  
-  buildPreviewShader(terms, design.offset, (design.scaleX + design.scaleY + design.scaleZ) / 3, mode, wallThickness, pipeR, phaseShift, nWeights);
+  const wallThickness = geom.wall_thickness || 0.3;
+  const pipeR = geom.pipe_radius || 0.1;
+  const phaseShift = geom.phase_shift || { x: 0.25, y: 0.25, z: 0 };
+  buildPreviewShader(terms, design.offset, (design.scaleX + design.scaleY + design.scaleZ) / 3, mode, wallThickness, pipeR, phaseShift);
   previewCellScale = (design.scaleX + design.scaleY + design.scaleZ) / 3;
   previewActive = true;
   if (previewAnimId) cancelAnimationFrame(previewAnimId);
   previewCanvas.classList.add('visible');
   document.getElementById('previewEmpty').classList.add('hidden');
   const info = document.getElementById('previewInfo');
-  
-  // Show mode-specific parameters in preview info
-  if (mode === 'pi-tpms' && design.pipe_radius !== undefined && design.phase_shift !== undefined) {
-    const shift = design.phase_shift;
-    info.textContent = `pipeR ${pipeR.toFixed(3)} · shift (${shift.x},${shift.y},${shift.z}) · aniso ${design.anisotropy.toFixed(2)}×`;
-  } else if (mode === 'shell' && design.nWeights) {
-    const w = design.nWeights;
-    info.textContent = `wall (${w.wx.toFixed(2)},${w.wy.toFixed(2)},${w.wz.toFixed(2)}) · aniso ${design.anisotropy.toFixed(2)}×`;
-  } else {
-    info.textContent = `Sx ${design.scaleX} · Sy ${design.scaleY} · Sz ${design.scaleZ} · aniso ${design.anisotropy.toFixed(2)}×`;
-  }
-  
+  info.textContent = `Sx ${design.scaleX} · Sy ${design.scaleY} · Sz ${design.scaleZ} · aniso ${design.anisotropy.toFixed(2)}×`;
   info.classList.add('visible');
   document.getElementById('previewBadge').textContent = `design #${design.id}`;
   renderPreviewFrame();
@@ -2871,7 +4382,7 @@ document.getElementById('tableWrap').addEventListener('click', e => {
   const btn = document.getElementById('exportDesignBtn');
   btn.disabled = false;
   btn.style.color = 'var(--accent)';
-  btn.style.borderColor = 'rgba(0,229,192,0.4)';
+  btn.style.borderColor = 'rgba(200,245,66,0.4)';
   btn.style.cursor = 'pointer';
   document.getElementById('selectedLabel').textContent = `design #${design.id} selected`;
   document.getElementById('selectedLabel').style.color = 'var(--accent)';
@@ -2965,7 +4476,7 @@ function exportSelectedDesign() {
   setTimeout(() => {
     btn.textContent = orig;
     btn.style.color = 'var(--accent)';
-    btn.style.borderColor = 'rgba(0,229,192,0.4)';
+    btn.style.borderColor = 'rgba(200,245,66,0.4)';
   }, 2000);
 }
 
@@ -3098,9 +4609,9 @@ function drawPlot() {
 
   // ── Axis labels on cube edges ─────────────────────────────────────────────
   const axesDef = [
-    { from: [-1,-1,-1], to: [1,-1,-1], label: (METRIC_LABELS[axes.x] || axes.x).slice(0,11), color: '#22d3ee' },
-    { from: [-1,-1,-1], to: [-1,1,-1], label: (METRIC_LABELS[axes.y] || axes.y).slice(0,11), color: '#e879f9' },
-    { from: [-1,-1,-1], to: [-1,-1,1], label: (METRIC_LABELS[axes.z] || axes.z).slice(0,11), color: '#facc15' },
+    { from: [-1,-1,-1], to: [1,-1,-1], label: (METRIC_LABELS[axes.x] || axes.x).slice(0,11), color: '#5fb5b5' },
+    { from: [-1,-1,-1], to: [-1,1,-1], label: (METRIC_LABELS[axes.y] || axes.y).slice(0,11), color: '#c794d4' },
+    { from: [-1,-1,-1], to: [-1,-1,1], label: (METRIC_LABELS[axes.z] || axes.z).slice(0,11), color: '#d4b04a' },
   ];
 
   axesDef.forEach(ax => {
@@ -3138,7 +4649,7 @@ function drawPlot() {
   // Whisker lines from ideal to top 3 — drawn behind points
   const top3 = points.filter(pt => (pt.d.filterRank || 999) <= 3)
     .sort((a, b) => (a.d.filterRank || 999) - (b.d.filterRank || 999));
-  const whiskerColors = ['#00e5c0', '#0099ff', '#9b6fff'];
+  const whiskerColors = ['#c8f542', '#1D9E75', '#b598d4'];
   top3.forEach((pt, i) => {
     pctx.strokeStyle = whiskerColors[i];
     pctx.globalAlpha = 0.3;
@@ -3201,18 +4712,18 @@ function drawPlot() {
     if (pt) {
       const tx = Math.min(pt.proj.sx + 10, W - 120);
       const ty = Math.max(pt.proj.sy - 10, 14);
-      pctx.fillStyle = 'rgba(13,19,24,0.9)';
+      pctx.fillStyle = 'rgba(6,8,15,0.9)';
       pctx.beginPath();
       pctx.roundRect(tx, ty - 12, 115, 44, 4);
       pctx.fill();
-      pctx.fillStyle = '#00e5c0';
+      pctx.fillStyle = '#c8f542';
       pctx.font = '500 10px "Azeret Mono", monospace';
       pctx.textAlign = 'left';
       pctx.fillText(`#${plotHovered.id}`, tx + 8, ty + 2);
       pctx.fillStyle = '#7a9ab5';
       pctx.font = '300 9px "Azeret Mono", monospace';
       pctx.fillText(`${(plotHovered[axes.x]||0).toFixed(2)} · ${(plotHovered[axes.y]||0).toFixed(2)} · ${(plotHovered[axes.z]||0).toFixed(2)}`, tx + 8, ty + 16);
-      pctx.fillStyle = '#4a6a7a';
+      pctx.fillStyle = '#5a7a5a';
       pctx.fillText(`aniso ${(plotHovered.anisotropy||0).toFixed(2)}×`, tx + 8, ty + 28);
     }
   }
@@ -3296,7 +4807,7 @@ plotCanvas.addEventListener('click', () => {
     const btn = document.getElementById('exportDesignBtn');
     btn.disabled = false;
     btn.style.color = 'var(--accent)';
-    btn.style.borderColor = 'rgba(0,229,192,0.4)';
+    btn.style.borderColor = 'rgba(200,245,66,0.4)';
     btn.style.cursor = 'pointer';
     document.getElementById('selectedLabel').textContent = `design #${plotHovered.id} selected`;
     document.getElementById('selectedLabel').style.color = 'var(--accent)';
@@ -3308,12 +4819,7 @@ window.addEventListener('resize', () => { resizePlot(); drawPlot(); });
 
 // Init — populate metric key for default (general) domain
 renderMetricKey();
-
-// Init — populate filter dropdowns for default domain
-rebuildFilterDropdowns('general');
-
-// Init — start worker pool (solver.js must be loaded first via <script src>)
-initWorkerPool();
+updateRankActiveState();
 
 function log(type, msg) {
   const body = document.getElementById('logBody');
