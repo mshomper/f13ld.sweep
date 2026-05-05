@@ -842,7 +842,7 @@ td.td-group-end, th.td-group-end {
       <div class="fh-tool">SWEEP</div>
     </div>
     <div class="fh-right">
-      <span class="fh-ver">v0.13.2</span>
+      <span class="fh-ver">v0.14.1</span>
       <!-- Sweep tool icon — fan of lines emanating from a pivot, per brand guidelines -->
       <div class="fh-ico" title="F13LD.Sweep — parameter-space exploration">
         <svg width="18" height="18" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
@@ -979,7 +979,7 @@ td.td-group-end, th.td-group-end {
             <option value="Ez_GPa">Stiffness — Ez</option>
             <option value="stiffness_density">Stiffness / Density</option>
             <option value="aniso_efficiency">Anisotropy efficiency</option>
-            <option value="axial_dominance">Axial dominance</option>
+            <option value="directionality">Directionality (Ψ)</option>
             <option value="ortho_contrast">Orthotropic contrast</option>
             
             <option value="connect_idx">Connectivity index (κ)</option>
@@ -1029,7 +1029,7 @@ td.td-group-end, th.td-group-end {
             <option value="Ez_GPa">Stiffness — Ez</option>
             <option value="stiffness_density">Stiffness / Density</option>
             <option value="aniso_efficiency">Anisotropy efficiency</option>
-            <option value="axial_dominance">Axial dominance</option>
+            <option value="directionality">Directionality (Ψ)</option>
             <option value="ortho_contrast">Orthotropic contrast</option>
             
             <option value="connect_idx">Connectivity index (κ)</option>
@@ -1083,7 +1083,7 @@ td.td-group-end, th.td-group-end {
             <option value="Ez_GPa">Stiffness — Ez</option>
             <option value="stiffness_density">Stiffness / Density</option>
             <option value="aniso_efficiency">Anisotropy efficiency</option>
-            <option value="axial_dominance">Axial dominance</option>
+            <option value="directionality">Directionality (Ψ)</option>
             <option value="ortho_contrast">Orthotropic contrast</option>
             
             <option value="connect_idx">Connectivity index (κ)</option>
@@ -1478,15 +1478,27 @@ function applyFinalRanking(filtered) {
     // Distance from ideal corner
     if (activeAxes.length > 0) {
       activeAxes.forEach(ax => {
-        const vals = filtered.map(d => d[ax.key] || 0);
-        ax.mn = Math.min(...vals);
-        ax.mx = Math.max(...vals);
+        // v0.14.0: anisotropy + aniso_efficiency can be null when <2 axes
+        // percolate. Exclude nulls from min/max range computation; designs
+        // with null on this axis get worst-case contribution below.
+        const vals = filtered
+          .map(d => d[ax.key])
+          .filter(v => v !== null && v !== undefined && Number.isFinite(v));
+        ax.mn = vals.length ? Math.min(...vals) : 0;
+        ax.mx = vals.length ? Math.max(...vals) : 1;
         ax.range = ax.mx - ax.mn || 1;
       });
       filtered.forEach(d => {
         let distSq = 0;
         activeAxes.forEach(ax => {
-          const t = (d[ax.key] - ax.mn) / ax.range;
+          const v = d[ax.key];
+          if (v === null || v === undefined || !Number.isFinite(v)) {
+            // Worst-case distance contribution for this axis — sorts null
+            // designs to the bottom regardless of direction.
+            distSq += 1;
+            return;
+          }
+          const t = (v - ax.mn) / ax.range;
           const delta = ax.dir === 'max' ? (1 - t) : t;
           distSq += delta * delta;
         });
@@ -1576,11 +1588,11 @@ let currentMaterial = null; // null = agnostic
 // All metrics are always computed and exported regardless.
 // r1/r2/r3: { metric, dir } — null means leave as-is
 const DOMAIN_CONFIG = {
-  general:    { sigma_ref: 1,   show: ['anisotropy','Ex_GPa','Ey_GPa','Ez_GPa','stiffness_density','aniso_efficiency','axial_dominance','ortho_contrast','stiff_axis','connect_idx','keff_x','keff_y','keff_z','thermal_anisotropy','k_density','U_strain','microstrain_x','microstrain_y','microstrain_z','microstrain_avg','pore_size','throat_size','throat_ratio','perc_idx','volume_fraction'], r1:null, r2:null, r3:null },
+  general:    { sigma_ref: 1,   show: ['anisotropy','Ex_GPa','Ey_GPa','Ez_GPa','stiffness_density','aniso_efficiency','directionality','ortho_contrast','stiff_axis','connect_idx','keff_x','keff_y','keff_z','thermal_anisotropy','k_density','U_strain','microstrain_x','microstrain_y','microstrain_z','microstrain_avg','pore_size','throat_size','throat_ratio','perc_idx','volume_fraction'], r1:null, r2:null, r3:null },
   biomedical: { sigma_ref: 2,   show: ['connect_idx','Ex_GPa','Ey_GPa','Ez_GPa','anisotropy','stiffness_density','U_strain','microstrain_avg','pore_size','throat_size','throat_ratio','perc_idx','volume_fraction'], r1:{metric:'microstrain_avg',dir:'min'}, r2:{metric:'pore_size',dir:'max'}, r3:{metric:'throat_ratio',dir:'max'} },
-  aerospace:  { sigma_ref: 100, show: ['anisotropy','stiffness_density','axial_dominance','Ex_GPa','Ey_GPa','Ez_GPa','aniso_efficiency','stiff_axis','connect_idx','volume_fraction'], r1:{metric:'axial_dominance',dir:'max'}, r2:{metric:'anisotropy',dir:'max'}, r3:{metric:'volume_fraction',dir:'min'} },
+  aerospace:  { sigma_ref: 100, show: ['directionality','stiffness_density','anisotropy','Ex_GPa','Ey_GPa','Ez_GPa','aniso_efficiency','stiff_axis','connect_idx','volume_fraction'], r1:{metric:'directionality',dir:'max'}, r2:{metric:'anisotropy',dir:'max'}, r3:{metric:'volume_fraction',dir:'min'} },
   oilgas:     { sigma_ref: 50,  show: ['connect_idx','anisotropy','stiffness_density','Ex_GPa','Ey_GPa','Ez_GPa','ortho_contrast','pore_size','throat_size','throat_ratio','perc_idx','volume_fraction'], r1:{metric:'connect_idx',dir:'max'}, r2:{metric:'anisotropy',dir:'min'}, r3:{metric:'stiffness_density',dir:'max'} },
-  automotive: { sigma_ref: 50,  show: ['ortho_contrast','stiffness_density','axial_dominance','aniso_efficiency','Ex_GPa','Ey_GPa','Ez_GPa','connect_idx','U_strain','microstrain_x','microstrain_y','microstrain_z','volume_fraction'], r1:{metric:'ortho_contrast',dir:'max'}, r2:{metric:'stiffness_density',dir:'max'}, r3:{metric:'volume_fraction',dir:'min'} },
+  automotive: { sigma_ref: 50,  show: ['ortho_contrast','stiffness_density','directionality','aniso_efficiency','Ex_GPa','Ey_GPa','Ez_GPa','connect_idx','U_strain','microstrain_x','microstrain_y','microstrain_z','volume_fraction'], r1:{metric:'ortho_contrast',dir:'max'}, r2:{metric:'stiffness_density',dir:'max'}, r3:{metric:'volume_fraction',dir:'min'} },
   thermal:    { sigma_ref: null, show: ['keff_x','keff_y','keff_z','thermal_anisotropy','k_density','connect_idx','pore_size','throat_size','perc_idx','volume_fraction','surface_complexity'], r1:{metric:'k_density',dir:'max'}, r2:{metric:'thermal_anisotropy',dir:'max'}, r3:{metric:'connect_idx',dir:'max'} },
 };
 
@@ -1667,7 +1679,7 @@ function renderMetricKey() {
     { key:'anisotropy',      sym:'α',    name:'Anisotropy Ratio',    desc:'strongest vs. weakest axis' },
     { key:'stiffness_density',sym:'E/ρ', name:'Stiff / Density',     desc:'mean stiffness per unit material' },
     { key:'aniso_efficiency', sym:'α/ρ', name:'Aniso / Density',     desc:'directional bias per unit material' },
-    { key:'axial_dominance',  sym:'Ξ',   name:'Axial Dom.',          desc:'peak axis vs. other two combined' },
+    { key:'directionality',   sym:'Ψ',   name:'Directionality',      desc:'fraction of total stiffness on peak axis (max/sum, all axes)' },
     { key:'ortho_contrast',   sym:'Ω',   name:'Ortho Spread',        desc:'spread across all three axes' },
     { key:'stiff_axis',       sym:'ax',  name:'Stiff Axis',          desc:'X/Y/Z direction of peak stiffness' },
     { key:'connect_idx',      sym:'κ',   name:'Connectivity',        desc:'fraction of axes mechanically connected' },
@@ -3898,12 +3910,31 @@ const RHO_MIN_GRAIN = 0.10;   // grain modes — slightly more permissive than n
 const RHO_MAX       = 0.75;   // upper bound — above this, voids are isolated, not connected
 
 // Conjugate-gradient solver convergence
-const CG_TOL       = 5e-4;   // relative residual tolerance
-const CG_MAXITER   = 40;     // hard iteration cap
+// v0.14.0: tightened from 5e-4/40 → 1e-5/100 for production-grade accuracy.
+// Combined with Voigt-avg reference (getElasticGamma), tighter tol captures
+// most of the benefit that universal N=32 would give, at a fraction of the
+// cost. Net wall-clock impact ~1.5× per design vs old constants.
+const CG_TOL       = 1e-5;   // relative residual tolerance
+const CG_MAXITER   = 100;    // hard iteration cap
 
 function getElasticGamma(N, Es, nu) {
   const key = `${N}|${Es}|${nu}`;
   if (_cachedElasticKey !== key) {
+    // v0.14.1: REVERTED to solid reference (was Voigt-avg in v0.14.0).
+    // Voigt-avg C0 = (C_s + C_v)/2 makes the operator A = I + Γ(C(x)-C0)
+    // INDEFINITE — eigenvalues straddle zero because (C(x) - C0) is positive
+    // in solid and negative in void. Standard CG requires SPD; on indefinite
+    // systems it diverges. Symptoms when v0.14.0 was active: stiffness
+    // values exceeding Es by 10-100×, cg_converged=false on every load case,
+    // garbage anisotropy/directionality numbers.
+    //
+    // The roadmap's Part 0.1 ("Voigt-avg minimizes Green's-operator spectral
+    // radius") is correct for the BASIC Moulinec-Suquet fixed-point iteration
+    // but NOT for the CG variant used here. Two different convergence
+    // analyses; do not re-attempt without switching the iteration scheme.
+    //
+    // Future speedup option: Brisard-Dormieux preconditioner (M = ρ̄·C0)
+    // gives 2-3× speedup without breaking SPD. See v0.14.1 hotfix discussion.
     const C0 = isoC(Es, nu);
     _cachedElasticGamma = buildGamma(N, C0[21], C0[1]);
     _cachedElasticKey = key;
@@ -3945,8 +3976,18 @@ function invalidateSolverCaches() {
   _cachedThermalKey = '';
 }
 
-function fftHomogenize(family, params, offset, N, mode, wt, Es, nu, nWeights, pipeR, phaseShift) {
-  const solid = buildVoxels(family, params, offset, N, mode, wt, nWeights || null, pipeR, phaseShift);
+// v0.14.0: signature extended with optional pre-built mask + connectivity gate.
+//   prebuiltSolid — Float32Array N³ (0/1) from a prior buildVoxels call.
+//                   When supplied, skip the internal buildVoxels (avoids
+//                   double-rasterizing for solid/shell modes where the
+//                   caller already needs the mask for percolation).
+//   connect       — {x, y, z} booleans from hi-res or solver-grid percolation.
+//                   When supplied, gate per-axis CG dispatch — disconnected
+//                   axes report zero stiffness and skip the FFT-CG solve.
+//                   When null/undefined, all axes treated as connected
+//                   (legacy behavior, kept for tests / non-sweep callers).
+function fftHomogenize(family, params, offset, N, mode, wt, Es, nu, nWeights, pipeR, phaseShift, prebuiltSolid, connect) {
+  const solid = prebuiltSolid || buildVoxels(family, params, offset, N, mode, wt, nWeights || null, pipeR, phaseShift);
   const N3    = N * N * N;
 
   // Volume fraction — direct voxel count from the already-built solid field.
@@ -3970,7 +4011,12 @@ function fftHomogenize(family, params, offset, N, mode, wt, Es, nu, nWeights, pi
   // Phase tensors
   const C_s = isoC(Es, nu);
   const C_v = isoC(Es * 1e-4, nu);
-  const C0  = isoC(Es, nu);  // reference = solid
+  // v0.14.1: REVERTED to solid reference (was Voigt-avg in v0.14.0).
+  // See getElasticGamma for full rationale — short version: Voigt-avg makes
+  // the CG operator indefinite, breaking SPD convergence. Must match the
+  // reference used by getElasticGamma so Lippmann-Schwinger residual
+  // minimization stays consistent.
+  const C0  = isoC(Es, nu);
   const mu0  = C0[21];       // C[3,3]
   const lam0 = C0[1];        // C[0,1]
 
@@ -3980,11 +4026,17 @@ function fftHomogenize(family, params, offset, N, mode, wt, Es, nu, nWeights, pi
   const tol = CG_TOL;
   const maxiter = CG_MAXITER;
 
-  // 3 normal load cases
+  // v0.14.0: per-axis connectivity gate. Default = all connected (legacy path).
+  const connectArr = connect
+    ? [!!connect.x, !!connect.y, !!connect.z]
+    : [true, true, true];
+
+  // 3 normal load cases — disconnected axes skip CG, column stays zero
   const C_eff_nn = [[0,0,0],[0,0,0],[0,0,0]]; // 3×3 normal stiffness block
   let totalIters = 0;
   let allConverged = true;
   for (let lc = 0; lc < 3; lc++) {
+    if (!connectArr[lc]) continue; // disconnected axis — column stays zero
     const eps_bar = [lc===0?1:0, lc===1?1:0, lc===2?1:0];
     const result = cgSolveNormal(solid, C_s, C_v, C0, Gamma, N, eps_bar, tol, maxiter);
     const sig_bar = result.sigma;
@@ -3997,22 +4049,40 @@ function fftHomogenize(family, params, offset, N, mode, wt, Es, nu, nWeights, pi
   for (let p = 0; p < 3; p++) for (let q = 0; q < 3; q++)
     C_eff_nn[p][q] = 0.5*(C_eff_nn[p][q] + C_eff_nn[q][p]);
 
-  // Extract Ex, Ey, Ez from compliance S = C^{-1} (3×3)
-  // Invert 3×3
+  // v0.14.0: connectivity-aware extraction.
+  //   nConnect=3 → full 3×3 inversion → Poisson-coupled Young's moduli (legacy)
+  //   nConnect=1,2 → diagonal C_eff[i][i] as constrained-modulus stiffness proxy
+  //                  (no Poisson coupling possible; ~15-25% higher than the
+  //                   inverted Young's modulus depending on ν — knowable
+  //                   systematic difference, acceptable in `partial` regime)
+  //   nConnect=0 → all stiffness reported as zero (degenerate)
   const C = C_eff_nn;
-  const det = C[0][0]*(C[1][1]*C[2][2]-C[1][2]*C[2][1])
-            - C[0][1]*(C[1][0]*C[2][2]-C[1][2]*C[2][0])
-            + C[0][2]*(C[1][0]*C[2][1]-C[1][1]*C[2][0]);
-  if (Math.abs(det) < 1e-30) return null;
-  const invDet = 1/det;
-  const S = [
-    [(C[1][1]*C[2][2]-C[1][2]*C[2][1])*invDet, (C[0][2]*C[2][1]-C[0][1]*C[2][2])*invDet, (C[0][1]*C[1][2]-C[0][2]*C[1][1])*invDet],
-    [(C[1][2]*C[2][0]-C[1][0]*C[2][2])*invDet, (C[0][0]*C[2][2]-C[0][2]*C[2][0])*invDet, (C[0][2]*C[1][0]-C[0][0]*C[1][2])*invDet],
-    [(C[1][0]*C[2][1]-C[1][1]*C[2][0])*invDet, (C[0][1]*C[2][0]-C[0][0]*C[2][1])*invDet, (C[0][0]*C[1][1]-C[0][1]*C[1][0])*invDet],
-  ];
+  const nConnect = connectArr.filter(Boolean).length;
+  let Ex, Ey, Ez, solver_validity;
 
-  const Ex = 1/S[0][0], Ey = 1/S[1][1], Ez = 1/S[2][2];
-  return { rho, Ex, Ey, Ez, solid, cg_iters: totalIters, cg_converged: allConverged };
+  if (nConnect === 3) {
+    const det = C[0][0]*(C[1][1]*C[2][2]-C[1][2]*C[2][1])
+              - C[0][1]*(C[1][0]*C[2][2]-C[1][2]*C[2][0])
+              + C[0][2]*(C[1][0]*C[2][1]-C[1][1]*C[2][0]);
+    if (Math.abs(det) < 1e-30) return null;
+    const invDet = 1/det;
+    const S00 = (C[1][1]*C[2][2]-C[1][2]*C[2][1])*invDet;
+    const S11 = (C[0][0]*C[2][2]-C[0][2]*C[2][0])*invDet;
+    const S22 = (C[0][0]*C[1][1]-C[0][1]*C[1][0])*invDet;
+    Ex = 1/S00; Ey = 1/S11; Ez = 1/S22;
+    solver_validity = 'valid';
+  } else if (nConnect > 0) {
+    Ex = connectArr[0] ? C[0][0] : 0;
+    Ey = connectArr[1] ? C[1][1] : 0;
+    Ez = connectArr[2] ? C[2][2] : 0;
+    solver_validity = 'partial';
+  } else {
+    Ex = 0; Ey = 0; Ez = 0;
+    solver_validity = 'invalid';
+  }
+
+  return { rho, Ex, Ey, Ez, solid, cg_iters: totalIters,
+           cg_converged: allConverged, solver_validity };
 }
 
 
@@ -5284,16 +5354,120 @@ function estimateHomogenization(family, params, offset, scaleX, scaleY, scaleZ, 
   // TPMS solid/shell stays at N=16 for sweep speed.
   const N = isPi ? FFT_N_PI : FFT_N_STD;
 
-  // Run FFT-CG solver — returns {rho, Ex, Ey, Ez} or null if degenerate
-  const fft = fftHomogenize(family, params, offset, N, mode, wt, Es, nu, nWeights || null, pipeR, phaseShift);
+  // E2: noise modes share the same undersampling problem PI-TPMS hits at
+  // N=16/32. A noise sheet at half_width=0.03 in normalized [-1,1] field
+  // units is a thin band that voxel centers at solver resolution often miss
+  // entirely, producing speckled disconnected masks. Hi-res override fixes
+  // connectivity, VF, and pore metrics. N=64 chosen vs PI-TPMS's N=96
+  // because noise fields are smoother than thin pipes — coarser hi-res
+  // still resolves them and saves ~3.4× on the hi-res cost. The FFT-CG
+  // solver itself stays at N=16 so solver wall time is unchanged.
+  // Grain (spinodoid/GRF/HU) gets the same hi-res treatment — its sheet
+  // mode produces thin shells just like noise sheet, so N=16 → N=64.
+  const isNoise = (mode === 'noise-sheet' || mode === 'noise-half' || mode === 'noise-solid');
+  const isGrain = (mode === 'grain-sheet' || mode === 'grain-half' || mode === 'grain-solid');
+
+  // ── v0.14.0 reorder: percolation runs BEFORE the FFT-CG solver ──────────
+  // Previously percolation ran AFTER fftHomogenize, so it could only inform
+  // post-hoc reporting — solver wasted iterations on disconnected axes that
+  // would later be flagged as zero-stiffness. New flow: percolation gates
+  // the solver directly via the connect arg, and disconnected axes skip the
+  // CG solve entirely.
+  //
+  // Per-mode connectivity source:
+  //   PI/noise/grain → hi-res mask is canonical (matches manufactured part)
+  //   solid/shell    → solver-grid mask IS the canonical truth (no hi-res
+  //                     pipeline for these modes)
+  const cellSizeMm = (voxelToUm || 62.5) * 32 / 1000; // mm per cell (N-independent)
+  let connect_idx, pores;
+  let solidPerc = null;
+  let hiResData = null;
+  let solverGridSolid = null;  // pre-built solver-grid mask for solid/shell handoff
+  let rho_hi = null;            // hi-res VF (overrides solver-grid VF for PI/noise/grain)
+
+  if (isPi) {
+    const N_HI = 96;
+    const hiRes = buildHiResField(family, params, offset, mode, wt, pipeR, phaseShift, N_HI);
+
+    // Hi-res VF — propagates to stiffness_density, aniso_efficiency, k_density below.
+    let inside = 0;
+    const sm = hiRes.solidMask;
+    for (let i = 0; i < sm.length; i++) inside += sm[i];
+    rho_hi = inside / sm.length;
+
+    // v0.12: face-to-face solid percolation replaces computeAxisConnectivity.
+    // Same widestPath-style algorithm now used for both phases — answers
+    // "does load transmit?" directly rather than via periodic-loop proxy.
+    solidPerc = computeSolidPercolation(hiRes.solidMask, N_HI);
+    connect_idx = solidPerc.connect_idx;
+
+    // Pore metrics from the same prebuilt field — saves a rebuild
+    pores = analyzePoresFromField(hiRes.rawField, hiRes.voidMask, family, params, offset, mode, wt, pipeR, phaseShift, cellSizeMm, N_HI);
+
+    // v0.12: stash hi-res field/masks for downstream geometric metrics
+    hiResData = { rawField: hiRes.rawField, voidMask: hiRes.voidMask, solidMask: hiRes.solidMask, N: N_HI };
+  } else if (isNoise || isGrain) {
+    const N_HI = 64;
+    const hiRes = buildHiResField(family, params, offset, mode, wt, pipeR, phaseShift, N_HI);
+
+    let inside = 0;
+    const sm = hiRes.solidMask;
+    for (let i = 0; i < sm.length; i++) inside += sm[i];
+    rho_hi = inside / sm.length;
+
+    solidPerc = computeSolidPercolation(hiRes.solidMask, N_HI);
+    connect_idx = solidPerc.connect_idx;
+
+    pores = analyzePoresFromField(hiRes.rawField, hiRes.voidMask, family, params, offset, mode, wt, pipeR, phaseShift, cellSizeMm, N_HI);
+
+    hiResData = { rawField: hiRes.rawField, voidMask: hiRes.voidMask, solidMask: hiRes.solidMask, N: N_HI };
+  } else {
+    // Solid/shell TPMS — solver-grid mask IS the canonical connectivity truth.
+    // Build it here in estimateHomogenization (rather than inside fftHomogenize)
+    // so percolation runs first, then hand the prebuilt mask back to fftHomogenize
+    // to avoid double-rasterizing.
+    solverGridSolid = buildVoxels(family, params, offset, N, mode, wt, nWeights || null, pipeR, phaseShift);
+    solidPerc = computeSolidPercolation(solverGridSolid, N);
+    connect_idx = solidPerc.connect_idx;
+
+    // Existing pore analysis at N=16 (rebuilds field locally)
+    const cm = cellMult || 1.0;
+    pores = analyzePores(family, params, offset, mode, wt, pipeR, phaseShift, cm, cellSizeMm, 16);
+
+    // Solid/shell modes: skip narrow-band geometric metrics. N=16 is too
+    // coarse for stable curvature/topology, and these modes don't already
+    // build a hi-res field (cost not justified by metric value here).
+    // Tortuosity falls through to a void-mask reconstruction at N=16 below
+    // since it's cheap.
+    hiResData = null;
+  }
+
+  // ── v0.14.0: Run FFT-CG solver with prebuilt mask + connectivity gate ───
+  const connectGate = solidPerc
+    ? { x: !!solidPerc.connect_x, y: !!solidPerc.connect_y, z: !!solidPerc.connect_z }
+    : null;
+  const fft = fftHomogenize(family, params, offset, N, mode, wt, Es, nu,
+                            nWeights || null, pipeR, phaseShift,
+                            solverGridSolid, connectGate);
+  // Degenerate cases — VF outside [rhoMin, RHO_MAX] or singular (det≈0).
+  // v0.14.0: degenerate return shape includes the new schema fields so vault
+  // ingest can count them without special-casing.
   if (!fft) return {
     volume_fraction: 0, Ex_GPa: 0, Ey_GPa: 0, Ez_GPa: 0,
-    anisotropy: 1, stiffness_density: 0, surface_complexity: 0,
+    anisotropy: null,           // v0.14: undefined for degenerate (was 1)
+    directionality: 0.333,      // v0.14: isotropic-fallback for degenerate
+    solver_validity: 'invalid', // v0.14: NEW
+    cg_iters: 0,                // v0.14: NEW (no CG ran)
+    cg_converged: false,        // v0.14: NEW
+    stiffness_density: 0, surface_complexity: 0,
     throat_ratio: 0,
     degenerate: true
   };
 
-  let { rho, Ex, Ey, Ez, solid: solidVox } = fft;
+  let { rho, Ex, Ey, Ez, solid: solidVox, cg_iters, cg_converged, solver_validity } = fft;
+
+  // Override rho with hi-res VF for PI/noise/grain (canonical for those modes)
+  if (rho_hi !== null) rho = rho_hi;
 
   // Surface complexity from isosurface face count at N=16. The voxel mask
   // for this proxy must match the actual mode's threshold logic — the v0.8
@@ -5334,99 +5508,6 @@ function estimateHomogenization(family, params, offset, scaleX, scaleY, scaleZ, 
   // ranking would want to surface. faces/(N²·3) ≈ surface area density
   // in face-per-cell-area units; values >1 are valid and informative.
   const complexity = faces / (N*N*3);
-
-  // ── Hi-res analysis block — PI-TPMS only ─────────────────────────────────
-  // PI-TPMS at N=32 undersamples thin pipes (~1 voxel diameter). Five metrics
-  // suffer: volume_fraction (alignment-noise dominated), connect_idx (the
-  // pre-existing stiffness-threshold version was always 1.0 because periodic
-  // BCs couple disconnected fragments through their image), pore_size,
-  // throat_size, and perc_idx (all sub-voxel features at N=16). Single hi-res
-  // field build at N=96 supplies all five corrections; the FFT-CG solver
-  // itself stays at its existing N to keep solver wall time predictable.
-  //
-  // Solid/shell modes still use the solver voxel field (N=16) for connectivity
-  // and the existing analyzePores at N=16 — they're less affected by aliasing.
-  const cellSizeMm = (voxelToUm || 62.5) * 32 / 1000; // mm per cell (N-independent)
-  let connect_idx, pores;
-  // v0.12 Phase 1 accumulators — solidPerc carries per-axis booleans;
-  // hiResData (when non-null) carries the hi-res field for geometric metrics
-  let solidPerc = null;
-  let hiResData = null;
-
-  // E2: noise modes share the same undersampling problem PI-TPMS hits at
-  // N=16/32. A noise sheet at half_width=0.03 in normalized [-1,1] field
-  // units is a thin band that voxel centers at solver resolution often miss
-  // entirely, producing speckled disconnected masks. Hi-res override fixes
-  // connectivity, VF, and pore metrics. N=64 chosen vs PI-TPMS's N=96
-  // because noise fields are smoother than thin pipes — coarser hi-res
-  // still resolves them and saves ~3.4× on the hi-res cost. The FFT-CG
-  // solver itself stays at N=16 so solver wall time is unchanged.
-  // Grain (spinodoid/GRF/HU) gets the same hi-res treatment — its sheet
-  // mode produces thin shells just like noise sheet, so N=16 → N=64.
-  const isNoise = (mode === 'noise-sheet' || mode === 'noise-half' || mode === 'noise-solid');
-  const isGrain = (mode === 'grain-sheet' || mode === 'grain-half' || mode === 'grain-solid');
-
-  if (isPi) {
-    const N_HI = 96;
-    const hiRes = buildHiResField(family, params, offset, mode, wt, pipeR, phaseShift, N_HI);
-
-    // Override rho with hi-res geometric VF — propagates to stiffness_density,
-    // aniso_efficiency, load_path_eff, k_density below.
-    let inside = 0;
-    const sm = hiRes.solidMask;
-    for (let i = 0; i < sm.length; i++) inside += sm[i];
-    rho = inside / sm.length;
-
-    // v0.12: face-to-face solid percolation replaces computeAxisConnectivity.
-    // Same widestPath-style algorithm now used for both phases — answers
-    // "does load transmit?" directly rather than via periodic-loop proxy.
-    solidPerc = computeSolidPercolation(hiRes.solidMask, N_HI);
-    connect_idx = solidPerc.connect_idx;
-
-    // Pore metrics from the same prebuilt field — saves a rebuild
-    pores = analyzePoresFromField(hiRes.rawField, hiRes.voidMask, family, params, offset, mode, wt, pipeR, phaseShift, cellSizeMm, N_HI);
-
-    // v0.12: stash hi-res field/masks for downstream geometric metrics
-    hiResData = { rawField: hiRes.rawField, voidMask: hiRes.voidMask, solidMask: hiRes.solidMask, N: N_HI };
-  } else if (isNoise || isGrain) {
-    const N_HI = 64;
-    const hiRes = buildHiResField(family, params, offset, mode, wt, pipeR, phaseShift, N_HI);
-
-    // Override rho with hi-res VF — solver-grid VF at N=16 was already
-    // unreliable for thin sheets; hi-res is the canonical value.
-    let inside = 0;
-    const sm = hiRes.solidMask;
-    for (let i = 0; i < sm.length; i++) inside += sm[i];
-    rho = inside / sm.length;
-
-    // v0.12: face-to-face solid percolation
-    solidPerc = computeSolidPercolation(hiRes.solidMask, N_HI);
-    connect_idx = solidPerc.connect_idx;
-
-    // Pore metrics from the same prebuilt field
-    pores = analyzePoresFromField(hiRes.rawField, hiRes.voidMask, family, params, offset, mode, wt, pipeR, phaseShift, cellSizeMm, N_HI);
-
-    hiResData = { rawField: hiRes.rawField, voidMask: hiRes.voidMask, solidMask: hiRes.solidMask, N: N_HI };
-  } else {
-    // Solid/shell TPMS — face-to-face solid percolation on the existing solver
-    // voxel field at N=16. For curvature/topology/tortuosity we'd want a hi-res
-    // field but the solid/shell path doesn't already build one; we use what's
-    // available. Hi-res can be added in a later phase if these metrics are
-    // judged unreliable at N=16 for solid/shell modes.
-    solidPerc = computeSolidPercolation(solidVox, N);
-    connect_idx = solidPerc.connect_idx;
-
-    // Existing pore analysis at N=16 (rebuilds field locally)
-    const cm = cellMult || 1.0;
-    pores = analyzePores(family, params, offset, mode, wt, pipeR, phaseShift, cm, cellSizeMm, 16);
-
-    // Solid/shell modes: skip narrow-band geometric metrics. N=16 is too
-    // coarse for stable curvature/topology, and these modes don't already
-    // build a hi-res field (cost not justified by metric value here).
-    // Tortuosity falls through to a void-mask reconstruction at N=16 below
-    // since it's cheap.
-    hiResData = null;
-  }
 
   // ── v0.12 Phase 1: Geometric metrics (curvature, topology, tortuosity, diffusivity) ──
   let geom = {
@@ -5483,11 +5564,38 @@ function estimateHomogenization(family, params, offset, scaleX, scaleY, scaleZ, 
   }
 
 
-  const aniso          = Math.max(Ex,Ey,Ez) / (Math.min(Ex,Ey,Ez) + 1e-9);
-  const Emean3         = (Ex+Ey+Ez)/3;
-  const aniso_efficiency = aniso / (rho+1e-9);
-  const Emax           = Math.max(Ex,Ey,Ez);
-  const axial_dominance = Emax / (Ex+Ey+Ez-Emax+1e-9);
+  // ── v0.14.0: anisotropy / directionality split ───────────────────────────
+  //   anisotropy   — conventional max/min over PERCOLATING axes only.
+  //                  null when fewer than 2 axes percolate (mathematically
+  //                  undefined). Comparable to literature values.
+  //   directionality (NEW) — max/sum over ALL axes including E=0. Always
+  //                  defined. Range [0.333, 1.0]. 0.333 = isotropic,
+  //                  1.0 = perfectly 1D. Captures geometric directionality
+  //                  independent of load-carrying ability.
+  //   axial_dominance — DROPPED (conceptually overlaps with directionality).
+  const E_arr = [Ex, Ey, Ez];
+  const connectArr_metric = solidPerc
+    ? [!!solidPerc.connect_x, !!solidPerc.connect_y, !!solidPerc.connect_z]
+    : [true, true, true];
+  const E_perc = E_arr.filter((e, i) => connectArr_metric[i]);
+
+  let aniso = null;
+  if (E_perc.length >= 2) {
+    aniso = Math.max(...E_perc) / (Math.min(...E_perc) + 1e-9);
+  }
+
+  const Emean3 = (Ex+Ey+Ez)/3;
+  const Emax   = Math.max(Ex,Ey,Ez);
+  const E_sum  = Ex + Ey + Ez;
+
+  // Directionality: max/sum over all axes. Defined even with zeros.
+  const directionality = E_sum > 0
+    ? Emax / (E_sum + 1e-9)
+    : 0.333;  // degenerate fallback — no stiffness anywhere
+
+  // aniso_efficiency carries the same null-propagation as anisotropy
+  const aniso_efficiency = (aniso !== null) ? aniso / (rho+1e-9) : null;
+
   const variance       = ((Ex-Emean3)**2+(Ey-Emean3)**2+(Ez-Emean3)**2)/3;
   const ortho_contrast = Emean3>0 ? Math.sqrt(variance)/Emean3 : 0;
 
@@ -5497,8 +5605,13 @@ function estimateHomogenization(family, params, offset, scaleX, scaleY, scaleZ, 
   // Vault-side composition can recompute as Emax/(ρ·Es_ref) if needed.
   const Es_ref = Es || 100;
 
-  // Stiff axis: which direction carries the peak stiffness
-  const stiff_axis = Emax === Ex ? 'X' : Emax === Ey ? 'Y' : 'Z';
+  // Stiff axis: which direction carries the peak stiffness.
+  // v0.14.1: null when no axis percolates (solver_validity === 'invalid').
+  // For 'partial' we still pick the strongest axis among the percolating ones —
+  // Emax over (Ex, Ey, Ez) selects correctly because disconnected axes are 0.
+  const stiff_axis = solver_validity === 'invalid'
+    ? null
+    : Emax === Ex ? 'X' : Emax === Ey ? 'Y' : 'Z';
 
   // (connect_idx is computed above in the hi-res analysis block — geometric BFS,
   // not the stiffness-threshold proxy that was wrong for PI-TPMS.)
@@ -5521,64 +5634,79 @@ function estimateHomogenization(family, params, offset, scaleX, scaleY, scaleZ, 
     ? sigma_ref          // already in GPa from getSigmaRef()
     : Es_ref * 0.0001;  // fallback: 0.01% of Es (very small normalized load)
 
-  // ── v0.11: Linear-regime cap ──────────────────────────────────────────────
+  // ── v0.11+v0.14.1: Linear-regime cap + per-axis null propagation ─────────
   // Past the material's yield/fracture strain, σ/E is no longer physical.
   // Cap microstrain values at the material-specific limit; flag designs that
   // hit the cap so vault scaling isn't dominated by extrapolated runaway.
   // Worker dispatch passes eps_yield_um from getSolverMaterial; default to
   // 25000 με agnostic when called without (e.g. legacy worker path or tests).
+  //
+  // v0.14.1: disconnected axes (E=0 from Part 1 connectivity gating) report
+  // null microstrain — no E to derive σ/E from. Capping at eps_cap was wrong
+  // because it conflated "axis cannot bear load" with "axis yielded under
+  // load." Pre-fix symptoms: vertical block clustering at eps_cap in plots,
+  // microstrain_avg meaningless for partial-validity designs.
   const eps_cap = (eps_yield_um != null) ? eps_yield_um : 25000;
   const cap_kind = linear_cap_kind || 'yield';
 
-  // Raw (uncapped) microstrain — for cap-detection and provenance
-  const microstrain_x_raw = +(sig / (Ex + 1e-9) * 1e6).toFixed(0);
-  const microstrain_y_raw = +(sig / (Ey + 1e-9) * 1e6).toFixed(0);
-  const microstrain_z_raw = +(sig / (Ez + 1e-9) * 1e6).toFixed(0);
+  const E_arr_strain = [Ex, Ey, Ez];
+  const connectArr_strain = E_arr_strain.map(E => E > 0);
 
-  // Capped at material's linear-regime limit
-  const microstrain_x = Math.min(microstrain_x_raw, eps_cap);
-  const microstrain_y = Math.min(microstrain_y_raw, eps_cap);
-  const microstrain_z = Math.min(microstrain_z_raw, eps_cap);
-
-  const linear_cap_active = (
-    microstrain_x_raw > eps_cap ||
-    microstrain_y_raw > eps_cap ||
-    microstrain_z_raw > eps_cap
+  // Per-axis raw microstrain — null for disconnected axes
+  const microstrains_raw = E_arr_strain.map((E, i) =>
+    connectArr_strain[i] ? +(sig / (E + 1e-9) * 1e6).toFixed(0) : null
   );
 
-  // Mean strain energy density in kJ/m³ — from CAPPED microstrains.
+  // Capped at material's linear-regime limit (null preserved)
+  const microstrains_capped = microstrains_raw.map(raw =>
+    raw === null ? null : Math.min(raw, eps_cap)
+  );
+  const [microstrain_x, microstrain_y, microstrain_z] = microstrains_capped;
+
+  // linear_cap_active: only consider percolating axes
+  const linear_cap_active = microstrains_raw.some(raw => raw !== null && raw > eps_cap);
+
+  // microstrain_avg: mean over percolating axes only; null when none percolate
+  const ms_perc = microstrains_capped.filter(v => v !== null);
+  const microstrain_avg = ms_perc.length > 0
+    ? Math.round(ms_perc.reduce((a, b) => a + b, 0) / ms_perc.length)
+    : null;
+
+  // Mean strain energy density in kJ/m³ — averaged over percolating axes only.
   // Algebraic identity: U_i = sig²/(2·E_i) × 1e6 = 0.5 × sig × microstrain_i
-  // (when sig in GPa and microstrain_i is the σ/E·1e6 form). So capping the
-  // microstrain caps U directly without re-deriving from σ²/(2·E_capped).
-  const U_strain = +((0.5 * sig * (microstrain_x + microstrain_y + microstrain_z)) / 3).toFixed(1);
+  // (when sig in GPa and microstrain_i is the σ/E·1e6 form).
+  const U_strain = ms_perc.length > 0
+    ? +((0.5 * sig * ms_perc.reduce((a, b) => a + b, 0)) / ms_perc.length).toFixed(1)
+    : null;
 
   // (Pore analysis is computed above in the hi-res analysis block —
   // hi-res N=96 for PI-TPMS, existing N=16 path for solid/shell.)
 
-  // Weighted average microstrain — isotropic weights (1/3 each)
-  // Reports the expected strain under omnidirectional loading
-  const microstrain_avg = Math.round((microstrain_x + microstrain_y + microstrain_z) / 3);
-
-  // ── v0.11: Normalized (geometry-only) forms ───────────────────────────────
+  // ── v0.11+v0.14.1: Normalized (geometry-only) forms ───────────────────────
   // Vault canonical metrics — independent of material/load/cell choice. The
   // dimensional forms above remain for engineer-readable display; normalized
   // forms below are what the vault should rank/compare on across recipes.
   // Per-GPa cap (1e6 με/GPa = 100% strain at unit applied stress) is a
   // material-agnostic structural-foam cutoff; geometry alone should never
   // claim more than this regardless of how soft the structure is.
-  const microstrain_x_per_GPa = Math.round(Math.min(1e6 / (Ex + 1e-9), 1e6));
-  const microstrain_y_per_GPa = Math.round(Math.min(1e6 / (Ey + 1e-9), 1e6));
-  const microstrain_z_per_GPa = Math.round(Math.min(1e6 / (Ez + 1e-9), 1e6));
-  const microstrain_avg_per_GPa = Math.round(
-    (microstrain_x_per_GPa + microstrain_y_per_GPa + microstrain_z_per_GPa) / 3
+  // v0.14.1: same null propagation as the dimensional microstrains above.
+  const ms_perGPa = E_arr_strain.map((E, i) =>
+    connectArr_strain[i] ? Math.round(Math.min(1e6 / (E + 1e-9), 1e6)) : null
   );
+  const [microstrain_x_per_GPa, microstrain_y_per_GPa, microstrain_z_per_GPa] = ms_perGPa;
+
+  const ms_perGPa_perc = ms_perGPa.filter(v => v !== null);
+  const microstrain_avg_per_GPa = ms_perGPa_perc.length > 0
+    ? Math.round(ms_perGPa_perc.reduce((a, b) => a + b, 0) / ms_perGPa_perc.length)
+    : null;
 
   // Compliance per unit applied stress squared — GPa⁻¹.
   // U_compliance × σ² = strain energy per unit volume; lets vault recover U
   // for arbitrary σ without re-solving.
-  const U_compliance = +(
-    (microstrain_x_per_GPa + microstrain_y_per_GPa + microstrain_z_per_GPa) / (6 * 1e6)
-  ).toFixed(6);
+  // v0.14.1: averaged over percolating axes only; null when none percolate.
+  const U_compliance = ms_perGPa_perc.length > 0
+    ? +(ms_perGPa_perc.reduce((a, b) => a + b, 0) / (2 * ms_perGPa_perc.length * 1e6)).toFixed(6)
+    : null;
 
   // Stiffness normalised by solid stiffness — dimensionless, geometry-only
   const Ex_norm = +(Ex / (Es_ref + 1e-9)).toFixed(4);
@@ -5604,15 +5732,23 @@ function estimateHomogenization(family, params, offset, scaleX, scaleY, scaleZ, 
     Ex_GPa:             +Ex.toFixed(2),
     Ey_GPa:             +Ey.toFixed(2),
     Ez_GPa:             +Ez.toFixed(2),
-    anisotropy:         +Math.min(aniso,99).toFixed(3),
+    // v0.14.0: anisotropy null-propagates when <2 axes percolate
+    anisotropy:         aniso !== null ? +Math.min(aniso,99).toFixed(3) : null,
+    directionality:     +directionality.toFixed(3),       // v0.14.0: NEW
     stiffness_density:  +((Ex+Ey+Ez)/3/rho).toFixed(2),
-    aniso_efficiency:   +Math.min(aniso_efficiency,999).toFixed(2),
-    axial_dominance:    +Math.min(axial_dominance,99).toFixed(2),
+    aniso_efficiency:   aniso_efficiency !== null
+                          ? +Math.min(aniso_efficiency,999).toFixed(2)
+                          : null,
+    // v0.14.0: axial_dominance DROPPED — replaced by directionality
     ortho_contrast:     +ortho_contrast.toFixed(3),
     // v0.13: load_path_eff removed (redundant with stiffness_density).
     // Vault-side: recompute as Emax/(rho·Es_ref) if needed.
     stiff_axis,
     connect_idx,
+    // v0.14.0: solver-quality diagnostics surfaced in export
+    solver_validity,    // 'valid' | 'partial' | 'invalid'
+    cg_iters,           // total CG iterations across percolating load cases
+    cg_converged,       // true if every load case hit tolerance before maxiter
     keff_x:             +kx.toFixed(3),
     keff_y:             +ky.toFixed(3),
     keff_z:             +kz.toFixed(3),
@@ -6545,18 +6681,23 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     grid,
     E_solid_GPa:        (cm && cm.E  != null) ? cm.E  : (baseRecipe?.homogenization?.E_solid_GPa ?? 100),
     poisson:            (cm && cm.nu != null) ? cm.nu : (baseRecipe?.homogenization?.poisson    ?? 0.3),
-    // ── Solver outputs (v0.13: 26 — load_path_eff removed) ──────────────
+    // ── Solver outputs (v0.14.0: dropped axial_dominance, added directionality
+    //    + solver_validity + cg_iters + cg_converged) ────────────────────────
     volume_fraction:    d.volume_fraction,
     Ex_GPa:             d.Ex_GPa,
     Ey_GPa:             d.Ey_GPa,
     Ez_GPa:             d.Ez_GPa,
-    anisotropy:         d.anisotropy,
+    anisotropy:         d.anisotropy,                // v0.14.0: nullable
+    directionality:     d.directionality,            // v0.14.0: NEW
     stiffness_density:  d.stiffness_density,
-    aniso_efficiency:   d.aniso_efficiency,
-    axial_dominance:    d.axial_dominance,
+    aniso_efficiency:   d.aniso_efficiency,          // v0.14.0: nullable
+    // v0.14.0: axial_dominance DROPPED
     ortho_contrast:     d.ortho_contrast,
     stiff_axis:         d.stiff_axis,
     connect_idx:        d.connect_idx,
+    solver_validity:    d.solver_validity,           // v0.14.0: NEW
+    cg_iters:           d.cg_iters,                  // v0.14.0: NEW
+    cg_converged:       d.cg_converged,              // v0.14.0: NEW
     keff_x:             d.keff_x,
     keff_y:             d.keff_y,
     keff_z:             d.keff_z,
@@ -6645,13 +6786,13 @@ function exportResults() {
       preset:   baseRecipe.meta?.preset || 'unknown',
       version:  baseRecipe.meta?.version || '?',
       tool:     'f13ld.sweep',
-      tool_version: '0.13.2',
+      tool_version: '0.14.1',
       // v0.13.0: schema_version pins the EXPORT SHAPE (which fields are
       // present and what they mean), separate from tool_version which
       // tracks the app code. Bump schema_version on any field add/drop/
       // semantic change. Vault and audit tools should read schema_version
       // to know which fields to expect.
-      schema_version: '0.13.2',
+      schema_version: '0.14.0',
       count:    currentFiltered.length,
       solver: {
         method:   'FFT-CG',
@@ -6684,19 +6825,23 @@ function exportResults() {
         // DOMAIN_CONFIG[d].show array drives UI table column visibility,
         // not export contents — exports always emit everything regardless
         // of which domain the user picked. Order matches the solver's
-        // return shape (estimateHomogenization line ~4724).
+        // return shape (estimateHomogenization).
         Ex_GPa:             d.Ex_GPa,
         Ey_GPa:             d.Ey_GPa,
         Ez_GPa:             d.Ez_GPa,
-        anisotropy:         d.anisotropy,
+        anisotropy:         d.anisotropy,                // v0.14.0: nullable
+        directionality:     d.directionality,            // v0.14.0: NEW
         volume_fraction:    d.volume_fraction,
         stiffness_density:  d.stiffness_density,
-        aniso_efficiency:   d.aniso_efficiency,
-        axial_dominance:    d.axial_dominance,
+        aniso_efficiency:   d.aniso_efficiency,          // v0.14.0: nullable
+        // v0.14.0: axial_dominance DROPPED — replaced by directionality
         ortho_contrast:     d.ortho_contrast,
         // v0.13: load_path_eff dropped (redundant with stiffness_density).
         stiff_axis:         d.stiff_axis,
         connect_idx:        d.connect_idx,
+        solver_validity:    d.solver_validity,           // v0.14.0: NEW
+        cg_iters:           d.cg_iters,                  // v0.14.0: NEW
+        cg_converged:       d.cg_converged,              // v0.14.0: NEW
         keff_x:             d.keff_x,
         keff_y:             d.keff_y,
         keff_z:             d.keff_z,
@@ -6837,13 +6982,26 @@ function applyRankFilter(data, metricId, rank, valId, mode) {
   const valEl = valId ? document.getElementById(valId) : null;
   const val = valEl?.value ? parseFloat(valEl.value) : null;
 
+  // v0.14.0: anisotropy/aniso_efficiency are nullable. Helper for null-safe
+  // numeric checks. JS quirk: `null - 5 === -5` and `null <= 5 === true`
+  // because null coerces to 0 in arithmetic — bypasses naive comparisons.
+  const isNum = v => v !== null && v !== undefined && Number.isFinite(v);
+
   let out = [...data];
 
   if (mode === 'threshold' && val !== null) {
-    out = out.filter(d => dir === 'max' ? d[metric] >= val : d[metric] <= val);
+    out = out.filter(d => isNum(d[metric]) && (dir === 'max' ? d[metric] >= val : d[metric] <= val));
   }
 
-  out.sort((a, b) => dir === 'max' ? b[metric] - a[metric] : a[metric] - b[metric]);
+  // Sort: null/undefined/non-finite always go to the bottom regardless of direction.
+  out.sort((a, b) => {
+    const av = a[metric], bv = b[metric];
+    const aOk = isNum(av), bOk = isNum(bv);
+    if (!aOk && !bOk) return 0;
+    if (!aOk) return 1;   // a is bottom
+    if (!bOk) return -1;  // b is bottom
+    return dir === 'max' ? bv - av : av - bv;
+  });
 
   if (mode === 'keep') {
     const defaultPct = rank === 2 ? 50 : 25;
@@ -6865,7 +7023,7 @@ const COLUMNS = [
   { label: 'Ez',     key: 'Ez_GPa',             cls: 'td-group-end' },
   { label: 'E/ρ',    key: 'stiffness_density' },
   { label: 'α/ρ',    key: 'aniso_efficiency' },
-  { label: 'Ξ',      key: 'axial_dominance' },
+  { label: 'Ψ',      key: 'directionality' },
   { label: 'Ω',      key: 'ortho_contrast' },
   { label: 'ax',     key: 'stiff_axis' },
   { label: 'κ',      key: 'connect_idx' },
@@ -6927,7 +7085,7 @@ function buildMeshRecipe(d) {
       meta: {
         version: '0.2.0',
         tool: 'sweep',
-        tool_version: '0.13.2',
+        tool_version: '0.14.1',
         timestamp: new Date().toISOString(),
         preset: baseRecipe.meta?.preset || 'grain',
         source_design_id: d.id,
@@ -6968,7 +7126,7 @@ function buildMeshRecipe(d) {
     meta: {
       version: '0.2.0',
       tool: 'sweep',
-      tool_version: '0.13.2',
+      tool_version: '0.14.1',
       timestamp: new Date().toISOString(),
       preset: baseRecipe.meta?.preset || 'unknown',
       source_design_id: d.id,
@@ -7055,7 +7213,7 @@ function renderTable(data) {
     anisotropy: v => v.toFixed(3),
     Ex_GPa: v => v.toFixed(2), Ey_GPa: v => v.toFixed(2), Ez_GPa: v => v.toFixed(2),
     stiffness_density: v => v.toFixed(2), aniso_efficiency: v => v.toFixed(2),
-    axial_dominance: v => v.toFixed(2), ortho_contrast: v => v.toFixed(3),
+    directionality: v => v.toFixed(3), ortho_contrast: v => v.toFixed(3),
     connect_idx: v => v.toFixed(2),
     keff_x: v => v.toFixed(3), keff_y: v => v.toFixed(3), keff_z: v => v.toFixed(3),
     thermal_anisotropy: v => v.toFixed(2), k_density: v => v.toFixed(3),
@@ -7073,7 +7231,7 @@ function renderTable(data) {
   const COL_COLORS = {
     anisotropy:'var(--rank1)', Ex_GPa:'#5fb5b5', Ey_GPa:'#c794d4', Ez_GPa:'#d4b04a',
     stiffness_density:'var(--accent3)', aniso_efficiency:'var(--rank1)',
-    axial_dominance:'var(--accent2)', ortho_contrast:'var(--warn)',
+    directionality:'var(--accent2)', ortho_contrast:'var(--warn)',
     connect_idx:'var(--accent2)',
     keff_x:'#5fb5b5', keff_y:'#c794d4', keff_z:'#d4b04a',
     thermal_anisotropy:'var(--accent3)', k_density:'var(--success)',
@@ -7083,13 +7241,18 @@ function renderTable(data) {
     volume_fraction:'var(--warn)', surface_complexity:'var(--muted)',
   };
 
-  // Color-intensity cell: bright = high value, dim = low value
+  // Color-intensity cell: bright = high value, dim = low value.
+  // v0.14.0: null-aware — anisotropy and aniso_efficiency can be null when
+  // <2 axes percolate (mathematically undefined per Part 1).
   const cell = (val, key, suffix = '') => {
+    if (val === null || val === undefined) {
+      return `<span style="color:var(--muted);opacity:0.5;font-variant-numeric:tabular-nums">—</span>`;
+    }
     const color = COL_COLORS[key] || 'var(--text)';
     const range = (maxes[key] - mines[key]) || 1;
     const t = (typeof val === 'number' ? val - mines[key] : 0) / range;
     const alpha = 0.35 + t * 0.65;
-    const display = typeof val === 'number' ? val : val;
+    const display = typeof val === 'number' ? val : '—';
     return `<span style="color:${color};opacity:${alpha.toFixed(2)};font-variant-numeric:tabular-nums">${display}${suffix}</span>`;
   };
 
@@ -7109,14 +7272,22 @@ function renderTable(data) {
       }
       const cls = col.cls ? ` class="${col.cls}"` : '';
       const v = d[col.key];
-      // Special case: stiff_axis is categorical
+      // Special case: stiff_axis is categorical.
+      // v0.14.1: null when solver_validity === 'invalid' — render as em-dash.
       if (col.key === 'stiff_axis') {
+        if (v === null || v === undefined) {
+          return `<td${cls}><span style="color:var(--muted);opacity:0.5;font-family:'Azeret Mono',monospace">—</span></td>`;
+        }
         const axisColor = v === 'X' ? '#5fb5b5' : v === 'Y' ? '#c794d4' : '#d4b04a';
-        return `<td${cls}><span style="color:${axisColor};font-weight:600;font-family:'Azeret Mono',monospace">${v||'?'}</span></td>`;
+        return `<td${cls}><span style="color:${axisColor};font-weight:600;font-family:'Azeret Mono',monospace">${v}</span></td>`;
       }
       // Special case: microstrain_avg — Frost mechanostat zone pill badges
-      // Background color makes it visually distinct from neighboring colored columns
+      // Background color makes it visually distinct from neighboring colored columns.
+      // v0.14.1: null (no axes percolate) renders as em-dash, not "disuse".
       if (col.key === 'microstrain_avg') {
+        if (v === null || v === undefined) {
+          return `<td${cls}><span style="color:var(--muted);opacity:0.5;font-family:'Azeret Mono',monospace">—</span></td>`;
+        }
         const με = typeof v === 'number' ? v : 0;
         const [bgColor, textColor, zone] =
             με < 200   ? ['#2d3748','#a0aec0','disuse']
@@ -7128,7 +7299,7 @@ function renderTable(data) {
       }
       const fmt = FMT[col.key] ? FMT[col.key](typeof v === 'number' ? v : 0) : (typeof v === 'number' ? v.toFixed(2) : (v ?? '—'));
       const suffix = col.key === 'volume_fraction' ? '%' : col.key === 'anisotropy' ? '×' : '';
-      return `<td${cls}>${cell(typeof v === 'number' ? v : 0, col.key, suffix)}</td>`;
+      return `<td${cls}>${cell(v, col.key, suffix)}</td>`;
     }).join('');
 
     return `<tr data-design-id="${d.id}" style="cursor:pointer">${tds}</tr>`;
@@ -7618,7 +7789,9 @@ function showPreview(design) {
   previewCanvas.classList.add('visible');
   document.getElementById('previewEmpty').classList.add('hidden');
   const info = document.getElementById('previewInfo');
-  info.textContent = `Sx ${design.scaleX} · Sy ${design.scaleY} · Sz ${design.scaleZ} · aniso ${design.anisotropy.toFixed(2)}×`;
+  const anisoStr = (design.anisotropy === null || design.anisotropy === undefined)
+    ? '—' : design.anisotropy.toFixed(2);
+  info.textContent = `Sx ${design.scaleX} · Sy ${design.scaleY} · Sz ${design.scaleZ} · aniso ${anisoStr}×`;
   info.classList.add('visible');
   document.getElementById('previewBadge').textContent = `design #${design.id}`;
   renderPreviewFrame();
@@ -7707,7 +7880,7 @@ function exportSelectedDesign() {
       meta: {
         version: baseRecipe.meta?.version || '0.4.0',
         tool: 'f13ld.sweep',
-        tool_version: '0.13.2',
+        tool_version: '0.14.1',
         timestamp: new Date().toISOString(),
         preset: `${preset}_sweep_${d.id}`,
         source: sourceTag,
@@ -7787,7 +7960,7 @@ function exportSelectedDesign() {
     meta: {
       version: baseRecipe.meta?.version || '0.4.0',
       tool: 'f13ld.sweep',
-      tool_version: '0.13.2',
+      tool_version: '0.14.1',
       timestamp: new Date().toISOString(),
       preset: `${preset}_sweep_${d.id}`,
       source: sourceTag,
@@ -7829,7 +8002,9 @@ function exportSelectedDesign() {
     log('info', json);
   });
 
-  log('info', `Scale ${d.scaleX}·${d.scaleY}·${d.scaleZ} · aniso ${d.anisotropy.toFixed(2)}× · vol ${d.volume_fraction}%`);
+  const anisoLogStr = (d.anisotropy === null || d.anisotropy === undefined)
+    ? '—' : d.anisotropy.toFixed(2);
+  log('info', `Scale ${d.scaleX}·${d.scaleY}·${d.scaleZ} · aniso ${anisoLogStr}× · vol ${d.volume_fraction}%`);
 
   // Flash confirmation
   const btn = document.getElementById('exportDesignBtn');
@@ -7856,7 +8031,7 @@ let plotHovered = null;
 
 const METRIC_LABELS = {
   anisotropy:'α (Aniso)', Ex_GPa:'Ex', Ey_GPa:'Ey', Ez_GPa:'Ez',
-  stiffness_density:'E/ρ', aniso_efficiency:'α/ρ', axial_dominance:'Ξ (Axial)',
+  stiffness_density:'E/ρ', aniso_efficiency:'α/ρ', directionality:'Ψ (Direct.)',
   ortho_contrast:'Ω (Ortho)', connect_idx:'κ (Connect)',
   stiff_axis:'Stiff Axis', keff_x:'kx', keff_y:'ky', keff_z:'kz',
   thermal_anisotropy:'kα (T.Aniso)', k_density:'k/ρ',
@@ -8153,7 +8328,9 @@ window.addEventListener('mousemove', e => {
       document.querySelectorAll('tr.hovered-row').forEach(r => r.classList.remove('hovered-row'));
       const row = document.querySelector(`tr[data-design-id="${closest.id}"]`);
       if (row) { row.classList.add('hovered-row'); row.scrollIntoView({ block: 'nearest' }); }
-      document.getElementById('plotInfo').textContent = `#${closest.id} · aniso ${closest.anisotropy.toFixed(2)}×`;
+      const anisoPlotStr = (closest.anisotropy === null || closest.anisotropy === undefined)
+        ? '—' : closest.anisotropy.toFixed(2);
+      document.getElementById('plotInfo').textContent = `#${closest.id} · aniso ${anisoPlotStr}×`;
       document.getElementById('plotInfo').classList.add('visible');
     } else {
       document.getElementById('plotInfo').classList.remove('visible');
