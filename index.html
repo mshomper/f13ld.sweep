@@ -3479,7 +3479,8 @@ const GrainKernel = {
   _buildHUKernels(p) {
     const rng = this._mulberry32(p.rngSeed);
     const N = p.huN || 80, aspect = p.huAspect || 4.0, bw = p.huWidth || 0.04;
-    const a = bw * aspect * 0.5, b = bw * 0.5;
+    const ell = p.huEll || 1.0, sq = Math.sqrt(ell);
+    const a = bw * aspect * 0.5, b = bw * 0.5, b1 = b / sq, b2 = b * sq;
     const kappa = p.kappa, mode = p.dirMode;
     const pts = this._jitteredGrid3D(N, rng);
     const mux = p.principalX, muy = p.principalY, muz = p.principalZ;
@@ -3519,7 +3520,8 @@ const GrainKernel = {
         n1x: n1[0], n1y: n1[1], n1z: n1[2],
         n2x: n2[0], n2y: n2[1], n2z: n2[2],
         a: a * TWO_PI,
-        b: b * TWO_PI
+        b1: b1 * TWO_PI,
+        b2: b2 * TWO_PI
       });
     }
     return kernels;
@@ -3584,6 +3586,10 @@ const GrainKernel = {
       huN:        f.hu_n      != null ? f.hu_n      : 80,
       huAspect:   f.hu_aspect != null ? f.hu_aspect : 4.0,
       huWidth:    f.hu_width  != null ? f.hu_width  : 0.04,
+      huCross:    f.hu_cross  != null ? f.hu_cross  : 2.0,
+      huSharp:    f.hu_sharp  != null ? f.hu_sharp  : 1.0,
+      huBlend:    f.hu_blend  != null ? f.hu_blend  : 1.0,
+      huEll:      f.hu_ell    != null ? f.hu_ell    : 1.0,
       // Geometry (raw scale — no normalization to [-1,1] like noise)
       isoLevel:   g.center      != null ? g.center      : 0,
       halfWidth:  g.half_width  != null ? g.half_width  : 0.15,
@@ -3609,6 +3615,11 @@ const GrainKernel = {
   evaluate(params, x, y, z) {
     if (params.kernels) {
       const ks = params.kernels;
+      // Shape scalars read from params (NOT the kernels array) so they survive
+      // the structured-clone postMessage to the homogenization worker — array
+      // expando props are dropped by clone, scalar params are not.
+      const p = params.huCross || 2.0, m = params.huSharp || 1.0, P = params.huBlend || 1.0;
+      const rnd = (p === 2.0), shp = (m === 1.0), bl = (P === 1.0);
       let s = 0;
       for (let i = 0; i < ks.length; i++) {
         const k = ks[i];
@@ -3616,8 +3627,13 @@ const GrainKernel = {
         const dt  = dx*k.tx  + dy*k.ty  + dz*k.tz;
         const dn1 = dx*k.n1x + dy*k.n1y + dz*k.n1z;
         const dn2 = dx*k.n2x + dy*k.n2y + dz*k.n2z;
-        s += Math.exp(-(dt*dt)/(k.a*k.a) - (dn1*dn1 + dn2*dn2)/(k.b*k.b));
+        const u = dt/k.a, w1 = dn1/k.b1, w2 = dn2/k.b2;
+        const R = u*u + (rnd ? (w1*w1 + w2*w2)
+                             : (Math.pow(Math.abs(w1), p) + Math.pow(Math.abs(w2), p)));
+        const Rm = shp ? R : Math.pow(R, m);
+        s += bl ? Math.exp(-Rm) : Math.exp(-P*Rm);
       }
+      if (!bl) s = Math.pow(s, 1.0/P);
       return s - 0.3;
     }
     const ws = params.waves;
@@ -3686,6 +3702,7 @@ const GrainKernel = {
     const HUN_CLAMP     = args.huNClamp     ?? [30, 200];
     const HUASP_CLAMP   = args.huAspClamp   ?? [1.0, 8.0];
     const HUW_CLAMP     = args.huWClamp     ?? [0.02, 0.20];
+    const HUELL_TJIT     = args.huEllTJitter ?? 0.40;        // log4 ± half-span for transverse aspect
     // v0.16.0: DIR_KAPPA now tied to recipe.kappa (with floor) and jittered.
     // Higher recipe-anisotropy → tighter direction preservation in sweep.
     const DIR_KAPPA_FLOOR = args.dirKappaFloor ?? 4;
@@ -3750,6 +3767,13 @@ const GrainKernel = {
       out.huAspect = +mulJ(params.huAspect || 4.0, HUASP_CLAMP, Math.random()).toFixed(2);
       out.huWidth  = +mulJ(params.huWidth || 0.04, HUW_CLAMP, Math.random()).toFixed(3);
       out.kappa    = +mulJ(params.kappa, KAPPA_CLAMP, Math.random()).toFixed(2);
+      // Transverse aspect is the one shape knob we explore. Jitter symmetrically
+      // in log4 space (ell and 1/ell are mirror cross-sections), anchored to the
+      // recipe aspect, clamped to ell∈[0.25,4] (t∈[-1,1]). cross/sharp/blend pass
+      // through unjittered via the {...params} spread above.
+      { let tE = Math.log(params.huEll || 1.0)/Math.log(4) + (Math.random()*2 - 1)*HUELL_TJIT;
+        tE = Math.max(-1, Math.min(1, tE));
+        out.huEll = +Math.pow(4, tE).toFixed(3); }
     }
 
     // Rebuild waves/kernels with the new seed + new params
@@ -8728,6 +8752,10 @@ function buildGrainFieldExport(p) {
     hu_n:                p.huN,
     hu_aspect:           p.huAspect,
     hu_width:            p.huWidth,
+    hu_cross:            p.huCross != null ? p.huCross : 2.0,
+    hu_sharp:            p.huSharp != null ? p.huSharp : 1.0,
+    hu_blend:            p.huBlend != null ? p.huBlend : 1.0,
+    hu_ell:              p.huEll   != null ? p.huEll   : 1.0,
     grf_sigma:           p.grfSigma
   };
 }
