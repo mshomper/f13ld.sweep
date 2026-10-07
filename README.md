@@ -104,7 +104,7 @@ The homogenization engine is a browser-native FFT-CG (Fast Fourier Transform –
 
 Sweeps run on a Web Worker pool sized to `min(8, navigator.hardwareConcurrency − 1)` — leaves one core for the UI, caps at 8 to avoid thermal throttling on laptops. The pool persists across sweep runs in the same tab session, so subsequent sweeps don't pay worker startup latency.
 
-The solver is bundled into the worker source at runtime via `Function.prototype.toString()` over the main-thread function definitions, then assembled into a Blob URL. This preserves the single-file deployment story (no separate `solver.js`) while giving each worker its own isolated copy of the solver, workspace, and Gamma cache.
+Each worker loads `worker/sweep-worker.js`, which pulls in the same family, solver and metrics files the page uses (`importScripts`), so every worker has its own copy of the solver, workspace and Gamma cache. (Before v0.20.0 the worker source was assembled at runtime from `Function.prototype.toString()`.)
 
 Sample generation (Sobol low-discrepancy + uniform random for high-dimensional jitter) stays on the main thread — workers receive fully-realized design specs and dispatch results back via `attemptIdx`. Final result IDs are assigned by sorting on `attemptIdx` after the sweep completes, so results are deterministic across runs with the same Sobol seed regardless of worker completion order.
 
@@ -136,9 +136,30 @@ The sweep samples PI-TPMS phase shifts from discrete eighths along each axis, ex
 
 ---
 
-## Files
+## Project structure
 
-`index.html` is the entire tool. The HTML, CSS, JS module, FFT-CG solver, Web Worker pool, WebGL2 surface preview, and 3D design space plot all ship in one self-contained file per the [F13LD brand guidelines](https://f13ld.app) single-file constraint. Workers are constructed from a runtime-built Blob URL — no separate solver script, no module imports, no build step.
+Since v0.20.0 the tool is split into numbered classic scripts, like F13LD.lab and F13LD.mesh. They share one global scope and load in numeric order. No build step; serve over http(s) (GitHub Pages does) — `file://` can't start workers.
+
+| File | Contents |
+|---|---|
+| `index.html` · `sweep.css` | Markup · all styles |
+| `00-config.js` | Tool version (`F13LD_SWEEP_VERSION`) |
+| `01-f13-shade.js` | Shared F13LD-SHADE / F13LD-VIEW blocks (byte-identical across F13LD tools) |
+| `05-log.js` · `10-state.js` | Run log · global sweep state |
+| `11-rank.js` · `12-target-profile.js` | Rank filters, KNN outliers, k-means colouring, final ranking · target-aware sampling |
+| `20-recipe-load.js` · `21-materials-domain.js` · `22-controls.js` | Recipe loading, presets · materials, domains, pickers · sidebar controls |
+| `families/fam-tpms.js` · `fam-noise.js` · `fam-grain.js` · `fam-beam.js` | One field kernel per family: evaluate, jitter, GLSL emit |
+| `40-mode.js` · `41-rasterize.js` | Family registry + mode thresholds · voxel mask |
+| `42-fft.js` · `43-elastic-solver.js` · `44-solver-config.js` · `45-homogenize.js` | FFT · Green operator + CG · solver constants and caches · elastic / thermal homogenization |
+| `50-hires-field.js` · `51-transport.js` · `52-geometry-metrics.js` · `53-pores.js` | Hi-res field · throat / percolation / tortuosity · curvature / topology · pore analysis |
+| `54-estimate.js` | Per-design pipeline (`estimateHomogenization`) |
+| `60-solver-pool.js` · `61-sobol.js` · `62-run-sweep.js` | Worker pool · Sobol sampler · sweep runner |
+| `70-export.js` · `71-results-table.js` · `72-mesh-handoff.js` | Results export · table · F13LD.mesh handoff |
+| `80-preview-glsl.js` · `81-preview-gl.js` · `82-design-select.js` · `85-scatter-plot.js` | Preview shader builders · WebGL preview · design select / export · 3D scatter |
+| `99-init.js` | Page init |
+| `worker/sweep-worker.js` | Solver worker (loads `families/`, `40`–`54`) |
+| `tests/` | Dev harness: old-vs-new regression (`harness.js`), load-order check (`loadorder.js`) |
+| `docs/` | `REFACTOR.md` (plan, decisions, phases) · `AUDIT_v0.19.0.md` (findings) |
 
 ---
 
@@ -161,11 +182,10 @@ The current sweep tool consumes TPMS recipes only. The next major arc factors th
 | **E3** | Add Noise SDF kernel (seven noise types from [f13ld.noise](https://mshomper.github.io/f13ld.noise)). Noise recipes load and sweep. |
 | **E4** | Family-aware sidebar — sweep parameter UI swaps based on the loaded recipe's family (e.g., grain wavevector parameters replace TPMS pipe radius for spinodoids). |
 
-The kernel module is bundled into workers via the same runtime stringification pattern used today for the solver, preserving the single-file deployment.
 
-### Path C — GPU acceleration (deferred)
+### Refactor and GPU (in progress)
 
-A WebGPU compute backend for the FFT-CG inner loop is the longer-horizon target. Current solver performance with 8 CPU workers is sufficient for typical 100–500 design sweeps; WebGPU becomes worth the implementation cost once sweep sizes scale to thousands or kernel evaluation costs grow with new field families.
+v0.20.0 split the tool into modules. Next: correctness fixes including a full 6×6 Voigt solver and stretched cells (v0.21.0), the WebGPU batched solver from F13LD.lab (v0.22.0), and UI (v0.23.0). See `docs/REFACTOR.md`.
 
 ### Smaller items on the queue
 
