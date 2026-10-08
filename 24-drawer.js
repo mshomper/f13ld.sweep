@@ -439,3 +439,81 @@ function initSettings() {
   window.addEventListener('resize', closeDropdowns);
   paintSettings();
 }
+
+/* ── settings remembered per browser (as F13LD.lab v0.24.0) ─────────
+   Everything in the Settings panel: designs, sampling, cell-scale ranges and
+   the one-range / per-axis choice, domain, material, reference stress, cell
+   size, precision, grid, ranks (metric, direction, keep top %). Saved on
+   every change; nothing saved (new browser, cleared data, private window) →
+   the page's defaults. Reset puts the defaults back and forgets the saved
+   copy. ?fresh=1 (or window.SWEEP_SETTINGS = false, used by the test harness
+   and bench) skips both loading and saving. */
+var SW_SETTINGS_KEY = 'f13ld.sweep.settings.v1';
+var SW_SETTINGS = { loaded: false, defaults: null, pending64: false };
+function swSettingsOff() { return window.SWEEP_SETTINGS === false || /[?&]fresh=1\b/.test(location.search); }
+function swHasOpt(id, v) { var e = pxEl(id); if (!e) return false; for (var i = 0; i < e.options.length; i++) if (e.options[i].value === v) return true; return false; }
+function swSnapshot() {
+  return {
+    n: +dockVal('samplesSlider'), samp: dockVal('samplingMethod'),
+    scale: SC_AX.map(function (a) { return [pxNum('scale' + a + 'lo'), pxNum('scale' + a + 'hi')]; }),
+    link: typeof DOCK_STATE.link === 'boolean' ? DOCK_STATE.link : null,
+    domain: dockVal('domainSel'), material: pxEl('materialGroup').style.display !== 'none' ? dockVal('materialSel') : '', sigma: dockVal('sigmaRef'), cell: dockVal('cellSize'),
+    prec: getPrecisionMode(), grid: SW_SETTINGS.pending64 ? 64 : getSolverN(),
+    ranks: [1, 2, 3].map(function (r) { return { m: dockVal('r' + r + 'metric'), dir: directions[r] || 'max', keep: r > 1 ? dockVal('r' + r + 'keep') : null }; })
+  };
+}
+function swApply(s) {
+  if (!s || typeof s !== 'object') return;
+  var ok = function (v, lo, hi) { v = parseFloat(v); return isFinite(v) && v >= lo && v <= hi; };
+  if (ok(s.n, 1, 100000)) pxSet('samplesSlider', Math.max(10, Math.min(1000, Math.round(s.n / 10) * 10)), 'input');
+  if (s.samp === 'sobol' || s.samp === 'uniform') pxSet('samplingMethod', s.samp, 'change');
+  if (Array.isArray(s.scale) && s.scale.length === 3) s.scale.forEach(function (r, i) {
+    if (Array.isArray(r) && ok(r[0], 1, 500) && ok(r[1], 1, 500) && +r[0] <= +r[1]) { pxSet('scale' + SC_AX[i] + 'lo', +r[0], 'input'); pxSet('scale' + SC_AX[i] + 'hi', +r[1], 'input'); }
+  });
+  DOCK_STATE.link = typeof s.link === 'boolean' ? s.link : null;
+  /* the domain first: it resets the material, the reference stress and the ranks */
+  if (swHasOpt('domainSel', s.domain)) pxSet('domainSel', s.domain, 'change');
+  if (swHasOpt('materialSel', s.material)) pxSet('materialSel', s.material, 'change');
+  if (ok(s.sigma, 0.01, 10000)) pxEl('sigmaRef').value = s.sigma;
+  if (ok(s.cell, 0.1, 100)) pxEl('cellSize').value = s.cell;
+  if (s.prec === 'fast' || s.prec === 'rigorous') setPrecisionUI(s.prec);
+  SW_SETTINGS.pending64 = false;
+  if (s.grid === 16 || s.grid === 32) setResolutionUI(s.grid);
+  else if (s.grid === 64) {   /* GPU only: applied once a GPU is found (swSettingsGpu) */
+    var st = (typeof gpuSolverStatus === 'function') ? gpuSolverStatus() : { gpu: null };
+    if (st.gpu === true) setResolutionUI(64); else if (st.gpu !== false) SW_SETTINGS.pending64 = true;
+  }
+  if (Array.isArray(s.ranks)) s.ranks.slice(0, 3).forEach(function (k, i) {
+    var r = i + 1;
+    if (!k || typeof k !== 'object') return;
+    if (swHasOpt('r' + r + 'metric', k.m)) pxSet('r' + r + 'metric', k.m, 'change');
+    if (k.dir === 'max' || k.dir === 'min') setDirBtn(r, k.dir);
+    if (r > 1 && (k.keep === '' || ok(k.keep, 1, 100))) pxSet('r' + r + 'keep', k.keep, 'input');
+  });
+}
+/* called from initDock before the first paint */
+function swLoadSettings() {
+  if (!SW_SETTINGS.defaults) SW_SETTINGS.defaults = JSON.parse(JSON.stringify(swSnapshot()));
+  if (swSettingsOff()) return;
+  try { swApply(JSON.parse(localStorage.getItem(SW_SETTINGS_KEY) || 'null')); } catch (e) {}
+  SW_SETTINGS.loaded = true;
+}
+/* called from updateDock — every change goes through it */
+function swSaveSettings() {
+  if (!SW_SETTINGS.loaded) return;
+  try { localStorage.setItem(SW_SETTINGS_KEY, JSON.stringify(swSnapshot())); } catch (e) {}
+}
+function swResetSettings() {
+  try { localStorage.removeItem(SW_SETTINGS_KEY); } catch (e) {}
+  if (SW_SETTINGS.defaults) swApply(JSON.parse(JSON.stringify(SW_SETTINGS.defaults)));
+  closeDropdowns();
+  pxAfter();
+  var b = pxEl('drReset');
+  if (b) { b.classList.add('done'); setTimeout(function () { b.classList.remove('done'); }, 900); }
+}
+/* the saved 64³ grid waits for the GPU; without one the grid stays as it is */
+function swSettingsGpu(st) {
+  if (!SW_SETTINGS.pending64 || st.gpu == null) return;
+  SW_SETTINGS.pending64 = false;
+  if (st.gpu === true) setResolutionUI(64);
+}

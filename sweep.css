@@ -971,6 +971,10 @@ input.num:disabled { color: var(--t3); }
 .dr-tab .mv { font: 500 10px var(--mono); color: var(--t3); }
 .dr-tab .mv.warn { color: var(--warn); }
 .dr-strip-note { margin-left: auto; align-self: center; font: 10.5px var(--mono); color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; padding-right: 8px; }
+.dr-reset { align-self: center; height: 26px; margin-right: 6px; color: var(--t2); background: transparent; }
+.dr-reset:hover { color: var(--t1); }
+.dr-reset.done { color: var(--neon); border-color: var(--neon-ring); }
+.cfg-drawer:not([data-tab="set"]) .dr-reset { display: none; }
 .dr-x { align-self: center; width: 28px; height: 28px; border-radius: 7px; border: 1px solid transparent; background: transparent; color: var(--t3); cursor: pointer;
   display: inline-grid; place-items: center; flex-shrink: 0; }
 .dr-x:hover { color: var(--t1); border-color: var(--hair2); background: var(--s2); }

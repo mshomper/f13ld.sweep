@@ -226,7 +226,7 @@ async function loadCases() {
   });
 }
 function loadApp(gpu) {
-  return new Promise(res => { const f = $('app'); f.onload = () => res(f.contentWindow); f.src = '../index.html' + (gpu ? '' : '?gpu=0'); });
+  return new Promise(res => { const f = $('app'); f.onload = () => res(f.contentWindow); f.src = '../index.html?fresh=1' + (gpu ? '' : '&gpu=0'); });
 }
 async function runOne(win, name, n, grid, prec) {
   const c = CASES[name];

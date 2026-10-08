@@ -59,7 +59,8 @@ var SWEEP_GLYPHS = {
   link:   '<path d="M7 9 L9 7"' + SW_GS + '/><path d="M8.6 4.6 L9.9 3.3 a2.4 2.4 0 0 1 3.4 3.4 L11.4 8.6 M4.6 7.4 L3.1 9 a2.4 2.4 0 0 0 3.4 3.4 L7.8 11.1"' + SW_GS + '/>',
   unlink: '<path d="M8.6 4.6 L9.9 3.3 a2.4 2.4 0 0 1 3.4 3.4 L11.4 8.6 M4.6 7.4 L3.1 9 a2.4 2.4 0 0 0 3.4 3.4 L7.8 11.1 M3 3 L4.6 4.6 M13 13 L11.4 11.4"' + SW_GS + '/>',
   flag:   '<path d="M4 14 V2.6 M4 3.2 H11.8 L10 6.2 L11.8 9.2 H4"' + SW_GS + '/>',
-  upload: '<path d="M8 10.5 V3 M4.8 6.2 L8 3 L11.2 6.2 M3 13.5 H13"' + SW_GS + '/>'
+  upload: '<path d="M8 10.5 V3 M4.8 6.2 L8 3 L11.2 6.2 M3 13.5 H13"' + SW_GS + '/>',
+  reset:  '<path d="M3.6 8 a4.4 4.4 0 1 0 1.3 -3.1 M3.4 2.6 V5.3 H6.1"' + SW_GS + '/>'
 };
 function swGlyph(name, cls) { return '<svg class="g' + (cls ? ' ' + cls : '') + '" viewBox="0 0 16 16" aria-hidden="true">' + (SWEEP_GLYPHS[name] || '') + '</svg>'; }
 
@@ -92,12 +93,11 @@ var DOCK_STATE = { open: false, tab: 'set', col: null, link: null };
 var DOCK_STORE_KEY = 'f13ld.sweep.dock.v1';
 var DOCK_LOG = { warn: 0, last: '' };
 
-function dockSave() { try { localStorage.setItem(DOCK_STORE_KEY, JSON.stringify({ tab: DOCK_STATE.tab, link: DOCK_STATE.link })); } catch (e) {} }
+function dockSave() { try { localStorage.setItem(DOCK_STORE_KEY, JSON.stringify({ tab: DOCK_STATE.tab })); } catch (e) {} }
 function dockLoad() {
   try {
     var s = JSON.parse(localStorage.getItem(DOCK_STORE_KEY) || 'null');
     if (s && (s.tab === 'set' || s.tab === 'log' || s.tab === 'key')) DOCK_STATE.tab = s.tab;
-    if (s && typeof s.link === 'boolean') DOCK_STATE.link = s.link;
   } catch (e) {}
 }
 
@@ -123,6 +123,7 @@ function dockTab(tab, fromDock) {
   if (fromDock && DOCK_STATE.open && DOCK_STATE.tab === tab && (tab !== 'set' || DOCK_STATE.col === col)) { toggleDrawer(false); return; }
   DOCK_STATE.tab = tab;
   DOCK_STATE.col = col;
+  var drw = document.getElementById('cfgDrawer'); if (drw) drw.dataset.tab = tab;
   document.querySelectorAll('#drTabs .dr-tab').forEach(function (t) { var on = t.dataset.tab === tab; t.classList.toggle('on', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
   document.querySelectorAll('#cfgDrawer .dr-pane').forEach(function (p) { p.classList.toggle('on', p.dataset.pane === tab); });
   dockSave();
@@ -163,6 +164,7 @@ function updateDock() {
   var prec = (typeof getPrecisionMode === 'function' && getPrecisionMode() === 'rigorous') ? 'Rigorous' : 'Fast';
   var N = (typeof getSolverN === 'function') ? getSolverN() : 16;
   var st = (typeof gpuSolverStatus === 'function') ? gpuSolverStatus() : { gpu: null, text: '' };
+  if (typeof swSettingsGpu === 'function') { swSettingsGpu(st); N = getSolverN(); }
   var hwCls = st.gpu === true ? 'ok' : st.gpu === false ? 'cpu' : '';
   tags.push(dockTag('solver', swIcon('solver'), '', '<b>' + prec + '</b>' + N + '³<span class="hw ' + hwCls + '">' + (st.gpu === true ? 'GPU' : st.gpu === false ? 'CPU' : '') + '</span>', 'Precision, grid and solver'));
   /* ranks */
@@ -195,6 +197,7 @@ function updateDock() {
     hw.className = 'dock-hw' + (st.gpu === true ? ' green' : st.gpu === false ? ' warn' : '');
   }
   if (DOCK_STATE.open && DOCK_STATE.tab === 'set' && typeof paintSettings === 'function') paintSettings();
+  if (typeof swSaveSettings === 'function') swSaveSettings();
 }
 
 /* ── log chip (05-log.js calls this for every line) ─────────── */
@@ -313,6 +316,8 @@ function initDock() {
   if (run) setRunBtn(false);
   document.querySelectorAll('#drTabs .dr-tab').forEach(function (t) { t.classList.toggle('on', t.dataset.tab === DOCK_STATE.tab); });
   document.querySelectorAll('#cfgDrawer .dr-pane').forEach(function (p) { p.classList.toggle('on', p.dataset.pane === DOCK_STATE.tab); });
+  document.getElementById('cfgDrawer').dataset.tab = DOCK_STATE.tab;
+  if (typeof swLoadSettings === 'function') swLoadSettings();   /* before the first paint */
   if (typeof initSettings === 'function') initSettings();
   updateDock();
 }

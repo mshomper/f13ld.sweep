@@ -155,7 +155,8 @@
       <button class="dr-tab on" type="button" role="tab" data-tab="set" onclick="dockTab('set')"><span class="ico ico-sm" data-ico="sliders"></span><span class="nm">Settings</span></button>
       <button class="dr-tab" type="button" role="tab" data-tab="log" onclick="dockTab('log')"><span class="ico ico-sm" data-ico="log"></span><span class="nm">Log</span><span class="mv" id="mvLog"></span></button>
       <button class="dr-tab" type="button" role="tab" data-tab="key" onclick="dockTab('key')"><span class="ico ico-sm" data-ico="key"></span><span class="nm">Metric key</span><span class="mv" id="mvKey"></span></button>
-      <span class="dr-strip-note">Settings apply to the next run · Esc closes</span>
+      <span class="dr-strip-note">Remembered in this browser · Esc closes</span>
+      <button class="mini-btn dr-reset" id="drReset" type="button" onclick="swResetSettings()" title="Put every setting back to its default and forget the saved copy" data-g="reset" data-label="Reset to defaults"></button>
       <button class="dr-x" type="button" onclick="toggleDrawer(false)" title="Close (Esc)" aria-label="Close settings" data-g="x"></button>
     </div>
     <div class="dr-body">
