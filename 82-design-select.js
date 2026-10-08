@@ -18,6 +18,7 @@ function selectDesign(design, opts) {
   lbl.textContent = `design #${design.id} selected`;
   lbl.style.color = 'var(--accent)';
   renderDetailPanel(design);
+  if (typeof showPreview === 'function') showPreview(design);   /* v0.25.0 — the inspector follows the selection */
 }
 
 function clearSelection() {
@@ -33,6 +34,19 @@ function clearSelection() {
 /* Detail panel: every metric of the selected design (the table shows the
    domain's key columns only). Wraps on narrow screens — no side scrolling. */
 const DETAIL_SKIP = new Set(['id', 'filterRank', 'attemptIdx', 'recipe', 'terms', 'family']);
+
+/* v0.25.0 — every metric of the selected design opens on request (the
+   inspector beside the plot shows the key numbers), so the table keeps its
+   room. "All metrics" in the inspector header toggles it. */
+let detailOpen = false;
+function toggleDetails(on) {
+  detailOpen = (on == null) ? !detailOpen : !!on;
+  const panel = document.getElementById('detailPanel');
+  if (detailOpen && selectedDesign) renderDetailPanel(selectedDesign);
+  else panel.classList.remove('open');
+  const b = document.getElementById('detailsBtn');
+  if (b) { b.classList.toggle('on', detailOpen); b.setAttribute('aria-pressed', detailOpen ? 'true' : 'false'); }
+}
 function renderDetailPanel(d) {
   const panel = document.getElementById('detailPanel');
   if (!panel) return;
@@ -53,12 +67,10 @@ function renderDetailPanel(d) {
     <div class="dp-head">
       <span class="dp-title">Design #${d.id}${d.filterRank ? ` · rank ${d.filterRank}` : ''}</span>
       <span class="dp-sub">${escapeLog((d.family || baseFamily || '') + (sub ? ' · ' + sub : ''))}</span>
-      <button class="pill-btn ghost" onclick="openInLab(${d.id},this)" title="Full solve in F13LD.lab">Open in Lab</button>
-      <button class="pill-btn ghost" onclick="openInMesh(${d.id},this)" title="Print-ready mesh in F13LD.mesh">Open in Mesh</button>
-      <button class="pill-btn ghost" onclick="clearSelection()" title="Close" aria-label="Close details">✕</button>
+      <button class="pill-btn ghost" onclick="toggleDetails(false)" title="Hide all metrics" aria-label="Hide all metrics">✕</button>
     </div>
     <div class="dp-grid">${main.join('')}${rest.length ? '<div class="dp-sep">design &amp; solver</div>' + rest.join('') : ''}</div>`;
-  panel.classList.add('open');
+  panel.classList.toggle('open', detailOpen);
 }
 
 (function wireTableSelection() {

@@ -128,6 +128,7 @@ function updateSolverStatusUI() {
   if (el) { el.textContent = st.text; el.classList.toggle('gpu', st.gpu === true); }
   const b64 = document.querySelector('#resolutionToggle button[data-n="64"]');
   if (b64) { b64.disabled = st.gpu !== true; b64.title = st.gpu === true ? 'N = 64 (GPU)' : 'N = 64 needs the GPU solver'; }
+  if (typeof updateDock === 'function') updateDock();
 }
 
 function onDomainChange() {

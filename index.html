@@ -10,6 +10,7 @@
 
 <div class="app">
 
+
   <!-- Topbar — F13LD brand-compliant header
        Pattern: master logo (links to f13ld.app) + wordmark · divider · tool name · | · version + tool icon
        Per F13LD Brand Guidelines v1.0 -->
@@ -36,8 +37,33 @@
       <div class="fh-div"></div>
       <div class="fh-tool">SWEEP</div>
     </div>
+        <div class="recipe-card recipe-chip" id="recipeCard" title="Drop a recipe JSON here (or anywhere on the page), or click to choose a file">
+      <input type="file" accept=".json" id="fileInput" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2">
+      <div id="recipeEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 0">
+        <div style="font-size:16px;opacity:0.3">⬡</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center">
+          <span style="color:var(--accent)">Drop JSON</span> or click
+        </div>
+      </div>
+      <div id="recipeLoaded" style="display:none;padding:7px 12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+          <div style="color:var(--accent);font-size:12px">⬡</div>
+          <div id="fileName" style="font-family:var(--mono);font-size:11px;color:var(--accent);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">—</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);
+            border:1px solid var(--border2);border-radius:10px;padding:1px 6px;
+            white-space:nowrap;flex-shrink:0;cursor:pointer;z-index:3;position:relative"
+            onclick="document.getElementById('fileInput').click()">change</div>
+        </div>
+        <div id="fileMeta" style="font-family:var(--mono);font-size:10px;color:var(--muted);padding-left:20px">—</div>
+      </div>
+    </div>
+    <div class="fh-actions">
+      <button id="validateBtn" class="pill-btn" onclick="exportResults()" title="All designs, every metric (F13LD.ingest format)">↓ Export results</button>
+      <button id="exportDesignBtn" class="pill-btn ghost" onclick="exportSelectedDesign()" disabled title="The selected design's recipe">↓ Export design</button>
+    </div>
     <div class="fh-right">
-      <span class="fh-ver">v0.24.0</span>
+      <span class="fh-ver">v0.25.0</span>
       <!-- Sweep tool icon — fan of lines emanating from a pivot, per brand guidelines -->
       <div class="fh-ico" title="F13LD.Sweep — parameter-space exploration">
         <svg width="18" height="18" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
@@ -52,11 +78,141 @@
     </div>
   </header>
 
-  <!-- Sidebar -->
-  <aside class="sidebar">
+  <!-- v0.25.0 — layout A: design space (hero) + inspector over the full-width
+       results table; every setting lives in the Configure drawer above the
+       dock (as F13LD.lab). -->
+  <main class="main">
 
-    <div class="section-label">Domain &amp; Material</div>
+    <section class="pnl p-plot">
+      <div class="panel-header">
+        <div class="panel-title">Design Space</div>
+        <div class="mode-toggle-group" id="colorModeToggle">
+          <button class="mode-toggle-btn active" onclick="setColorMode('rank',this)">Rank</button>
+          <button class="mode-toggle-btn" onclick="setColorMode('terms',this)">Terms</button>
+        </div>
+        <div class="ph-spacer"></div>
+        <div class="panel-badge" id="plotBadge">run sweep to populate</div>
+      </div>
+      <div class="preview-body plot-body">
+        <canvas id="plotCanvas" style="width:100%;height:100%;display:block;opacity:1"></canvas>
+        <div class="preview-empty" id="plotEmpty">
+          <div class="empty-icon" style="font-size:28px;opacity:0.2">⬡</div>
+          <div style="font-size:12px;color:var(--muted2);margin-top:8px">Run a sweep to see<br>the design space</div>
+        </div>
+        <div class="preview-info" id="plotInfo"></div>
+      </div>
+    </section>
 
+    <section class="pnl p-insp">
+      <div class="panel-header">
+        <div class="panel-title" id="inspTitle">Preview</div>
+        <div class="panel-badge" id="previewBadge">hover a row</div>
+        <div class="ph-spacer"></div>
+        <div class="insp-actions" id="inspActions"></div>
+      </div>
+      <div class="preview-body insp-body">
+        <canvas id="previewCanvas"></canvas>
+        <div class="preview-empty" id="previewEmpty">
+          <div class="empty-icon" style="font-size:28px;opacity:0.2">⬡</div>
+          <div style="font-size:12px;color:var(--muted2);margin-top:8px">Hover a result row<br>to preview its surface</div>
+        </div>
+        <div class="preview-info" id="previewInfo"></div>
+      </div>
+      <div class="insp-kv" id="inspKv"></div>
+      <div class="insp-flag" id="inspFlag"></div>
+    </section>
+
+    <section class="pnl p-tbl results-panel">
+      <div class="panel-header">
+        <div class="panel-title">Results</div>
+        <div class="mode-toggle-group">
+          <button class="mode-toggle-btn active" onclick="setRankMode('ideal',this)">Ideal Corner</button>
+          <button class="mode-toggle-btn" onclick="setRankMode('outlier',this)">Outlier</button>
+        </div>
+        <div class="funnel" id="funnel"></div>
+        <div class="ph-spacer"></div>
+        <div class="ph-note" id="selectedLabel">click a row to select</div>
+        <div class="panel-badge" id="resultsBadge">0 designs</div>
+      </div>
+      <div class="detail-panel" id="detailPanel" aria-live="polite"></div>
+      <div class="table-wrap" id="tableWrap">
+        <div class="empty-state">
+          <div class="empty-icon">⬡</div>
+          <div class="empty-title">No results yet</div>
+          <div class="empty-sub">Load a recipe, then Run sweep</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Configure drawer (slides up over the panels; never resizes them) -->
+  <div class="cfg-drawer" id="cfgDrawer" role="region" aria-label="Sweep settings">
+    <div class="dr-tabs" id="drTabs">
+      <button class="dr-tab on" data-tab="sweep" onclick="dockTab('sweep')">Recipe &amp; sweep <span class="mv" id="mvSweep"></span></button>
+      <button class="dr-tab" data-tab="mat" onclick="dockTab('mat')">Domain &amp; material <span class="mv" id="mvMat"></span></button>
+      <button class="dr-tab" data-tab="solver" onclick="dockTab('solver')">Solver <span class="mv" id="mvSolver"></span></button>
+      <button class="dr-tab" data-tab="ranks" onclick="dockTab('ranks')">Ranks <span class="mv" id="mvRanks"></span></button>
+      <button class="dr-tab" data-tab="log" onclick="dockTab('log')">Log <span class="mv" id="mvLog"></span></button>
+      <button class="dr-tab" data-tab="key" onclick="dockTab('key')">Metric key <span class="mv" id="mvKey"></span></button>
+    </div>
+    <div class="dr-body">
+
+      <div class="dr-pane on" data-pane="sweep">
+        <div class="dr-h">Recipe &amp; sweep <span>The design every sample varies, how far, and how many. Drop a recipe JSON anywhere on the page to load it.</span></div>
+        <div class="dr-grid">
+          <div class="dr-f">
+            <div class="section-label">Base recipe</div>
+            <div class="dr-recipe"><span id="drRecipeName">No recipe loaded</span><button class="pill-btn ghost" onclick="document.getElementById('fileInput').click()">Load recipe…</button></div>
+          </div>
+          <div class="dr-f wide">
+    <div class="control-group">
+      <div class="control-label">
+        Periodicity variation
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted)" id="nominalLabel">nominal: —</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px">% of nominal &nbsp;·&nbsp; <span style="color:var(--muted2)">min → max</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+          <span style="font-size:10px;color:#5fb5b5;font-family:var(--mono)">X</span>
+          <input type="number" id="scaleXlo" value="50"  step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
+          <input type="number" id="scaleXhi" value="200" step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+          <span style="font-size:10px;color:#c794d4;font-family:var(--mono)">Y</span>
+          <input type="number" id="scaleYlo" value="50"  step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
+          <input type="number" id="scaleYhi" value="200" step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
+          <span style="font-size:10px;color:#d4b04a;font-family:var(--mono)">Z</span>
+          <input type="number" id="scaleZlo" value="50"  step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
+          <input type="number" id="scaleZhi" value="200" step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);line-height:1.6" id="scaleRangePreview">—</div>
+    </div>
+
+    <div class="control-group" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">Samples</span>
+        <input type="range" id="samplesSlider" min="10" max="1000" value="200" step="10" style="flex:1">
+        <span id="samplesVal" style="font-family:var(--mono);font-size:11px;color:var(--accent);min-width:28px;text-align:right">200</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">Sampling</span>
+        <select id="samplingMethod" style="flex:1;padding:3px 6px;font-size:11px" title="Sobol gives more uniform coverage of parameter space at small N. Uniform random is fully stochastic.">
+          <option value="sobol">Sobol (low-discrepancy)</option>
+          <option value="uniform">Uniform random</option>
+        </select>
+      </div>
+    </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dr-pane" data-pane="mat">
+        <div class="dr-h">Domain &amp; material <span>The domain sets the reference stress, the default ranks and the table's columns; the material sets the solid the solver uses.</span></div>
+        <div class="dr-grid">
     <div class="control-group" style="margin-bottom:8px">
       <div class="control-label">Application domain</div>
       <select id="domainSel" onchange="onDomainChange()">
@@ -87,9 +243,13 @@
         </div>
       </div>
     </div>
+        </div>
+      </div>
 
-    <div class="section-label">Solver</div>
-    <div id="solverStatus" class="solver-status">Solver: checking for a GPU…</div>
+      <div class="dr-pane" data-pane="solver">
+        <div class="dr-h">Solver <span>GPU: F13LD.lab's solver (elastic 6 × 6 + thermal). Add ?gpu=0 to the address for the CPU solver.</span></div>
+        <div class="dr-grid">
+    <div class="dr-f solver-line"><div class="section-label">Solver in use</div><div id="solverStatus" class="solver-status">Solver: checking for a GPU…</div></div>
 
     <!-- v0.16.0: Precision mode toggle. Fast (1e-3 contrast) is the default
          for sweep workloads where relative rankings are what matter — ~5%
@@ -131,76 +291,12 @@
         Sweep default · fast
       </div>
     </div>
-
-    <div class="section-label">Base Recipe</div>
-
-    <div class="recipe-card" id="recipeCard">
-      <input type="file" accept=".json" id="fileInput" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2">
-      <div id="recipeEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 0">
-        <div style="font-size:16px;opacity:0.3">⬡</div>
-        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center">
-          <span style="color:var(--accent)">Drop JSON</span> or click
         </div>
       </div>
-      <div id="recipeLoaded" style="display:none;padding:7px 12px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-          <div style="color:var(--accent);font-size:12px">⬡</div>
-          <div id="fileName" style="font-family:var(--mono);font-size:11px;color:var(--accent);
-            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">—</div>
-          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);
-            border:1px solid var(--border2);border-radius:10px;padding:1px 6px;
-            white-space:nowrap;flex-shrink:0;cursor:pointer;z-index:3;position:relative"
-            onclick="document.getElementById('fileInput').click()">change</div>
-        </div>
-        <div id="fileMeta" style="font-family:var(--mono);font-size:10px;color:var(--muted);padding-left:20px">—</div>
-      </div>
-    </div>
 
-    <div class="section-label">Sweep Parameters</div>
-
-    <div class="control-group">
-      <div class="control-label">
-        Periodicity variation
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted)" id="nominalLabel">nominal: —</span>
-      </div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px">% of nominal &nbsp;·&nbsp; <span style="color:var(--muted2)">min → max</span></div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
-        <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-          <span style="font-size:10px;color:#5fb5b5;font-family:var(--mono)">X</span>
-          <input type="number" id="scaleXlo" value="50"  step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
-          <input type="number" id="scaleXhi" value="200" step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-          <span style="font-size:10px;color:#c794d4;font-family:var(--mono)">Y</span>
-          <input type="number" id="scaleYlo" value="50"  step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
-          <input type="number" id="scaleYhi" value="200" step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:3px;align-items:center">
-          <span style="font-size:10px;color:#d4b04a;font-family:var(--mono)">Z</span>
-          <input type="number" id="scaleZlo" value="50"  step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
-          <input type="number" id="scaleZhi" value="200" step="5" min="1" max="500" style="padding:3px 4px;font-size:10px;text-align:center;width:100%">
-        </div>
-      </div>
-      <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);line-height:1.6" id="scaleRangePreview">—</div>
-    </div>
-
-    <div class="control-group" style="margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap">Samples</span>
-        <input type="range" id="samplesSlider" min="10" max="1000" value="200" step="10" style="flex:1">
-        <span id="samplesVal" style="font-family:var(--mono);font-size:11px;color:var(--accent);min-width:28px;text-align:right">200</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap">Sampling</span>
-        <select id="samplingMethod" style="flex:1;padding:3px 6px;font-size:11px" title="Sobol gives more uniform coverage of parameter space at small N. Uniform random is fully stochastic.">
-          <option value="sobol">Sobol (low-discrepancy)</option>
-          <option value="uniform">Uniform random</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="section-label">Filtration Ranks</div>
-
+      <div class="dr-pane" data-pane="ranks">
+        <div class="dr-h">Ranks <span>Rank 1 sorts; ranks 2 and 3 keep the top share of what is left. The table and the plot can still be sorted by any column.</span></div>
+        <div class="dr-ranks">
     <!-- Rank 1 -->
     <div class="rank-block">
       <div class="rank-header">
@@ -351,131 +447,11 @@
         </div>
       </div>
     </div>
+        </div>
+      </div>
 
-    <!-- Progress -->
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-label">
-        <span id="progressLabel">Sampling...</span>
-        <span id="progressPct">0%</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progressFill"></div>
-      </div>
-    </div>
-
-    <button class="run-btn" id="runBtn" onclick="runSweep()" disabled>
-      ▶ Run Sweep
-    </button>
-    <button id="cancelBtn" onclick="cancelSweep()" style="display:none;width:calc(100% - 32px);margin:0 16px 8px;font-size:12px;padding:8px 14px;border:0.5px solid var(--warn);border-radius:20px;background:transparent;color:var(--warn);cursor:pointer;font-family:'Exo 2',system-ui,sans-serif">
-      ✕ Cancel &amp; show results
-    </button>
-
-    <div style="margin:0 16px 16px;padding:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px;flex-shrink:0">
-      <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Metric key</div>
-      <div id="metricKeyBody" style="display:flex;flex-direction:column;gap:5px;font-family:var(--mono);font-size:10px;line-height:1.5">
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent);font-size:13px">α</span>
-          <span><span style="color:var(--text)">Anisotropy Ratio</span> <span style="color:var(--muted)">— strongest vs. weakest axis</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent)">E/ρ</span>
-          <span><span style="color:var(--text)">Stiff / Density</span> <span style="color:var(--muted)">— mean stiffness per unit material</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent)">α/ρ</span>
-          <span><span style="color:var(--text)">Aniso / Density</span> <span style="color:var(--muted)">— directional bias per unit material</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent);font-size:13px">Ξ</span>
-          <span><span style="color:var(--text)">Axial Dom.</span> <span style="color:var(--muted)">— peak axis vs. other two combined</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent);font-size:13px">Ω</span>
-          <span><span style="color:var(--text)">Ortho Spread</span> <span style="color:var(--muted)">— spread across all three axes</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent);font-size:13px">λ</span>
-          <span><span style="color:var(--text)">Load Path Eff.</span> <span style="color:var(--muted)">— peak E / (ρ × Es) — pure geometry efficiency</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent)">ax</span>
-          <span><span style="color:var(--text)">Stiff Axis</span> <span style="color:var(--muted)">— X/Y/Z direction of peak stiffness</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent);font-size:13px">κ</span>
-          <span><span style="color:var(--text)">Connectivity</span> <span style="color:var(--muted)">— fraction of axes mechanically connected</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent)">kx</span>
-          <span><span style="color:var(--text)">Thermal Cond. X</span> <span style="color:var(--muted)">— effective k in X direction</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent)">kα</span>
-          <span><span style="color:var(--text)">Thermal Aniso.</span> <span style="color:var(--muted)">— max vs. min directional conductivity</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent)">k/ρ</span>
-          <span><span style="color:var(--text)">Thermal / Density</span> <span style="color:var(--muted)">— mean k per unit material volume</span></span>
-        </div>
-        <div style="display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:baseline">
-          <span style="color:var(--accent)">ρ%</span>
-          <span><span style="color:var(--text)">Volume Fraction</span> <span style="color:var(--muted)">— % of unit cell that is solid material</span></span>
-        </div>
-      </div>
-    </div>
-
-  </aside>
-
-  <!-- Main -->
-  <main class="main">
-
-    <!-- Stats -->
-    <div class="stats-bar">
-      <div class="stat-card c1">
-        <div class="stat-val" id="statSampled">—</div>
-        <div class="stat-label">Sampled</div>
-      </div>
-      <div class="stat-card c-r1">
-        <div class="stat-val" id="statRank1">—</div>
-        <div class="stat-label">After Rank 1</div>
-        <div class="stat-sublabel" id="statRank1Pct"></div>
-      </div>
-      <div class="stat-card c-r2">
-        <div class="stat-val" id="statRank2">—</div>
-        <div class="stat-label">After Rank 2</div>
-        <div class="stat-sublabel" id="statRank2Pct"></div>
-      </div>
-      <div class="stat-card c-r3">
-        <div class="stat-val" id="statRank3">—</div>
-        <div class="stat-label">After Rank 3</div>
-        <div class="stat-sublabel" id="statRank3Pct"></div>
-      </div>
-      <div class="stat-card c2">
-        <div class="stat-val" id="statPeakR1">—</div>
-        <div class="stat-label" id="statPeakR1Label">Peak R1</div>
-        <div class="stat-sublabel" id="statPeakR1Sub" style="color:var(--muted);font-size:10px">no filter</div>
-      </div>
-      <div class="stat-card c3">
-        <div class="stat-val" id="statPeakR2">—</div>
-        <div class="stat-label" id="statPeakR2Label">Peak R2</div>
-        <div class="stat-sublabel" id="statPeakR2Sub" style="color:var(--muted);font-size:10px">no filter</div>
-      </div>
-      <div class="stat-card c4">
-        <div class="stat-val" id="statPeakR3">—</div>
-        <div class="stat-label" id="statPeakR3Label">Peak R3</div>
-        <div class="stat-sublabel" id="statPeakR3Sub" style="color:var(--muted);font-size:10px">no filter</div>
-      </div>
-    </div>
-
-    <!-- Log + Preview row -->
-    <div class="log-preview-row">
-
-      <!-- Log -->
-      <div class="log-panel">
-        <div class="panel-header">
-          <div class="panel-title">Pipeline Log</div>
-          <div class="panel-badge" id="logBadge">idle</div>
-        </div>
+      <div class="dr-pane" data-pane="log">
+        <div class="dr-h">Log <span class="panel-badge" id="logBadge">idle</span></div>
         <div class="log-body" id="logBody">
           <div class="log-line">
             <span class="log-time">—</span>
@@ -484,71 +460,32 @@
         </div>
       </div>
 
-      <!-- Surface Preview -->
-      <div class="preview-panel">
-        <div class="panel-header">
-          <div class="panel-title">Design Space</div>
-          <div class="panel-badge" id="plotBadge">run sweep to populate</div>
-          <div class="mode-toggle-group" id="colorModeToggle" style="margin-left:8px">
-            <button class="mode-toggle-btn active" onclick="setColorMode('rank',this)">Rank</button>
-            <button class="mode-toggle-btn" onclick="setColorMode('terms',this)">Terms</button>
-          </div>
-        </div>
-        <div class="preview-body" style="background:var(--surface)">
-          <canvas id="plotCanvas" style="width:100%;height:100%;display:block;opacity:1"></canvas>
-          <div class="preview-empty" id="plotEmpty">
-            <div class="empty-icon" style="font-size:28px;opacity:0.2">⬡</div>
-            <div style="font-size:12px;color:var(--muted2);margin-top:8px">Run a sweep to see<br>the design space</div>
-          </div>
-          <div class="preview-info" id="plotInfo"></div>
-        </div>
-      </div>
-
-      <!-- Surface Preview -->
-      <div class="preview-panel">
-        <div class="panel-header">
-          <div class="panel-title">Surface Preview</div>
-          <div class="panel-badge" id="previewBadge">hover a row</div>
-        </div>
-        <div class="preview-body">
-          <canvas id="previewCanvas"></canvas>
-          <div class="preview-empty" id="previewEmpty">
-            <div class="empty-icon" style="font-size:28px;opacity:0.2">⬡</div>
-            <div style="font-size:12px;color:var(--muted2);margin-top:8px">Hover a result row<br>to preview its surface</div>
-          </div>
-          <div class="preview-info" id="previewInfo"></div>
-        </div>
+      <div class="dr-pane" data-pane="key">
+        <div class="dr-h">Metric key <span>The metrics the table shows. Hover a column header for the same text.</span></div>
+        <div id="metricKeyBody" class="metric-key"></div>
       </div>
 
     </div>
+  </div>
 
-    <!-- Results -->
-    <div class="results-panel">
-      <div class="panel-header">
-        <div class="panel-title">Results</div>
-        <div class="mode-toggle-group" style="margin-left:8px">
-          <button class="mode-toggle-btn active" onclick="setRankMode('ideal',this)">Ideal Corner</button>
-          <button class="mode-toggle-btn" onclick="setRankMode('outlier',this)">Outlier</button>
-        </div>
-        <div class="ph-actions">
-          <div class="ph-note" id="selectedLabel">click a row to select</div>
-          <button id="validateBtn" class="pill-btn" onclick="exportResults()" title="All designs, every metric (F13LD.ingest format)">↓ Export Results</button>
-          <button id="exportDesignBtn" class="pill-btn ghost" onclick="exportSelectedDesign()" disabled title="The selected design's recipe">↓ Export Design</button>
-          <div class="panel-badge" id="resultsBadge">0 designs</div>
-        </div>
-      </div>
-      <div class="detail-panel" id="detailPanel" aria-live="polite"></div>
-      <div class="table-wrap" id="tableWrap">
-        <div class="empty-state">
-          <div class="empty-icon">⬡</div>
-          <div class="empty-title">No results yet</div>
-          <div class="empty-sub">Run a sweep to populate this table</div>
-        </div>
-      </div>
+  <!-- Dock — one row: Configure · a tag per setting · log · solver · Run -->
+  <footer class="dock">
+    <button class="cfg-btn" id="cfgBtn" type="button" onclick="toggleDrawer()" aria-expanded="false" aria-controls="cfgDrawer" title="Recipe, sweep ranges, material, solver and ranks">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.6"/><circle cx="5.5" cy="12" r="1.6"/></svg>
+      Configure <span class="chev">▾</span>
+    </button>
+    <div class="dock-tags" id="dockTags"></div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label"><span id="progressLabel">Sampling...</span><span id="progressPct">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     </div>
+    <button class="log-chip" id="logChip" type="button" onclick="dockTab('log', true)" title="Open the log"><b>Log</b> <span id="logChipMsg">Drop a JSON recipe to begin.</span> <span class="w" id="logChipWarn"></span></button>
+    <span class="dock-hw" id="dockHw"></span>
+    <button id="cancelBtn" class="cancel-btn" onclick="cancelSweep()" style="display:none">✕ Cancel</button>
+    <button class="run" id="runBtn" onclick="runSweep()" disabled>▶ Run Sweep</button>
+  </footer>
 
-  </main>
-
+  <div class="col-tip" id="colTip" role="tooltip"></div>
 </div>
 
 <script src="00-config.js"></script>
@@ -560,6 +497,7 @@
 <script src="20-recipe-load.js"></script>
 <script src="21-materials-domain.js"></script>
 <script src="22-controls.js"></script>
+<script src="23-dock.js"></script>
 <script src="geom/tpms.js"></script>
 <script src="geom/noise.js"></script>
 <script src="geom/grain.js"></script>

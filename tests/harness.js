@@ -74,7 +74,7 @@ async function runBuild(browser, url, label) {
       for (let i = 0; i < 100 && document.getElementById('runBtn').disabled; i++) await new Promise(r => setTimeout(r, 50));
       rep.loaded = !document.getElementById('runBtn').disabled;
       rep.fileMeta = document.getElementById('fileMeta').textContent;
-      if (!rep.loaded) { rep.log = document.getElementById('logBody').innerText; return rep; }
+      if (!rep.loaded) { rep.log = [...document.querySelectorAll('#logBody .log-line')].map(l => l.textContent).join('\n'); return rep; }
       if (c.ui) {
         if (c.ui.domain) { document.getElementById('domainSel').value = c.ui.domain; onDomainChange(); }
         if (c.ui.precision) setPrecisionUI(c.ui.precision);
@@ -96,7 +96,8 @@ async function runBuild(browser, url, label) {
         try { showPreview(results[0]); rep.previewBadge = document.getElementById('previewBadge').textContent; }
         catch (e) { rep.previewErr = String(e); }
       }
-      rep.log = document.getElementById('logBody').innerText;
+      /* line by line: innerText drops line breaks once the log sits in a hidden drawer tab (v0.25.0) */
+      rep.log = [...document.querySelectorAll('#logBody .log-line')].map(l => l.textContent).join('\n');
       return rep;
     }, { name, c });
     r.secs = Math.round((Date.now() - t0) / 1000);
@@ -134,7 +135,9 @@ function firstDiff(a, b, p = '') {
     let bad = 0;
     for (const n of names) {
       const a = A[n], b = B[n];
-      const fields = ['loaded', 'fileMeta', 'results', 'table', 'stats', 'plotInfo', 'meshRecipe', 'exportJson', 'exportErr', 'previewBadge', 'previewErr', 'log'];
+      /* v0.25.0: the stat cards are gone (a funnel line replaced them) and
+         the preview badge shows the rank — not compared. */
+      const fields = ['loaded', 'fileMeta', 'results', 'table', 'plotInfo', 'meshRecipe', 'exportJson', 'exportErr', 'previewErr', 'log'];
       const val = (r, f) => (f === 'exportJson' && typeof r[f] === 'string') ? JSON.parse(r[f]) : f === 'table' ? stripFlags(r[f]) : r[f];
       const diffs = fields.map(f => firstDiff(val(a, f), val(b, f), f)).filter(Boolean);
       if (b.errors.length) diffs.push('new build errors: ' + b.errors.slice(0, 3).join(' || '));

@@ -7,6 +7,7 @@
 // Init — populate metric key for default (general) domain
 renderMetricKey();
 updateRankActiveState();
+initDock();   /* v0.25.0 — dock + Configure drawer */
 
 /* v0.24.0 — start the GPU solver early so the first sweep doesn't wait */
 getGpuSolver().then(updateSolverStatusUI, updateSolverStatusUI);

@@ -139,6 +139,7 @@ function showPreview(design) {
   info.textContent = `${scaleStr}aniso ${anisoStr}×`;
   info.classList.add('visible');
   document.getElementById('previewBadge').textContent = design.id === 'base' ? 'loaded recipe' : `design #${design.id}`;
+  if (typeof renderInspector === 'function') renderInspector(design);   /* v0.25.0 — inspector key numbers */
   if (!gl) {
     document.getElementById('previewEmpty').textContent = 'Preview needs WebGL2';
     return;

@@ -79,3 +79,7 @@ Fixed after Matt's first speed-bench run: the bench read the app's `results` thr
 | Beam BCC | 70.0 | 2.9 | 24.5× | 89 % |
 
 CPU preparation limits the GPU. Added (decisions in `REFACTOR.md`): stiffness flags (pore-stiffness-limited axes, under-resolved), Fast metrics grid 48³ for PI-TPMS / noise / grain, threads − 2 workers with the GPU. Harness identical on all 11 cases (flags excluded). Flags reach Sweep's export only; Ingest / Vault later.
+
+## UI session (same day) — v0.25.0, branch `v0.25.0-ui`
+
+Mockups of three layouts (`docs/mockups/sweep-ui-v0.25.html`); Matt picked A. Built: dock + Configure drawer replacing the sidebar, design space + inspector over the full-width table, funnel line replacing the stat cards, log as a dock chip, recipe chip and exports in the header, column-header tooltips, neon active controls. Harness identical on the CPU path. Details in `REFACTOR.md` → v0.25.0.

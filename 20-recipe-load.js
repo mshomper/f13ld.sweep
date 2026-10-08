@@ -91,6 +91,7 @@ function loadRecipe(json, name) {
   document.getElementById('recipeLoaded').style.display = 'block';
   document.getElementById('recipeCard').classList.add('loaded');
   document.getElementById('runBtn').disabled = false;
+  if (typeof updateDock === 'function') updateDock();
 
   log('info', `Loaded: ${escapeLog(name)}`);
   log('accent', escapeLog(summary));

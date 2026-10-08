@@ -163,7 +163,7 @@ Since v0.20.0 the tool is split into numbered classic scripts, like F13LD.lab an
 | `01-f13-shade.js` | Shared F13LD-SHADE / F13LD-VIEW blocks (byte-identical across F13LD tools) |
 | `05-log.js` · `10-state.js` | Run log · global sweep state |
 | `11-rank.js` · `12-target-profile.js` | Rank filters, KNN outliers, k-means colouring, final ranking · target-aware sampling |
-| `20-recipe-load.js` · `21-materials-domain.js` · `22-controls.js` | Recipe loading, presets · materials, domains, pickers · sidebar controls |
+| `20-recipe-load.js` · `21-materials-domain.js` · `22-controls.js` · `23-dock.js` | Recipe loading, presets · materials, domains, pickers · sweep controls · dock + Configure drawer, inspector, results funnel, column tooltips (v0.25.0) |
 | `families/fam-tpms.js` · `fam-noise.js` · `fam-grain.js` · `fam-beam.js` | One field kernel per family: evaluate, jitter, GLSL emit |
 | `40-mode.js` · `41-rasterize.js` | Family registry + mode thresholds · voxel mask |
 | `42-fft.js` · `43-elastic-solver.js` · `44-solver-config.js` · `45-homogenize.js` | FFT · Green operator + CG · solver constants and caches · elastic / thermal homogenization |
