@@ -1,5 +1,7 @@
 # F13LD.sweep refactor (v0.20 → v0.23)
 
+Session recap: [`SESSION_RECAP_2026-10-08.md`](SESSION_RECAP_2026-10-08.md) · what's next: [`NEXT_STEPS.md`](NEXT_STEPS.md).
+
 Started 2026-10-07. Sweep is for quickly exploring a parameter space as a comparison; F13LD.lab is for full solves and verification. The refactor splits the single file into modules (like Lab and Mesh), fixes the v0.19.0 findings (`AUDIT_v0.19.0.md`) and moves the solver onto the GPU.
 
 ## Decisions (Matt, 2026-10-07)
@@ -49,7 +51,7 @@ Matt's decisions: Mesh switches to F13LD.grain's random generator; solver files 
 - **Export shape** kept for F13LD.ingest (validated with its `validateDesign` on every family); `meta.schema_version` 0.18.0, `meta.solver.version` / `geometry` and per-design `solver_version` / `geometry_version` added.
 - Lab v0.26.0 (noise kernel, `normal_weights`, shared blocks) and Mesh v0.9.7 (grain generator, warp strength 0) ship with it.
 
-Not yet done: a local parity script comparing Sweep-generated designs against Mesh voxel by voxel (Sweep ↔ Lab is identical by construction; Lab ↔ Mesh verified per family). Lab samples a stretched beam over Mesh's world cube rather than one cell — a Lab item.
+Sweep-generated designs vs Mesh: `tests/parity/parity.js --quick` passed on 2026-10-08 (0 voxels vs Lab, 0.00 % vs Mesh). Lab samples a stretched beam over Mesh's world cube rather than one cell — a Lab item.
 
 ## v0.22.0 — quick audit fixes (2026-10-08)
 From `docs/AUDIT_v0.19.0.md`. Numbers move on purpose (seeded sampling, periodic metrics).

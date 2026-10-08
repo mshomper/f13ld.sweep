@@ -186,7 +186,7 @@ The current sweep tool consumes TPMS recipes only. The next major arc factors th
 
 ### Refactor and GPU (in progress)
 
-v0.20.0 split the tool into modules. Next: correctness fixes including a full 6×6 Voigt solver and stretched cells (v0.21.0), the WebGPU batched solver from F13LD.lab (v0.22.0), and UI (v0.23.0). See `docs/REFACTOR.md`.
+v0.20.0 split the tool into modules; v0.21.0 builds every design exactly as F13LD.lab and F13LD.mesh do; v0.22.0 fixed the audit's quick items; v0.23.0 refreshed the UI. Next: the WebGPU batched solver from F13LD.lab with shear, stretched cells and proper thermal. See `docs/NEXT_STEPS.md` and `docs/REFACTOR.md`.
 
 ### Smaller items on the queue
 

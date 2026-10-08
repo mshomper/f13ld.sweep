@@ -15,4 +15,5 @@
 
 ## Testing
 - Before merging, run `node tests/harness.js <old build> <new build>` (see `tests/README.md`). Changes that are not meant to move numbers must come out identical.
-- Refactor plan, decisions and phase status: `docs/REFACTOR.md`. v0.19.0 findings: `docs/AUDIT_v0.19.0.md`.
+- Latest session recap: `docs/SESSION_RECAP_2026-10-08.md`; what's next: `docs/NEXT_STEPS.md`. Refactor plan, decisions and phase status: `docs/REFACTOR.md`. v0.19.0 findings: `docs/AUDIT_v0.19.0.md`.
+- Cross-tool geometry check: `node tests/parity/parity.js --quick` (needs the other F13LD repos as siblings).
