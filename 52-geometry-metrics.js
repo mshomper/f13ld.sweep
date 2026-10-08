@@ -1,171 +1,143 @@
 /* ============================================================
    F13LD.sweep · 52-geometry-metrics.js
    Narrow-band curvature and topology (Euler characteristic, genus).
+   Both work on ONE periodic unit cell (N³ voxel centres over [-π,π]³,
+   index i·N²+j·N+k): every stencil and neighbour wraps across the cell
+   faces.  Masks may be Float32Array or Uint8Array; > 0.5 is "in".
    ============================================================ */
 
-// ─── v0.12 Phase 1: Narrow-band curvature analysis ───────────────────────────
-// Computes mean curvature H, Gaussian curvature K, and integral curvature
-// stats by central differences on the SDF, evaluated only on voxels within
-// 1 voxel of the iso-surface (narrow band ~5% of grid).
+// ─── Narrow-band curvature analysis ──────────────────────────────────────────
+// Mean curvature H and Gaussian curvature K by central differences on the
+// field, evaluated at voxels next to the solid/void interface, then
+// integrated over the interface with a Crofton-style area estimate.
 //
-// For an SDF φ with |∇φ| = 1:
-//   H = -½ ∇·(∇φ/|∇φ|) = -½ Δφ                         (mean curvature)
-//   K = (φx²(φyy φzz - φyz²) + ...) / |∇φ|⁴            (Gaussian curvature)
+// For a level set φ (any scale — the formulas normalise by |∇φ|):
+//   H = ½ ∇·(∇φ/|∇φ|) = (Δφ |∇φ|² − ∇φᵀ Hφ ∇φ) / (2 |∇φ|³)
+//   K = ∇φᵀ adj(Hφ) ∇φ / |∇φ|⁴
 //
-// Sign convention: φ > 0 in solid (NOTE: rawField uses raw>0 in VOID per
-// applyModeRaw; we negate below to convert to standard "positive-inside-solid"
-// SDF before differentiating, so H > 0 means convex-outward into void).
+// Sign convention: φ > 0 in solid (rawField is > 0 in VOID per applyModeRaw,
+// so we differentiate −rawField); outputs are negated at the end so that
+// H > 0 means convex-outward into void.
 //
-// Returns:
-//   H_mean              — area-weighted mean of |H| (mm⁻¹), surface smoothness
-//   K_gauss_mean        — area-weighted mean of K (mm⁻²), saddleness vs sphericality
-//   curvature_uniformity ∈ [0,1] — 1 - σ_H/⟨|H|⟩, normalized stddev of mean curvature
-//   MIH                 — Mean Integrated Curvature in mm⁻¹·mm² (raw integral of H)
+// Area / integration: each periodic face-pair (p, p+e_a) whose two voxels
+// are in different phases is one interface crossing along axis a.  A surface
+// element with unit normal n̂ is crossed |n̂_a|/h² times per unit area by grid
+// lines along a, so weighting each crossing by |n̂_a| gives
+//   Σ_a Σ_crossings |n̂_a| · h² = Σ_a n̂_a² · A = A      (exact for planes)
+// and ∫ f dA ≈ h² Σ |n̂_a| f.  n̂, H, K at a crossing are the mean of the two
+// voxels' values (one-sided if the other has |∇φ| ≈ 0).  This replaces the
+// v0.19 two-layer band count, which counted every patch of surface ~2×.
+//
+// Returns (all area-weighted over the interface of one cell):
+//   H_mean               — signed ⟨H⟩ (mm⁻¹), convex-out (>0) / concave (<0) bias
+//   H_mean_abs           — ⟨|H|⟩ (mm⁻¹)
+//   H_std                — σ(H) (mm⁻¹)
+//   K_gauss_mean         — ⟨K⟩ (mm⁻²), saddle (<0) vs spherical (>0)
+//   curvature_uniformity — 1 / (1 + σ_H/⟨|H|⟩) ∈ (0,1]
+//   MIH                  — ∫ H dA over the cell's interface (mm)
 function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N) {
   const NN = N * N;
-  const N3 = N * N * N;
-  const idx_ = (i,j,k) => i*NN + j*N + k;
-  // Voxel size in mm — for unit conversion of curvatures
+  const N3 = NN * N;
   const h_mm = cellSizeMm / N;
-
-  // Identify narrow-band voxels: solid voxels with at least one void neighbor,
-  // OR void voxels with at least one solid neighbor. These straddle the
-  // surface; differentiating away from this band wastes work.
-  const narrow = new Uint8Array(N3);
-  for (let i = 1; i < N-1; i++) {
-    for (let j = 1; j < N-1; j++) {
-      const baseRow = i*NN + j*N;
-      for (let k = 1; k < N-1; k++) {
-        const id = baseRow + k;
-        const here = solidMask[id];
-        // Check 6 neighbors for opposite phase
-        const opp = (
-          solidMask[idx_(i-1,j,k)] !== here || solidMask[idx_(i+1,j,k)] !== here ||
-          solidMask[idx_(i,j-1,k)] !== here || solidMask[idx_(i,j+1,k)] !== here ||
-          solidMask[idx_(i,j,k-1)] !== here || solidMask[idx_(i,j,k+1)] !== here
-        );
-        if (opp) narrow[id] = 1;
-      }
-    }
-  }
-
-  // Sample H and K on narrow band via central differences on -rawField
-  // (so positive-inside-solid SDF). Skip degenerate voxels where |∇φ| ≈ 0.
-  const Hvals = [];
-  const Kvals = [];
   const eps = 1e-6;
+  const prevT = new Int32Array(N), nextT = new Int32Array(N);
+  for (let t = 0; t < N; t++) { prevT[t] = (t + N - 1) % N; nextT[t] = (t + 1) % N; }
+  const S = new Uint8Array(N3);
+  for (let i = 0; i < N3; i++) S[i] = solidMask[i] > 0.5 ? 1 : 0;
 
-  for (let i = 1; i < N-1; i++) {
-    for (let j = 1; j < N-1; j++) {
-      const baseRow = i*NN + j*N;
-      for (let k = 1; k < N-1; k++) {
-        const id = baseRow + k;
-        if (!narrow[id]) continue;
+  // Band: voxels with a 6-neighbour (periodic) in the other phase.
+  // Per band voxel: H, K (voxel units) and |n̂_x|,|n̂_y|,|n̂_z|; valid = 0 if |∇φ|≈0.
+  const slot = new Int32Array(N3).fill(-1);
+  const Hs = [], Ks = [], Nx = [], Ny = [], Nz = [];
+  const phi = (id) => -rawField[id];
+  for (let i = 0; i < N; i++) {
+    const im = prevT[i], ip = nextT[i];
+    for (let j = 0; j < N; j++) {
+      const jm = prevT[j], jp = nextT[j];
+      for (let k = 0; k < N; k++) {
+        const km = prevT[k], kp = nextT[k];
+        const id = i*NN + j*N + k, here = S[id];
+        if (S[ip*NN + j*N + k] === here && S[im*NN + j*N + k] === here &&
+            S[i*NN + jp*N + k] === here && S[i*NN + jm*N + k] === here &&
+            S[i*NN + j*N + kp] === here && S[i*NN + j*N + km] === here) continue;
 
-        // SDF with positive-inside-solid convention (raw field is positive in void)
-        const phi = (id_) => -rawField[id_];
-
-        const px = phi(idx_(i+1,j,k)), mx = phi(idx_(i-1,j,k));
-        const py = phi(idx_(i,j+1,k)), my = phi(idx_(i,j-1,k));
-        const pz = phi(idx_(i,j,k+1)), mz = phi(idx_(i,j,k-1));
         const c = phi(id);
-
-        // First derivatives (per-voxel units, divide by h_mm at end)
-        const fx = (px - mx) * 0.5;
-        const fy = (py - my) * 0.5;
-        const fz = (pz - mz) * 0.5;
-
+        const px = phi(ip*NN + j*N + k), mx = phi(im*NN + j*N + k);
+        const py = phi(i*NN + jp*N + k), my = phi(i*NN + jm*N + k);
+        const pz = phi(i*NN + j*N + kp), mz = phi(i*NN + j*N + km);
+        const fx = (px - mx) * 0.5, fy = (py - my) * 0.5, fz = (pz - mz) * 0.5;
         const grad2 = fx*fx + fy*fy + fz*fz;
-        if (grad2 < eps) continue;
+        slot[id] = Hs.length;
+        if (grad2 < eps) { Hs.push(NaN); Ks.push(NaN); Nx.push(0); Ny.push(0); Nz.push(0); continue; }
 
-        // Second derivatives — pure axial
-        const fxx = px - 2*c + mx;
-        const fyy = py - 2*c + my;
-        const fzz = pz - 2*c + mz;
+        const fxx = px - 2*c + mx, fyy = py - 2*c + my, fzz = pz - 2*c + mz;
+        const fxy = (phi(ip*NN + jp*N + k) - phi(ip*NN + jm*N + k)
+                   - phi(im*NN + jp*N + k) + phi(im*NN + jm*N + k)) * 0.25;
+        const fxz = (phi(ip*NN + j*N + kp) - phi(ip*NN + j*N + km)
+                   - phi(im*NN + j*N + kp) + phi(im*NN + j*N + km)) * 0.25;
+        const fyz = (phi(i*NN + jp*N + kp) - phi(i*NN + jp*N + km)
+                   - phi(i*NN + jm*N + kp) + phi(i*NN + jm*N + km)) * 0.25;
 
-        // Mixed second derivatives (4-point stencil)
-        const fxy = (phi(idx_(i+1,j+1,k)) - phi(idx_(i+1,j-1,k))
-                   - phi(idx_(i-1,j+1,k)) + phi(idx_(i-1,j-1,k))) * 0.25;
-        const fxz = (phi(idx_(i+1,j,k+1)) - phi(idx_(i+1,j,k-1))
-                   - phi(idx_(i-1,j,k+1)) + phi(idx_(i-1,j,k-1))) * 0.25;
-        const fyz = (phi(idx_(i,j+1,k+1)) - phi(idx_(i,j+1,k-1))
-                   - phi(idx_(i,j-1,k+1)) + phi(idx_(i,j-1,k-1))) * 0.25;
-
-        const gradMag = Math.sqrt(grad2);
-
-        // Mean curvature: H = ½ ∇·(∇φ/|∇φ|)
-        // = (Δφ |∇φ|² - (∇φ)ᵀ H_φ (∇φ)) / (2 |∇φ|³)
         const lap = fxx + fyy + fzz;
-        const quad = fx*fx*fxx + fy*fy*fyy + fz*fz*fzz
-                   + 2*(fx*fy*fxy + fx*fz*fxz + fy*fz*fyz);
+        const quad = fx*fx*fxx + fy*fy*fyy + fz*fz*fzz + 2*(fx*fy*fxy + fx*fz*fxz + fy*fz*fyz);
         const H = (lap * grad2 - quad) / (2 * Math.pow(grad2, 1.5));
-
-        // Gaussian curvature: K = (∇φ)ᵀ adj(H_φ) (∇φ) / |∇φ|⁴
-        const m11 = fyy*fzz - fyz*fyz;
-        const m22 = fxx*fzz - fxz*fxz;
-        const m33 = fxx*fyy - fxy*fxy;
-        const m12 = fxz*fyz - fxy*fzz;
-        const m13 = fxy*fyz - fxz*fyy;
-        const m23 = fxy*fxz - fxx*fyz;
-        const Knum = fx*fx*m11 + fy*fy*m22 + fz*fz*m33
-                   + 2*(fx*fy*m12 + fx*fz*m13 + fy*fz*m23);
-        const K = Knum / (grad2 * grad2);
-
-        // Convert to physical units: H is in (voxel)⁻¹ → divide by h_mm
-        // K is in (voxel)⁻² → divide by h_mm²
-        Hvals.push(H / h_mm);
-        Kvals.push(K / (h_mm * h_mm));
+        const m11 = fyy*fzz - fyz*fyz, m22 = fxx*fzz - fxz*fxz, m33 = fxx*fyy - fxy*fxy;
+        const m12 = fxz*fyz - fxy*fzz, m13 = fxy*fyz - fxz*fyy, m23 = fxy*fxz - fxx*fyz;
+        const K = (fx*fx*m11 + fy*fy*m22 + fz*fz*m33 + 2*(fx*fy*m12 + fx*fz*m13 + fy*fz*m23)) / (grad2 * grad2);
+        const g = Math.sqrt(grad2);
+        Hs.push(H); Ks.push(K); Nx.push(Math.abs(fx) / g); Ny.push(Math.abs(fy) / g); Nz.push(Math.abs(fz) / g);
       }
     }
   }
 
-  if (Hvals.length === 0) {
+  // Integrate over interface crossings (each periodic face pair counted once).
+  let W = 0, sumH = 0, sumAbsH = 0, sumH2 = 0, sumK = 0;
+  const NA = [Nx, Ny, Nz];
+  const cross = (a, b, axis) => {
+    const sa = slot[a], sb = slot[b], NAx = NA[axis];
+    const va = !Number.isNaN(Hs[sa]), vb = !Number.isNaN(Hs[sb]);
+    if (!va && !vb) return;
+    let w, H, K;
+    if (va && vb) { w = 0.5 * (NAx[sa] + NAx[sb]); H = 0.5 * (Hs[sa] + Hs[sb]); K = 0.5 * (Ks[sa] + Ks[sb]); }
+    else if (va)  { w = NAx[sa]; H = Hs[sa]; K = Ks[sa]; }
+    else          { w = NAx[sb]; H = Hs[sb]; K = Ks[sb]; }
+    W += w; sumH += w * H; sumAbsH += w * Math.abs(H); sumH2 += w * H * H; sumK += w * K;
+  };
+  for (let i = 0; i < N; i++) {
+    const ip = nextT[i];
+    for (let j = 0; j < N; j++) {
+      const jp = nextT[j];
+      for (let k = 0; k < N; k++) {
+        const id = i*NN + j*N + k, here = S[id];
+        let nb = ip*NN + j*N + k;      if (S[nb] !== here) cross(id, nb, 0);
+        nb = i*NN + jp*N + k;          if (S[nb] !== here) cross(id, nb, 1);
+        nb = i*NN + j*N + nextT[k];    if (S[nb] !== here) cross(id, nb, 2);
+      }
+    }
+  }
+
+  if (W <= 0) {
     return {
       H_mean: 0, H_mean_abs: 0, H_std: 0,
       K_gauss_mean: 0, curvature_uniformity: 0, MIH: 0
     };
   }
 
-  // Aggregate (uniform weights — narrow band is roughly area-proportional)
-  let sumAbsH = 0, sumH = 0, sumK = 0, sumH2 = 0;
-  for (let i = 0; i < Hvals.length; i++) {
-    sumAbsH += Math.abs(Hvals[i]);
-    sumH += Hvals[i];
-    sumK += Kvals[i];
-    sumH2 += Hvals[i] * Hvals[i];
-  }
-  const n = Hvals.length;
-  const meanAbsH = sumAbsH / n;
-  const meanK = sumK / n;
-  const meanH = sumH / n;
-  const varH = sumH2 / n - meanH * meanH;
+  // Area-weighted moments; voxel units → mm (H / h, K / h², area × h²).
+  const meanH = sumH / W / h_mm;
+  const meanAbsH = sumAbsH / W / h_mm;
+  const meanK = sumK / W / (h_mm * h_mm);
+  const varH = sumH2 / W / (h_mm * h_mm) - meanH * meanH;
   const stdH = Math.sqrt(Math.max(0, varH));
 
-  // v0.13: curvature_uniformity now uses 1/(1 + σ/⟨|H|⟩) instead of
-  // max(0, 1 - σ/⟨|H|⟩). Smooth, bounded (0,1], never floors. Approaches
-  // 1 as σ → 0 (perfectly uniform curvature, e.g. CMC surfaces); approaches
-  // 0 as σ → ∞ (highly variable). The old form clamped to 0 whenever σ
-  // exceeded ⟨|H|⟩, losing information for ~⅔ of designs in real sweeps.
-  const uniformity = meanAbsH > eps
-    ? 1 / (1 + stdH / meanAbsH)
-    : 0;
+  // v0.13: curvature_uniformity = 1/(1 + σ/⟨|H|⟩): smooth, bounded (0,1].
+  const uniformity = meanAbsH > eps ? 1 / (1 + stdH / meanAbsH) : 0;
 
-  // MIH: integral of H over surface. Approximated as ⟨H⟩ × surface area;
-  // surface area ≈ narrow-band voxel count × h². Reported per cell.
-  // Uses signed sum so MIH carries net convex/concave information.
-  const A_per_voxel = h_mm * h_mm;
-  const MIH = sumH * A_per_voxel;
+  // MIH = ∫ H dA = Σ w·H(voxel⁻¹)·h²(area) / h  → mm.
+  const MIH = sumH * h_mm;
 
-  // v0.13 schema:
-  //   H_mean      — SIGNED ⟨H⟩. Net convex-outward (>0) / concave-inward (<0)
-  //                 bias. We negate the raw H sum here because the underlying
-  //                 SDF math (positive-inside-solid, inward-pointing normal)
-  //                 gives H < 0 for convex bulges into void; flipping makes
-  //                 the sign match the intuitive "convex out → positive"
-  //                 convention. Was magnitude in v0.12.
-  //   H_mean_abs  — magnitude ⟨|H|⟩. Direction-agnostic, always positive.
-  //   H_std       — σ(H) raw on signed H values. Lets vault compose any
-  //                 uniformity formula it wants without sweep-side clamping.
+  // v0.13 schema: H_mean / MIH negated so convex-out → positive (the
+  // positive-inside-solid SDF math gives H < 0 for bulges into void).
   return {
     H_mean:               +(-meanH).toFixed(4),
     H_mean_abs:           +meanAbsH.toFixed(4),
@@ -176,172 +148,100 @@ function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N) {
   };
 }
 
-// ─── v0.12 Phase 1: Topology — Euler characteristic and genus ────────────────
-// Computes Euler characteristic χ of the BOUNDARY SURFACE of the solid,
-// not the solid volume itself. Boundary χ is the right invariant for
-// "genus of the surface" — for a topological ball the surface is a sphere
-// with χ=2 and g=0; for a torus solid, surface χ=0 and g=1; for a triply-
-// periodic minimal surface like gyroid, the surface χ < 0 and g > 1.
+// ─── Topology — Euler characteristic and genus of one periodic cell ──────────
+// The solid is taken with 6-connectivity and the void with 26-connectivity
+// (the complementary pair, so the two never cross through each other at a
+// diagonal pinch).  Both live on the 3-torus T³ = one periodic cell.
 //
-// Algorithm: for each solid voxel, enumerate its 6 cube faces. A face is on
-// the boundary iff its other side is void (or out-of-grid). Each boundary
-// face contributes its 4 vertices, 4 edges, and 1 face-cell to the surface
-// complex. We use sets keyed by (i,j,k) coordinates to dedupe shared
-// vertices/edges between adjacent boundary faces.
+// χ(solid): the 6-connected solid is homotopy-equivalent to its dual cubical
+// complex on the periodic grid — vertices = solid voxels, edges = face-
+// adjacent solid pairs, squares = 2×2 all-solid blocks, cubes = 2×2×2
+// all-solid blocks (all with periodic wrap):
+//     χ(solid) = n0 − n1 + n2 − n3
+// (checks: one voxel → 1; full cell → N³−3N³+3N³−N³ = 0 = χ(T³)).
 //
-// Boundary V/E/F counts → χ = V - E + F. For a closed orientable surface
-// with n_components, χ = 2(n_components - g_total). For typical scaffolds
-// with one connected component, g = 1 - χ/2.
+// Interface surface ∂: for a compact 3-manifold M, χ(∂M) = 2χ(M); applied to
+// a regular neighbourhood of the dual complex, χ(∂) = 2χ(solid).  For a
+// closed orientable surface with c components, total genus g = c − χ(∂)/2.
+// c is taken as n_solid + n_void − 1 (components of each phase on T³): exact
+// whenever the phase-adjacency graph is a tree, which holds for 3D networks,
+// sheets, struts and isolated inclusions; a stack of slab layers (a phase
+// that does not wrap in all three directions) is the exception, and there
+// genus_per_cell is still right but genus is counted per layer pair.
 //
 // Returns:
-//   euler_char    — Euler characteristic of the boundary surface
-//   genus         — g = max(0, n_components - χ/2)
-//   genus_per_cell — genus normalized by cell volume (per cm³)
+//   euler_char     — χ of the solid/void interface in one periodic cell
+//                    (= 2χ(solid)).  P network: −4 (the classic TPMS value per
+//                    cubic cell); G −8, D −16 per cubic cell [-π,π]³.
+//   genus          — total interface genus in one periodic cell, summed over
+//                    interface sheets: c − χ/2.
+//   genus_per_cell — genus of ONE interface sheet in one periodic cell
+//                    (genus / c).  Network and sheet variants of the same TPMS
+//                    agree: P 3; G 5 and D 9 for the cubic cell sampled here
+//                    (the cubic cell holds 2 resp. 4 primitive cells of
+//                    genus 3: g_cubic − 1 = n·(3 − 1)).  Sphere 0, straight
+//                    strut 1.
 function computeTopology(solidMask, cellSizeMm, N) {
-  const NN = N * N;
-  const idx_ = (i,j,k) => i*NN + j*N + k;
+  const NN = N * N, N3 = NN * N;
+  const S = new Uint8Array(N3);
+  for (let i = 0; i < N3; i++) S[i] = solidMask[i] > 0.5 ? 1 : 0;
+  const nextT = new Int32Array(N);
+  for (let t = 0; t < N; t++) nextT[t] = (t + 1) % N;
 
-  // For boundary-face enumeration we use a (N+1)³-keyed encoding for vertex
-  // dedupe and per-axis edge keys. Each boundary face contributes:
-  //   1 face (with its specific orientation, 6 possible orientations per
-  //     voxel collapse into 3 axis-pair planes: face axis = ±x, ±y, ±z
-  //     keyed by (axis_dir, position))
-  //   4 edges (axis-aligned, on the boundary of that face)
-  //   4 vertices
-  //
-  // We represent positions in vertex-grid coordinates: a voxel at (i,j,k)
-  // has its 8 corners at {i+a, j+b, k+c} for a,b,c ∈ {0,1}.
-  // The face normal to +x at voxel (i,j,k) is at vertex-x = i+1; to -x at
-  // vertex-x = i. The 4 corners are (vx, j+a, k+b) for a,b ∈ {0,1}.
-
-  const stride = N + 2;  // safe encoding stride
-  const enc = (a, b, c) => a * stride * stride + b * stride + c;
-
-  const verts = new Set();
-  const edgesX = new Set();  // axis-x edges keyed at vertex-coord origin
-  const edgesY = new Set();
-  const edgesZ = new Set();
-  const facesYZ = new Set(); // faces normal to x-axis (in y-z plane)
-  const facesXZ = new Set(); // faces normal to y-axis
-  const facesXY = new Set(); // faces normal to z-axis
-
-  const isSolidAt = (i, j, k) => {
-    if (i < 0 || i >= N || j < 0 || j >= N || k < 0 || k >= N) return 0;
-    return solidMask[idx_(i, j, k)];
-  };
-
+  // ── χ(solid) on the periodic dual complex ────────────────────────────────
+  let n0 = 0, n1 = 0, n2 = 0, n3 = 0;
   for (let i = 0; i < N; i++) {
+    const I0 = i*NN, I1 = nextT[i]*NN;
     for (let j = 0; j < N; j++) {
+      const J0 = j*N, J1 = nextT[j]*N;
       for (let k = 0; k < N; k++) {
-        if (!solidMask[idx_(i, j, k)]) continue;
-
-        // Six neighbor checks; each face whose neighbor is void/out is a
-        // boundary face. Add its vertices/edges/face to the surface complex.
-        // Notation: face at "x = vx" plane has corners (vx, j+a, k+b).
-
-        // -x face (between voxels (i-1,j,k) and (i,j,k))
-        if (!isSolidAt(i-1, j, k)) {
-          const vx = i;
-          facesYZ.add(enc(vx, j, k));
-          for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++)
-            verts.add(enc(vx, j+a, k+b));
-          edgesY.add(enc(vx, j, k));     edgesY.add(enc(vx, j, k+1));
-          edgesZ.add(enc(vx, j, k));     edgesZ.add(enc(vx, j+1, k));
-        }
-        // +x face
-        if (!isSolidAt(i+1, j, k)) {
-          const vx = i + 1;
-          facesYZ.add(enc(vx, j, k));
-          for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++)
-            verts.add(enc(vx, j+a, k+b));
-          edgesY.add(enc(vx, j, k));     edgesY.add(enc(vx, j, k+1));
-          edgesZ.add(enc(vx, j, k));     edgesZ.add(enc(vx, j+1, k));
-        }
-        // -y face
-        if (!isSolidAt(i, j-1, k)) {
-          const vy = j;
-          facesXZ.add(enc(i, vy, k));
-          for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++)
-            verts.add(enc(i+a, vy, k+b));
-          edgesX.add(enc(i, vy, k));     edgesX.add(enc(i, vy, k+1));
-          edgesZ.add(enc(i, vy, k));     edgesZ.add(enc(i+1, vy, k));
-        }
-        // +y face
-        if (!isSolidAt(i, j+1, k)) {
-          const vy = j + 1;
-          facesXZ.add(enc(i, vy, k));
-          for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++)
-            verts.add(enc(i+a, vy, k+b));
-          edgesX.add(enc(i, vy, k));     edgesX.add(enc(i, vy, k+1));
-          edgesZ.add(enc(i, vy, k));     edgesZ.add(enc(i+1, vy, k));
-        }
-        // -z face
-        if (!isSolidAt(i, j, k-1)) {
-          const vz = k;
-          facesXY.add(enc(i, j, vz));
-          for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++)
-            verts.add(enc(i+a, j+b, vz));
-          edgesX.add(enc(i, j, vz));     edgesX.add(enc(i, j+1, vz));
-          edgesY.add(enc(i, j, vz));     edgesY.add(enc(i+1, j, vz));
-        }
-        // +z face
-        if (!isSolidAt(i, j, k+1)) {
-          const vz = k + 1;
-          facesXY.add(enc(i, j, vz));
-          for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++)
-            verts.add(enc(i+a, j+b, vz));
-          edgesX.add(enc(i, j, vz));     edgesX.add(enc(i, j+1, vz));
-          edgesY.add(enc(i, j, vz));     edgesY.add(enc(i+1, j, vz));
-        }
+        const K0 = k, K1 = nextT[k];
+        if (!S[I0 + J0 + K0]) continue;
+        n0++;
+        const x = S[I1 + J0 + K0], y = S[I0 + J1 + K0], z = S[I0 + J0 + K1];
+        n1 += x + y + z;
+        const xy = x && y && S[I1 + J1 + K0];
+        const xz = x && z && S[I1 + J0 + K1];
+        const yz = y && z && S[I0 + J1 + K1];
+        n2 += (xy ? 1 : 0) + (xz ? 1 : 0) + (yz ? 1 : 0);
+        if (xy && xz && yz && S[I1 + J1 + K1]) n3++;
       }
     }
   }
+  const chiSolid = n0 - n1 + n2 - n3;
+  const euler_char = 2 * chiSolid;
 
-  const V = verts.size;
-  const E = edgesX.size + edgesY.size + edgesZ.size;
-  const F = facesXY.size + facesXZ.size + facesYZ.size;
-  const euler_char = V - E + F;
-
-  // Number of connected components of the solid via BFS on solidMask.
-  let nComp = 0;
-  const N3 = N * N * N;
-  const visited = new Uint8Array(N3);
-  const queue = new Int32Array(N3);
-  for (let start = 0; start < N3; start++) {
-    if (!solidMask[start] || visited[start]) continue;
-    nComp++;
-    let head = 0, tail = 0;
-    queue[tail++] = start;
-    visited[start] = 1;
-    while (head < tail) {
-      const id_ = queue[head++];
-      const i = (id_ / NN) | 0;
-      const j = ((id_ - i*NN) / N) | 0;
-      const k = id_ - i*NN - j*N;
-      const enq = (ni, nj, nk) => {
-        if (ni < 0 || ni >= N || nj < 0 || nj >= N || nk < 0 || nk >= N) return;
-        const nIdx = idx_(ni, nj, nk);
-        if (solidMask[nIdx] && !visited[nIdx]) {
-          visited[nIdx] = 1;
-          queue[tail++] = nIdx;
+  // ── Periodic component counts: solid 6-connected, void 26-connected ──────
+  const label = new Uint8Array(N3);
+  const stack = new Int32Array(N3);
+  const prevT = new Int32Array(N);
+  for (let t = 0; t < N; t++) prevT[t] = (t + N - 1) % N;
+  const countComponents = (phase, full) => {
+    let comps = 0;
+    for (let seed = 0; seed < N3; seed++) {
+      if (S[seed] !== phase || label[seed]) continue;
+      comps++;
+      let top = 0; stack[top++] = seed; label[seed] = 1;
+      while (top > 0) {
+        const id = stack[--top];
+        const i = (id / NN) | 0, rem = id - i*NN, j = (rem / N) | 0, k = rem - j*N;
+        const xs = [prevT[i], i, nextT[i]], ys = [prevT[j], j, nextT[j]], zs = [prevT[k], k, nextT[k]];
+        for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) for (let c = 0; c < 3; c++) {
+          const off = (a !== 1) + (b !== 1) + (c !== 1);
+          if (off === 0 || (!full && off > 1)) continue;
+          const nb = xs[a]*NN + ys[b]*N + zs[c];
+          if (S[nb] === phase && !label[nb]) { label[nb] = 1; stack[top++] = nb; }
         }
-      };
-      enq(i-1,j,k); enq(i+1,j,k);
-      enq(i,j-1,k); enq(i,j+1,k);
-      enq(i,j,k-1); enq(i,j,k+1);
+      }
     }
-  }
+    return comps;
+  };
+  const nSolid = countComponents(1, false);
+  const nVoid = countComponents(0, true);
 
-  // For closed orientable surface(s): χ = 2(nComp - g_total) → g = nComp - χ/2.
-  // Topological ball: surface=sphere, χ=2, g=0. Torus: χ=0, g=1.
-  // Two disjoint balls: χ=4 (two spheres), nComp=2, g = 2 - 2 = 0. ✓
-  const genus_raw = nComp - euler_char / 2;
-  const genus = Math.max(0, Math.round(genus_raw));
-
-  const cellVol_cm3 = Math.pow(cellSizeMm / 10, 3);
-  const genus_per_cell = cellVol_cm3 > 0
-    ? +(genus / cellVol_cm3).toFixed(3)
-    : 0;
+  const c = (nSolid > 0 && nVoid > 0) ? nSolid + nVoid - 1 : 0;   // interface sheets
+  const genus = c > 0 ? Math.max(0, Math.round(c - euler_char / 2)) : 0;
+  const genus_per_cell = c > 0 ? +(genus / c).toFixed(3) : 0;
 
   return { euler_char, genus, genus_per_cell };
 }

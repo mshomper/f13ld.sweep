@@ -171,8 +171,8 @@ function buildTargetProfile() {
       case 'throat_ratio':
         pressures.feature -= sign;
         break;
-      case 'U_strain':
-        pressures.rho += sign; break;
+      case 'U_strain':                       /* grows with compliance, like microstrain */
+        pressures.rho -= sign; break;
       case 'microstrain_x':
         pressures.axial_x -= sign; pressures.rho -= sign; break;
       case 'microstrain_y':

@@ -29,55 +29,78 @@ class SolverPool {
     this.nWorkers = nWorkers;
     this.workers = [];
     this.idle = [];
-    this.queue = [];                 // pending design specs awaiting an idle worker
-    this.pending = new Map();        // attemptIdx → { resolve, reject }
+    this.queue = [];                 // pending jobs awaiting an idle worker
+    this.jobs = new Set();           // every job not yet settled
     this.terminated = false;
-
     this.workerUrl = SWEEP_WORKER_URL;
+    for (let i = 0; i < nWorkers; i++) this._spawn(i);
+  }
 
-    for (let i = 0; i < nWorkers; i++) {
-      const w = new Worker(this.workerUrl);
-      w._idx = i;
-      w.addEventListener('message', e => this._onMessage(w, e.data));
-      w.addEventListener('error', e => this._onError(w, e));
-      this.workers.push(w);
-      this.idle.push(w);
-    }
+  _spawn(idx) {
+    const w = new Worker(this.workerUrl);
+    w._idx = idx;
+    w._job = null;                   // the job this worker is solving (one at a time)
+    w.addEventListener('message', e => this._onMessage(w, e.data));
+    w.addEventListener('error', e => this._onError(w, e));
+    this.workers.push(w);
+    this.idle.push(w);
+    return w;
   }
 
   // Returns a Promise resolving with { attemptIdx, hom } or rejecting on error.
+  // Jobs are tracked per worker, so equal attemptIdx values can't collide and
+  // a crashed worker rejects exactly the job it was running.
   dispatch(spec) {
     if (this.terminated) return Promise.reject(new Error('pool terminated'));
     return new Promise((resolve, reject) => {
-      this.pending.set(spec.attemptIdx, { resolve, reject });
+      const job = { spec, resolve, reject };
+      this.jobs.add(job);
       const worker = this.idle.pop();
-      if (worker) {
-        worker.postMessage(spec);
-      } else {
-        this.queue.push(spec);
-      }
+      if (worker) this._run(worker, job);
+      else this.queue.push(job);
     });
   }
 
-  _onMessage(worker, msg) {
-    if (msg.type === 'result' || msg.type === 'error') {
-      const p = this.pending.get(msg.attemptIdx);
-      if (p) {
-        this.pending.delete(msg.attemptIdx);
-        if (msg.type === 'result') p.resolve(msg);
-        else p.reject(new Error(msg.message + (msg.stack ? '\n' + msg.stack : '')));
-      }
-      // Worker is now free — give it queued work or mark idle
-      const next = this.queue.shift();
-      if (next) worker.postMessage(next);
-      else this.idle.push(worker);
-    }
+  _run(worker, job) {
+    worker._job = job;
+    worker.postMessage(job.spec);
   }
 
+  _next(worker) {
+    const job = this.queue.shift();
+    if (job) this._run(worker, job);
+    else this.idle.push(worker);
+  }
+
+  _onMessage(worker, msg) {
+    if (msg.type !== 'result' && msg.type !== 'error') return;
+    const job = worker._job;
+    worker._job = null;
+    if (job) {
+      this.jobs.delete(job);
+      if (msg.type === 'result') job.resolve(msg);
+      else job.reject(new Error(msg.message + (msg.stack ? '\n' + msg.stack : '')));
+    }
+    this._next(worker);
+  }
+
+  // Uncaught error / crash: reject that worker's job, replace the worker.
   _onError(worker, e) {
-    console.error(`[SolverPool] worker ${worker._idx} error:`, e.message, e);
-    // Reject any pending designs assigned to this worker (we don't track which,
-    // so reject the most recent one as a heuristic — rare path)
+    console.error(`[SolverPool] worker ${worker._idx} error:`, e && e.message, e);
+    if (e && e.preventDefault) e.preventDefault();
+    if (this.terminated) return;
+    const job = worker._job;
+    worker._job = null;
+    try { worker.terminate(); } catch (_) {}
+    this.workers = this.workers.filter(w => w !== worker);
+    this.idle = this.idle.filter(w => w !== worker);
+    if (job) {
+      this.jobs.delete(job);
+      job.reject(new Error(`solver worker crashed: ${(e && e.message) || 'unknown error'}`));
+    }
+    const fresh = this._spawn(worker._idx);
+    this.idle = this.idle.filter(w => w !== fresh);
+    this._next(fresh);
   }
 
   // Stop all workers. Pending promises are rejected.
@@ -85,11 +108,11 @@ class SolverPool {
     if (this.terminated) return;
     this.terminated = true;
     for (const w of this.workers) w.terminate();
-    for (const p of this.pending.values()) p.reject(new Error('pool terminated'));
+    for (const job of this.jobs) job.reject(new Error('pool terminated'));
     this.workers = [];
     this.idle = [];
     this.queue = [];
-    this.pending.clear();
+    this.jobs.clear();
   }
 }
 

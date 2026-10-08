@@ -50,3 +50,14 @@ Matt's decisions: Mesh switches to F13LD.grain's random generator; solver files 
 - Lab v0.26.0 (noise kernel, `normal_weights`, shared blocks) and Mesh v0.9.7 (grain generator, warp strength 0) ship with it.
 
 Not yet done: a local parity script comparing Sweep-generated designs against Mesh voxel by voxel (Sweep ↔ Lab is identical by construction; Lab ↔ Mesh verified per family). Lab samples a stretched beam over Mesh's world cube rather than one cell — a Lab item.
+
+## v0.22.0 — quick audit fixes (2026-10-08)
+From `docs/AUDIT_v0.19.0.md`. Numbers move on purpose (seeded sampling, periodic metrics).
+- Seeded sweeps: `sweepSettings.seed` → mulberry32 drives Sobol scramble, bias draws and every family's jitter (`ctx.rand`). Exported as `meta.solver.sweep_seed`; same seed + same settings = same designs.
+- Sobol skips its first point (all-0.5 corner); bias window is linear `[max(0,shift), min(1,1+shift)]`.
+- Results trimmed to the requested sample count; a warning when the attempt limit stops a sweep short.
+- Hi-res volume-fraction gate before the solve; coarse VF bounds skipped when the hi-res grid already checked them.
+- Transport / topology now periodic: EDT and throats (`throat_x/y/z`), solid percolation, 26-neighbour tortuosity (`tortuosity_nonperc` flags axes that don't percolate), curvature area, genus per cell.
+- Ranking: KNN / k-means skip missing metrics; keep-% clamped to 1–100. U-strain target bias sign fixed. Hidden σ_ref field ignored.
+- Solver pool: jobs tracked per worker; a crashed worker rejects its own job and is replaced.
+- Export adds `throat_x/y/z`, `tortuosity_nonperc` per design (additive; shape unchanged).

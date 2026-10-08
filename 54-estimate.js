@@ -71,7 +71,10 @@ function estimateHomogenization(recipe, opts) {
 
   /* ── FFT-CG solve on the solver-grid voxels, gated by connectivity ── */
   const connectGate = { x: !!solidPerc.connect_x, y: !!solidPerc.connect_y, z: !!solidPerc.connect_z };
-  const fft = fftHomogenize(solverGridSolid, N, mode, Es, nu, connectGate, _contrast, _maxiter);
+  /* PI / noise / grain: the metrics grid is canonical for VF — gate on it
+     here with the strict bounds, and let the solver skip its coarse check. */
+  if (_hiRes && (rho_hi < _rhoMin || rho_hi > _rhoMax)) return reject(rho_hi < _rhoMin ? 'vf_low' : 'vf_high', rho_hi);
+  const fft = fftHomogenize(solverGridSolid, N, mode, Es, nu, connectGate, _contrast, _maxiter, _hiRes);
   if (!fft || fft.rejected) return reject((fft && fft.reject_reason) || 'unknown', (fft && fft.rho != null) ? fft.rho : 0);
 
   let { rho, Ex, Ey, Ez, solid: solidVox, cg_iters, cg_converged, solver_validity } = fft;
@@ -344,6 +347,9 @@ function estimateHomogenization(recipe, opts) {
     microstrain_avg,
     pore_size:          pores.pore_size,
     throat_size:        pores.throat_size,
+    throat_x:           pores.throat_x,
+    throat_y:           pores.throat_y,
+    throat_z:           pores.throat_z,
     // v0.13: throat_ratio replaces throat_efficiency. Raw throat-as-fraction-
     // of-cell with NO VF gate. The gate baked into throat_efficiency was a
     // vault-flavored opinion (penalize VF < 30%) that belongs in vault
@@ -395,6 +401,7 @@ function estimateHomogenization(recipe, opts) {
     tortuosity_x: geom.tortuosity_x,
     tortuosity_y: geom.tortuosity_y,
     tortuosity_z: geom.tortuosity_z,
+    tortuosity_nonperc: geom.tortuosity_nonperc != null ? geom.tortuosity_nonperc : null,
 
     // ── v0.12 Phase 1: Diffusivity (Bruggeman estimate, per-axis) ─────
     D_eff_x_norm: geom.D_eff_x_norm,

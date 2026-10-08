@@ -9,7 +9,7 @@
 //   connect — {x, y, z} booleans from percolation: disconnected axes report
 //             zero stiffness and skip the FFT-CG solve (null → all axes).
 //   contrast / maxiter — precision mode (default Fast: 1e-3 / 600).
-function fftHomogenize(solid, N, mode, Es, nu, connect, contrast, maxiterArg) {
+function fftHomogenize(solid, N, mode, Es, nu, connect, contrast, maxiterArg, skipVfBounds) {
   const _contrast = (contrast != null) ? contrast : 1e-3;
   const _maxiter  = (maxiterArg != null) ? maxiterArg : CG_MAXITER_FAST;
   const N3    = N * N * N;
@@ -41,8 +41,8 @@ function fftHomogenize(solid, N, mode, Es, nu, connect, contrast, maxiterArg) {
   // attribute discards by reason. Keeps backward-compatible null-style truthy
   // checks because the returned object IS truthy — but `rejected: true`
   // distinguishes it from a valid solve.
-  if (rho < rhoMin)     return { rejected: true, reject_reason: 'vf_low',  rho };
-  if (rho > rhoMaxMode) return { rejected: true, reject_reason: 'vf_high', rho };
+  if (!skipVfBounds && rho < rhoMin)     return { rejected: true, reject_reason: 'vf_low',  rho };
+  if (!skipVfBounds && rho > rhoMaxMode) return { rejected: true, reject_reason: 'vf_high', rho };
 
   // Phase tensors
   const C_s = isoC(Es, nu);

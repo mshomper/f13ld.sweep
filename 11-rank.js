@@ -21,22 +21,30 @@ function setColorMode(mode, btn) {
 // ─── KNN Outlier scoring ──────────────────────────────────────────────────────
 function computeOutlierScores(data, k = 5) {
   const axes = getPlotAxes();
-  const vals = key => data.map(d => d[key] || 0);
-  const minmax = key => { const v = vals(key); const mn = Math.min(...v), mx = Math.max(...v); return { mn, range: mx - mn || 1 }; };
+  /* nulls (e.g. anisotropy with < 2 percolating axes) sit at the axis
+     mean instead of counting as 0 */
+  const minmax = key => {
+    const v = data.map(d => d[key]).filter(x => typeof x === 'number' && isFinite(x));
+    if (!v.length) return { mn: 0, range: 1, mean: 0 };
+    const mn = Math.min(...v), mx = Math.max(...v);
+    return { mn, range: mx - mn || 1, mean: v.reduce((a, b) => a + b, 0) / v.length };
+  };
   const nx = minmax(axes.x), ny = minmax(axes.y), nz = minmax(axes.z);
-  const norm = (v, mm) => (v - mm.mn) / mm.range;
+  const norm = (v, mm) => ((typeof v === 'number' && isFinite(v)) ? v - mm.mn : mm.mean - mm.mn) / mm.range;
+  k = Math.max(1, Math.min(k, data.length - 1));
+  if (data.length < 2) { data.forEach(d => { d._outlierScore = 0; }); return; }
 
   data.forEach((d, i) => {
-    const px = norm(d[axes.x] || 0, nx);
-    const py = norm(d[axes.y] || 0, ny);
-    const pz = norm(d[axes.z] || 0, nz);
+    const px = norm(d[axes.x], nx);
+    const py = norm(d[axes.y], ny);
+    const pz = norm(d[axes.z], nz);
     // compute distance to all other points, keep k nearest
     const dists = data
       .map((o, j) => {
         if (i === j) return Infinity;
-        const ox = norm(o[axes.x] || 0, nx);
-        const oy = norm(o[axes.y] || 0, ny);
-        const oz = norm(o[axes.z] || 0, nz);
+        const ox = norm(o[axes.x], nx);
+        const oy = norm(o[axes.y], ny);
+        const oz = norm(o[axes.z], nz);
         return Math.sqrt((px-ox)**2 + (py-oy)**2 + (pz-oz)**2);
       })
       .sort((a, b) => a - b)
@@ -59,7 +67,7 @@ let clusterAssignments = new Map(); // design id → cluster index
 
 function runKMeans(data, k = 6, iterations = 20) {
   const axes = getPlotAxes();
-  const vals = key => data.map(d => d[key] || 0);
+  const vals = key => data.map(d => d[key]).filter(x => typeof x === 'number' && isFinite(x));
   const minmax = key => {
     const v = vals(key);
     const mn = Math.min(...v), mx = Math.max(...v);
@@ -71,9 +79,9 @@ function runKMeans(data, k = 6, iterations = 20) {
   // Normalize all points to [0,1]
   const pts = data.map(d => ({
     id: d.id,
-    x: norm(d[axes.x] || 0, nx),
-    y: norm(d[axes.y] || 0, ny),
-    z: norm(d[axes.z] || 0, nz),
+    x: norm(typeof d[axes.x] === 'number' ? d[axes.x] : nx.mn + nx.range / 2, nx),
+    y: norm(typeof d[axes.y] === 'number' ? d[axes.y] : ny.mn + ny.range / 2, ny),
+    z: norm(typeof d[axes.z] === 'number' ? d[axes.z] : nz.mn + nz.range / 2, nz),
   }));
 
   // Initialize centroids by spreading evenly through sorted data
@@ -205,7 +213,7 @@ function applyRankFilter(data, metricId, rank, valId, mode) {
     // were losing the majority of results to aggressive keep-top filtering;
     // users wanting tighter filtering can still type in any value 1-100.
     const defaultPct = 100;
-    const pct = (val !== null && val > 0) ? val : defaultPct;
+    const pct = (val !== null && isFinite(val)) ? Math.max(1, Math.min(100, val)) : defaultPct;
     const keepN = Math.max(1, Math.round(out.length * pct / 100));
     out = out.slice(0, keepN);
   }

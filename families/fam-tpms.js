@@ -54,7 +54,7 @@ SWEEP_FAMILIES.tpms = {
   },
 
   jitter(base, draw, ctx) {
-    const J = jitterUtil, R = Math.random;
+    const J = jitterUtil, R = ctx.rand || Math.random;
     const g0 = base.geometry || {};
     const mode = g0.mode || 'shell';
     const isPI = mode === 'pi-tpms';

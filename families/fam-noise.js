@@ -33,7 +33,7 @@ SWEEP_FAMILIES.noise = {
   },
 
   jitter(base, draw, ctx) {
-    const J = jitterUtil, R = Math.random;
+    const J = jitterUtil, R = ctx.rand || Math.random;
     const MULT = [0.75, 1.25];
     const MULT_HW = (ctx.targetHints && ctx.targetHints.halfWidth_mult) || MULT;
     const dimOff = 4;

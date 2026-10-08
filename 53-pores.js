@@ -87,6 +87,7 @@ function analyzePoresFromField(rawField, voidMask, cellSizeMm, N) {
   const pct = computePorePercentiles(dVals, gradNorm, umPerUnit);
   return { pore_size,
            throat_size: tp.throat_size,
+           throat_x: tp.throat_x, throat_y: tp.throat_y, throat_z: tp.throat_z,
            perc_idx:    tp.perc_idx,
            perc_x:      tp.perc_x, perc_y: tp.perc_y, perc_z: tp.perc_z,
            ...pct };

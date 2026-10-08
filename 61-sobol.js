@@ -68,9 +68,10 @@ class SobolSeq {
   next(out) {
     if (!out) out = new Float64Array(this.d);
     if (this.i === 0) {
+      /* the first Sobol point is the all-zero corner — skip it, so the
+         first design isn't at the low end of every range */
       this.i++;
-      for (let j = 0; j < this.d; j++) out[j] = 0.5 * this.scale;  // tiny offset to avoid zero
-      return out;
+      return this.next(out);
     }
     // Position of lowest 0-bit in (i - 1) — drives which V to XOR
     let c = 0, m = this.i - 1;
@@ -92,7 +93,21 @@ class SobolSeq {
 // Sampler facade — switches between uniform random and Sobol per user choice.
 // Returns a fresh sample object each call. Sobol advances internal state every
 // call (including discarded designs) — drift across runs is deterministic.
-function makeSampler(method, dims) {
+/* Seeded uniform random numbers (mulberry32): a sweep with the same seed
+   draws the same designs. */
+function makeRng(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function makeSampler(method, dims, rand) {
+  rand = rand || Math.random;
   if (method === 'sobol') {
     const sobol = new SobolSeq(dims);
     const buf = new Float64Array(sobol.d);
@@ -102,13 +117,13 @@ function makeSampler(method, dims) {
         sobol.next(buf);
         return {
           // Sobol samples for first 8 dims; rest fall through to Math.random()
-          u: (i) => i < sobol.d ? buf[i] : Math.random()
+          u: (i) => i < sobol.d ? buf[i] : rand()
         };
       }
     };
   }
   return {
     method: 'uniform',
-    next: () => ({ u: () => Math.random() })
+    next: () => ({ u: () => rand() })
   };
 }

@@ -270,6 +270,9 @@ function getSolverMaterial() {
 // User input is in MPa — convert to GPa to match Es units
 function getSigmaRef() {
   const el = document.getElementById('sigmaRef');
+  const grp = document.getElementById('sigmaRefGroup');
+  /* a hidden input (domain without a reference stress) does not count */
+  if (grp && (grp.style.display === 'none' || grp.hidden)) return null;
   if (!el || !el.value) return null;
   return parseFloat(el.value) / 1000; // MPa → GPa
 }

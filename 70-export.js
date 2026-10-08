@@ -139,6 +139,7 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     microstrain_avg:    d.microstrain_avg,
     pore_size:          d.pore_size,
     throat_size:        d.throat_size,
+    throat_x: d.throat_x, throat_y: d.throat_y, throat_z: d.throat_z,
     throat_ratio:       d.throat_ratio,           // v0.13: replaces throat_efficiency
     perc_idx:           d.perc_idx,
     surface_complexity: d.surface_complexity,    // v0.13: now uncapped
@@ -174,6 +175,7 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     tortuosity_x:         d.tortuosity_x,
     tortuosity_y:         d.tortuosity_y,
     tortuosity_z:         d.tortuosity_z,
+    tortuosity_nonperc:   d.tortuosity_nonperc,
     D_eff_x_norm:         d.D_eff_x_norm,
     D_eff_y_norm:         d.D_eff_y_norm,
     D_eff_z_norm:         d.D_eff_z_norm,
@@ -279,6 +281,7 @@ function exportResults() {
         // v0.16.0: user-selectable resolution. Per-design actuals are in
         // design.homogenization.grid (may be higher due to family floor).
         resolution_picker:  lastSweepSettings ? lastSweepSettings.resolution_picker : getSolverN(),
+        sweep_seed:         lastSweepSettings ? lastSweepSettings.seed : null,
         // v0.17.0: VF bounds provenance. Lower floors relaxed for
         // noise/grain/beam to admit purposefully sparse recipes; upper
         // bound split by mode topology so sheet/half/solid/pi/beam each
@@ -385,6 +388,7 @@ function exportResults() {
         microstrain_avg:    d.microstrain_avg,
         pore_size:          d.pore_size,
         throat_size:        d.throat_size,
+        throat_x: d.throat_x, throat_y: d.throat_y, throat_z: d.throat_z,
         throat_ratio:       d.throat_ratio,           // v0.13: replaces throat_efficiency
         perc_idx:           d.perc_idx,
         surface_complexity: d.surface_complexity,    // v0.13: now uncapped
@@ -420,6 +424,7 @@ function exportResults() {
         tortuosity_x:         d.tortuosity_x,
         tortuosity_y:         d.tortuosity_y,
         tortuosity_z:         d.tortuosity_z,
+        tortuosity_nonperc:   d.tortuosity_nonperc,
         D_eff_x_norm:         d.D_eff_x_norm,
         D_eff_y_norm:         d.D_eff_y_norm,
         D_eff_z_norm:         d.D_eff_z_norm,

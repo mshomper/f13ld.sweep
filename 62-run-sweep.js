@@ -124,7 +124,11 @@ async function runSweep() {
   // Sampling method — Sobol low-discrepancy gives better coverage than uniform
   // random at small N. Falls through to Math.random() for high-D jitter.
   const samplingMethod = document.getElementById('samplingMethod')?.value || 'sobol';
-  const sampler = makeSampler(samplingMethod, 8);
+  /* One seed per sweep: the same seed and settings draw the same designs. */
+  const seed = (Math.random() * 4294967296) >>> 0;
+  const rand = makeRng(seed);
+  sweepSettings.seed = seed;
+  const sampler = makeSampler(samplingMethod, 8, rand);
 
   // Solver pool — created lazily and reused across sweeps
   const pool = getSolverPool();
@@ -156,7 +160,8 @@ async function runSweep() {
     const _ax = currentTargetHints?.axial_x_shift || 0;
     const _ay = currentTargetHints?.axial_y_shift || 0;
     const _az = currentTargetHints?.axial_z_shift || 0;
-    const _biasDraw = (u, shift) => Math.max(0, Math.min(1, u + shift));
+    /* bias moves the draw window inside the range, linearly (no pile-up at an edge) */
+    const _biasDraw = (u, shift) => { const lo = Math.max(0, shift), hi = Math.min(1, 1 + shift); return lo + u * (hi - lo); };
     const scaleX = xLo + _biasDraw(draw.u(0), _ax) * (xHi - xLo);
     const scaleY = yLo + _biasDraw(draw.u(1), _ay) * (yHi - yLo);
     const scaleZ = zLo + _biasDraw(draw.u(2), _az) * (zHi - zLo);
@@ -180,7 +185,8 @@ async function runSweep() {
       scale: fam.usesCellScale ? [scaleX, scaleY, scaleZ] : null,
       axialShift: [_ax, _ay, _az],
       radiusFrac: { x: [_rXlo, _rXhi], y: [_rYlo, _rYhi], z: [_rZlo, _rZhi] },
-      targetHints: currentTargetHints
+      targetHints: currentTargetHints,
+      rand
     });
     recipe.meta = Object.assign({}, recipe.meta || {}, {
       tool: 'f13ld.sweep', tool_version: F13LD_SWEEP_VERSION, source_preset: (baseRecipe.meta && baseRecipe.meta.preset) || null
@@ -274,7 +280,12 @@ async function runSweep() {
   // Sort by attemptIdx and assign sequential IDs — preserves Sobol determinism
   // regardless of worker completion order.
   results.sort((a, b) => a.attemptIdx - b.attemptIdx);
+  /* designs still in flight when the target was reached also finish —
+     keep the first nSamples (by draw order), so the count is exact */
+  if (results.length > nSamples) results.length = nSamples;
   results.forEach((r, i) => { r.id = i + 1; });
+  if (attempts >= MAX_ATTEMPTS && results.length < nSamples)
+    log('warn', `Stopped at the attempt limit (${MAX_ATTEMPTS}): ${results.length} of ${nSamples} designs were valid. Widen the ranges or relax the filters.`);
 
   // final progress
   progressFill.style.width = '100%';

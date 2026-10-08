@@ -13,7 +13,7 @@
        summary(recipe),             short table text for one design
        jitter(base, draw, ctx)      → a NEW design recipe (design-tool format)
      }
-   ctx = { mode, scale:[sx,sy,sz] (when usesCellScale), axialShift:[ax,ay,az],
+   ctx = { mode, scale:[sx,sy,sz] (when usesCellScale), axialShift:[ax,ay,az], rand (seeded),
            radiusFrac:{x:[lo,hi],y:[lo,hi],z:[lo,hi]} (beam), targetHints }
    draw.u(i) is the Sobol sample for dimension i; Math.random covers the rest.
    ============================================================ */
