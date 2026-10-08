@@ -10,6 +10,7 @@ function cancelSweep() {
 
 async function runSweep() {
   if (!baseRecipe) return;
+  if (typeof toggleDrawer === 'function') toggleDrawer(false);   /* v0.25.0 — Run closes the Configure drawer (Matt) */
 
   const btn = document.getElementById('runBtn');
   const cancelBtn = document.getElementById('cancelBtn');
