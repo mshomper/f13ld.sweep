@@ -26,9 +26,9 @@ Built 2026-10-08 (session recap [`SESSION_RECAP_2026-10-08_gpu.md`](SESSION_RECA
 | grids | Spinodoids at N = 16–32 often flag under-resolved (Lab moves 2.5–4.4× from 32 to 64 on one). Consider N = 32 as the GPU floor for grain / noise. |
 | thermal | Pore filler | Kept Sweep's k_void = 0.0003 k_solid. Lab offers air / water / tissue; worth matching. |
 
-## 3. UI — v0.25.0 on branch `v0.25.0-ui` (layout A)
+## 3. UI — v0.25.0 (layout A) — merged to `main` 2026-10-08
 
-Built 2026-10-08, Configure drawer rebuilt the same day as one Settings panel with SVG icons (notes in `REFACTOR.md`). Waiting for Matt's click-test before merging. Open: which cell-scale visual (`docs/mockups/sweep-cellscale-v0.25.html`); should picking General reset the rank metrics; plot hover / depth / ideal-corner nits (audit U10).
+Built 2026-10-08, Configure drawer rebuilt the same day as one Settings panel with SVG icons (notes in `REFACTOR.md`). Merged after Matt's review. Open: should picking General reset the rank metrics; plot hover / depth / ideal-corner nits (audit U10).
 
 ## 4. Smaller open items
 

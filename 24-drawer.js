@@ -235,60 +235,67 @@ function paintScale() {
   pxHtml(link, swGlyph(linked ? 'link' : 'unlink') + '<span>' + (linked ? 'One range' : 'Per axis') + '</span>');
   link.classList.toggle('on', linked);
   link.setAttribute('aria-pressed', linked ? 'true' : 'false');
-  /* absolute values + hint */
-  var fam = pxFam(), f = pxEl('fScale'), abs = pxEl('scAbs'), hint = pxEl('hScale');
+  /* hint */
+  var fam = pxFam(), f = pxEl('fScale'), hint = pxEl('hScale');
   var na = !!(fam && !fam.usesCellScale);
   f.classList.toggle('na', na);
   link.disabled = na;
-  if (na) {
-    abs.innerHTML = '';
-    hint.textContent = fam.label + ' recipes have no cell scale — their own field settings are swept instead.';
-    return;
-  }
-  if (fam && typeof baseRecipe !== 'undefined' && baseRecipe) {
-    var nom = fam.nominalScale(baseRecipe), unit = baseFamily === 'beam' ? ' mm' : '';
-    var fmt = function (p) { return +(nom * p / 100).toFixed(3); };
-    abs.innerHTML = linked
-      ? '<span class="lbl">Cell</span>' + fmt(v[0][0]) + swGlyph('next', 'sep') + fmt(v[0][1]) + unit + '<span class="t3">nominal ' + (+nom.toFixed(4)) + unit + '</span>'
-      : SC_AX.map(function (a, i) { return '<span class="ax ' + a.toLowerCase() + '">' + a + '</span>' + fmt(v[i][0]) + swGlyph('next', 'sep') + fmt(v[i][1]); }).join('<span class="gap"></span>') + unit;
-  } else abs.innerHTML = '';
+  if (na) { hint.textContent = fam.label + ' recipes have no cell scale — their own field settings are swept instead.'; return; }
   hint.textContent = (linked
     ? 'One range for X, Y and Z — each axis still draws its own scale, so cells stretch.'
     : 'Each axis draws its scale from its own range.') +
     (baseFamily === 'beam' ? ' Beams: the strut radius uses the same range.' : '');
 }
 
-/* The cells a sweep can draw, to scale (front view, X across, Y up): the
-   smallest, the recipe's own, the largest and the most stretched. */
+/* The most stretched cell the sweep can draw, as a small isometric wireframe
+   (edges in the axis colours) over the recipe's own cell (dashed), redrawn on
+   every change. Most stretched = the longest high end over the shortest low
+   end on two different axes — also the voxel aspect the solver sees, as the
+   grid stays N × N × N. */
+function scIso(d, k, ox, oy) {
+  var c = Math.cos(Math.PI / 6);
+  var P = function (x, y, z) { return [ox + (x - y) * c * k, oy + (x + y) * 0.5 * k - z * k]; };
+  var X = d[0], Y = d[1], Z = d[2];
+  return { o: P(0, 0, 0), x: P(X, 0, 0), y: P(0, Y, 0), xy: P(X, Y, 0), z: P(0, 0, Z), xz: P(X, 0, Z), yz: P(0, Y, Z), xyz: P(X, Y, Z) };
+}
+function scCuboid(d, k, ox, oy, nom) {
+  var v = scIso(d, k, ox, oy), h = '';
+  var ln = function (a, b, cls) { return '<line x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '" class="' + cls + '"/>'; };
+  var cx = nom ? 'n' : 'ex', cy = nom ? 'n' : 'ey', cz = nom ? 'n' : 'ez';
+  /* the nine edges seen from +x +y, above */
+  h += ln(v.y, v.xy, cx) + ln(v.yz, v.xyz, cx) + ln(v.z, v.xz, cx);
+  h += ln(v.x, v.xy, cy) + ln(v.xz, v.xyz, cy) + ln(v.z, v.yz, cy);
+  h += ln(v.x, v.xz, cz) + ln(v.y, v.yz, cz) + ln(v.xy, v.xyz, cz);
+  if (!nom) h = '<path class="top" d="M' + v.z + ' L' + v.xz + ' L' + v.xyz + ' L' + v.yz + ' Z"/>' + h;
+  return h;
+}
 function scViz(v, linked) {
-  var svg = pxEl('scViz');
+  var svg = pxEl('scViz'), txt = pxEl('scVizTxt'), box = pxEl('scVz');
   if (!svg) return;
   var fam = pxFam();
-  if (fam && !fam.usesCellScale) { svg.innerHTML = ''; svg.style.display = 'none'; return; }
-  svg.style.display = '';
+  if (fam && !fam.usesCellScale) { box.style.display = 'none'; return; }
+  box.style.display = '';
   var lo = v.map(function (a) { return Math.max(1, Math.min(a[0], a[1])); }), hi = v.map(function (a) { return Math.max(a[0], a[1], 1); });
-  /* most stretched: the longest high over the shortest low on two different axes */
   var best = { r: 1, a: 0, b: 1 };
   for (var a = 0; a < 3; a++) for (var b = 0; b < 3; b++) if (a !== b && hi[a] / lo[b] > best.r) best = { r: hi[a] / lo[b], a: a, b: b };
-  var big = Math.max(hi[0], hi[1], 100), H = 52, k = H / big;
-  var cells = [
-    { w: lo[0], h: lo[1], t: 'smallest' },
-    { w: 100, h: 100, t: 'recipe', nom: true },
-    { w: hi[0], h: hi[1], t: 'largest' },
-    { w: hi[best.a], h: lo[best.b], t: (best.r >= 9.95 ? Math.round(best.r) : +best.r.toFixed(1)) + ' : 1', st: true, ax: 'XYZ'[best.a] + '/' + 'XYZ'[best.b] }
-  ];
-  var x = 0, gap = 18, h = '';
-  cells.forEach(function (c) {
-    var w = Math.max(2, c.w * k), hh = Math.max(2, c.h * k), cx = x + Math.max(w, 34) / 2;
-    h += '<rect x="' + (cx - w / 2).toFixed(1) + '" y="' + (H - hh + 1).toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + hh.toFixed(1) + '" rx="1.5" class="' + (c.nom ? 'nom' : c.st ? 'st' : 'c') + '"/>';
-    h += '<text x="' + cx.toFixed(1) + '" y="' + (H + 14) + '" text-anchor="middle"' + (c.st ? ' class="stt"' : '') + '>' + c.t + '</text>';
-    if (c.st && !linked) h += '<text x="' + cx.toFixed(1) + '" y="' + (H + 25) + '" text-anchor="middle" class="ax2">' + c.ax + '</text>';
-    x += Math.max(w, 34) + gap;
-  });
-  svg.setAttribute('viewBox', '0 0 ' + Math.max(1, x - gap) + ' ' + (H + (linked ? 18 : 28)));
-  svg.setAttribute('width', Math.max(1, x - gap));
-  svg.setAttribute('height', H + (linked ? 18 : 28));
-  svg.innerHTML = h;
+  var third = 3 - best.a - best.b, d = [0, 0, 0];
+  d[best.a] = hi[best.a]; d[best.b] = lo[best.b]; d[third] = lo[third];
+  /* fit both cells (sharing the back-bottom corner) into the box */
+  var W = 96, H = 64, pad = 3, pts = [];
+  [d, [100, 100, 100]].forEach(function (q) { var p = scIso(q, 1, 0, 0); for (var key in p) pts.push(p[key]); });
+  var xs = pts.map(function (p) { return p[0]; }), ys = pts.map(function (p) { return p[1]; });
+  var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs), minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+  var k = Math.min((W - 2 * pad) / (maxX - minX), (H - 2 * pad) / (maxY - minY));
+  var ox = pad - minX * k + ((W - 2 * pad) - (maxX - minX) * k) / 2, oy = pad - minY * k + ((H - 2 * pad) - (maxY - minY) * k) / 2;
+  pxHtml(svg, scCuboid([100, 100, 100], k, ox, oy, true) + scCuboid(d, k, ox, oy, false));
+  /* sizes: the recipe's units when one is loaded (beams in mm), else % */
+  var nom = null, unit = ' %';
+  if (fam && typeof baseRecipe !== 'undefined' && baseRecipe) { nom = fam.nominalScale(baseRecipe); unit = baseFamily === 'beam' ? ' mm' : ''; }
+  var sz = function (p) { return nom == null ? String(Math.round(p)) : String(+(nom * p / 100).toFixed(3)); };
+  var rt = best.r >= 9.95 ? Math.round(best.r) : +best.r.toFixed(1);
+  pxHtml(txt, SC_AX.map(function (ax, i) { return '<span class="ax ' + ax.toLowerCase() + '">' + ax + '</span> ' + sz(d[i]); }).join('<span class="gap"></span>') + unit +
+    '<br><span class="t3">most stretched</span> <b>' + rt + ' : 1</b>' + (linked ? '' : ' <span class="t3">' + 'XYZ'[best.a] + ' over ' + 'XYZ'[best.b] + '</span>') +
+    '<br><span class="t3">dashed = the recipe\'s cell' + (nom == null ? '' : ' (' + (+nom.toFixed(4)) + unit + ')') + '</span>');
 }
 
 /* drag the ends of a range bar */
