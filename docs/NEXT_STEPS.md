@@ -1,12 +1,10 @@
 # F13LD.sweep — next steps
 
-**As of 2026-10-08.** `main` = v0.21.0; branch `v0.22.0-audit` = v0.23.0 (not merged). What happened so far: [`SESSION_RECAP_2026-10-08.md`](SESSION_RECAP_2026-10-08.md). Design decisions and per-version notes: [`REFACTOR.md`](REFACTOR.md). Original findings: [`AUDIT_v0.19.0.md`](AUDIT_v0.19.0.md).
+**As of 2026-10-08.** `main` = v0.23.0 (branch `v0.22.0-audit` merged after Matt's click-through). What happened so far: [`SESSION_RECAP_2026-10-08.md`](SESSION_RECAP_2026-10-08.md). Design decisions and per-version notes: [`REFACTOR.md`](REFACTOR.md). Original findings: [`AUDIT_v0.19.0.md`](AUDIT_v0.19.0.md).
 
-## 1. Merge v0.22.0 + v0.23.0 (Matt)
+## 1. Merge v0.22.0 + v0.23.0 — done
 
-1. Click through the branch: <https://raw.githack.com/mshomper/f13ld.sweep/v0.22.0-audit/index.html>. Run a sweep per family, open a design in Lab and in Mesh from a row, try a phone.
-2. Say go → merge `v0.22.0-audit` into `main` (CLAUDE.md: ask before pushing to `main`).
-3. Then Vault can be wiped and reseeded from fresh Sweep exports; Ingest needs no changes (shape unchanged, a few added fields).
+Done 2026-10-08. Remaining: run the full parity check (§4), then wipe and reseed Vault from fresh Sweep exports; Ingest needs no changes (shape unchanged, a few added fields).
 
 ## 2. GPU solver — next dedicated session (Phase 3)
 
@@ -25,7 +23,7 @@ Keep each step a short, pushed branch; Matt runs the GPU checks.
 ## 3. UI — dedicated session
 
 - Too much empty space (Matt, 2026-10-08): tighten the stats row, log / plot / preview row and sidebar.
-- Decide: amber (Sweep's colour) or neon for active controls.
+- Active controls go back to **neon** (Matt, 2026-10-08). Today `--accent` is Sweep's amber (`sweep.css` `:root`); set it to `--neon` and check the selected-row / button tints that use amber rgba values. Sweep's amber stays for the tool name and header tile.
 - Decide: should picking General reset the rank metrics (today they carry over)?
 - Plot: hover from outside the canvas, no depth priority, ideal-corner marker follows disabled ranks (audit U10).
 - Sidebar on phones is very long before the results; consider collapsing it after a run.

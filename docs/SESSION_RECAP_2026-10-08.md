@@ -1,8 +1,8 @@
 # Session recap — 2026-10-07 / 08 (Sweep v0.19.0 → v0.23.0)
 
-**On `main`:** v0.21.0 (`7d15735`). **On branch `v0.22.0-audit`:** v0.22.0 + v0.23.0 (`8b6d3a0`), waiting for Matt's click-through before merging. **Next session:** GPU solver — [`NEXT_STEPS.md`](NEXT_STEPS.md) §2.
+**On `main`:** v0.23.0 (branch `v0.22.0-audit` merged 2026-10-08 after Matt's click-through). **Next session:** GPU solver — [`NEXT_STEPS.md`](NEXT_STEPS.md) §2.
 
-Preview the branch without installing anything: <https://raw.githack.com/mshomper/f13ld.sweep/v0.22.0-audit/index.html> (the live site shows `main`).
+Preview any branch without installing anything: `https://raw.githack.com/mshomper/f13ld.sweep/<branch>/index.html` (the live site shows `main`).
 
 Also changed in this session: **F13LD.lab v0.26.0** and **F13LD.mesh v0.9.7** (both on their `main`). Each repo has its own recap: Lab `docs/SESSION_RECAP_2026-10-08_sweep-parity.md`, Mesh `docs/SESSION_RECAP_2026-10-08.md`.
 
@@ -29,8 +29,8 @@ Sweep was one 11,079-line `index.html` (v0.19.0). The aim: split it into modules
 |---|---|---|
 | v0.20.0 | `main` | **Module split.** CSS file, numbered classic scripts, `families/`, worker loads the same files (`worker/sweep-worker.js`, `importScripts`) instead of a stringified bundle, one version constant. Harness: 11 of 11 cases identical to v0.19.0. |
 | v0.21.0 | `main` | **Recipe parity with Lab and Mesh.** `geom/` holds Lab's recipe → voxel code byte-for-byte. Every design is a recipe in the design tool's own format, built the way Lab imports it; the export, Export Design and the Mesh link all write that same recipe. Beam uses the voxel solve. One preview shader on a field baked in a worker. Export provenance (`solver_version`, `geometry_version`). |
-| v0.22.0 | branch | **Quick audit fixes.** Seeded sweeps (`sweep_seed`), Sobol first point skipped, bias window fixed, results cut to the sample count, attempt-limit warning, hi-res volume-fraction gate, periodic pore / percolation / tortuosity / topology metrics, per-axis throats, ranking null handling, crash-safe worker pool. |
-| v0.23.0 | branch | **UI pass.** Lab fonts, colours and buttons with Sweep's amber; at most 8 metric columns chosen by domain and rank metrics; detail panel with every metric; every row shown; Lab + Mesh buttons per row; no horizontal scrolling; phone layout; keyboard access. |
+| v0.22.0 | `main` | **Quick audit fixes.** Seeded sweeps (`sweep_seed`), Sobol first point skipped, bias window fixed, results cut to the sample count, attempt-limit warning, hi-res volume-fraction gate, periodic pore / percolation / tortuosity / topology metrics, per-axis throats, ranking null handling, crash-safe worker pool. |
+| v0.23.0 | `main` | **UI pass.** Lab fonts, colours and buttons with Sweep's amber; at most 8 metric columns chosen by domain and rank metrics; detail panel with every metric; every row shown; Lab + Mesh buttons per row; no horizontal scrolling; phone layout; keyboard access. |
 
 Full per-version notes: [`REFACTOR.md`](REFACTOR.md).
 
@@ -68,3 +68,4 @@ Full per-version notes: [`REFACTOR.md`](REFACTOR.md).
 - Beam is slower than before (voxel solve on the CPU) until the GPU solver.
 - Plenty of empty space in the layout — saved for a dedicated UI session.
 - In the General domain, the rank metrics carry over from the last domain picked (old behaviour).
+- Active controls are amber; Matt wants them neon (no change yet — UI session).
