@@ -241,7 +241,8 @@ async function runOne(win, name, n, grid, prec) {
   const t0 = performance.now();
   await win.runSweep();
   const secs = (performance.now() - t0) / 1000;
-  return { secs, rows: win.results.map(d => ({ attempt: d.attemptIdx, Ex: d.Ex_GPa, Ey: d.Ey_GPa, Ez: d.Ez_GPa, ms: d.solve_ms, conv: d.cg_converged, N: d.grid_N })) };
+  /* results is a top-level let in the app (10-state.js): not on window, so read it inside the frame */
+  return { secs, rows: win.eval('results').map(d => ({ attempt: d.attemptIdx, Ex: d.Ex_GPa, Ey: d.Ey_GPa, Ez: d.Ez_GPa, ms: d.solve_ms, conv: d.cg_converged, N: d.grid_N })) };
 }
 async function runSpeed() {
   $('spBtn').disabled = true; $('spOut').textContent = '';

@@ -11,7 +11,7 @@ Done 2026-10-08. Remaining: run the full parity check (§4), then wipe and resee
 Built 2026-10-08 (session recap [`SESSION_RECAP_2026-10-08_gpu.md`](SESSION_RECAP_2026-10-08_gpu.md), notes in [`REFACTOR.md`](REFACTOR.md)): F13LD.lab's solver files in `solver/lab/` (PolyForm), full 6 × 6 elastic with shear, Lab's GPU thermal, partial volume + island trim as Lab, stretched cells (elastic and thermal), designs in flight on the GPU while CPU workers prepare the next ones.
 
 **Before merging — Matt, on your machine:**
-1. `tests/bench.html` → *Run checks* at N = 32: every line should say PASS.
+1. ~~`tests/bench.html` → *Run checks* at N = 32~~ — **done 2026-10-08, all PASS on Matt's GPU** (stretched cell within 1.5 % of the supercell elastic, 0.34 % thermal; cubic voxels 62 % / 19 % off).
 2. `tests/bench.html` → *Run speed bench* (gyroid sheet, spinodoid, beam BCC; 24 designs; N = 32): GPU vs CPU seconds. Try N = 16 and 64 too.
 3. The app on the branch: Solver line shows your GPU; a sweep runs; shear moduli in the detail panel; export loads into F13LD.ingest.
 

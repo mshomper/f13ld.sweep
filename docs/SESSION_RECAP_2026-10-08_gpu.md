@@ -57,7 +57,11 @@ Two Sweep rules on top of Lab's:
 
 Fixed while checking: Lab's sweep "no load" threshold (20 × void stiffness) zeroed real moduli at Fast's void 1e-3 → removed (connectivity decides, as before); the island trim gutting thin designs → 10 % cap.
 
-**Not checked:** anything on a real GPU — speed, and the checks at N = 32. That is Matt's run.
+**Matt's GPU, `tests/bench.html` checks at N = 32 — all PASS:** GPU operator = CPU formula (≤ 3.2e-7); cubic stiffness with Sweep's operator = Lab's (1.2e-7 of C11); three designs in flight = each alone (exact, 446 ms for all three); thermal patch = Lab's thermal (exact). Stretched cell vs 2×2×1 supercell (N = 64): E +1.2 / +1.2 / +0.1 %, G −0.6 / −0.6 / +1.5 % — cubic voxels (old physics) +62 / +62 / −40 %, G −9 / −9 / +26 %. Thermal: +0.1 / +0.1 / −0.3 % vs cubic voxels +18 / +18 / −19 %. GPU solves in the app finish.
+
+Fixed after Matt's first speed-bench run: the bench read the app's `results` through the frame's window, where a top-level `let` is not visible → now `win.eval('results')`.
+
+**Not checked yet:** speed on a real GPU (Matt's speed bench).
 
 ## Known limits
 
