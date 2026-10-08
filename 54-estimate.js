@@ -1,14 +1,47 @@
 /* ============================================================
    F13LD.sweep · 54-estimate.js
-   estimateHomogenization: the per-design pipeline — build the design's
-   geometry from its recipe, pre-gate on volume fraction, connectivity and
-   pores, the FFT-CG solve, then the derived metrics.
+   The per-design pipeline — build the design's geometry from its recipe,
+   pre-gate on volume fraction, connectivity and pores, the solve (CPU
+   FFT-CG here, or F13LD.lab's GPU solver), then the derived metrics.
    ============================================================ */
+
+/* The per-design pipeline in three stages, so the GPU solver can take the
+   middle one (v0.24.0):
+     prepareDesign   geometry, VF / connectivity gates, pores, curvature,
+                     topology, tortuosity — everything that is not a solve
+     (solve)         elastic + thermal: CPU (fftHomogenize, thermalHomogenize)
+                     in the same worker, or F13LD.lab's GPU solver
+                     (solver/gpu-worker.js) via prepareDesignGpu → GPU →
+                     finishDesignGpu
+     finishDesign    every derived metric, from the prepared design and the
+                     solve.
+   estimateHomogenization is the CPU path, unchanged in its numbers. */
 
 /* recipe — the design recipe (design-tool format, 40-design.js).
    opts   — { Es, nu, ks, sigma_ref, voxelToUm, eps_yield_um, linear_cap_kind,
               contrast, maxiter, gridN, targetHints, scale:[sx,sy,sz] | null } */
 function estimateHomogenization(recipe, opts) {
+  const o = opts || {};
+  const P = prepareDesign(recipe, o);
+  if (P.reject) return P.reject;
+  const { solverGridSolid, N, mode, connectGate, _contrast, _maxiter, _hiRes, rejectFn: reject } = P;
+  const Es = o.Es, nu = o.nu, ks = o.ks;
+  const fft = fftHomogenize(solverGridSolid, N, mode, Es, nu, connectGate, _contrast, _maxiter, _hiRes);
+  if (!fft || fft.rejected) return reject((fft && fft.reject_reason) || 'unknown', (fft && fft.rho != null) ? fft.rho : 0);
+
+  // Run thermal FFT-CG — reuses solid voxel grid from elastic solve
+  const ks_val = ks || 1.0;  // normalized if no material selected
+  const kv_val = ks_val * 0.0003; // void (air) ≈ 0.03% of solid
+  const therm = thermalHomogenize(fft.solid, N, ks_val, kv_val);
+  return finishDesign(P, {
+    Ex: fft.Ex, Ey: fft.Ey, Ez: fft.Ez, cg_iters: fft.cg_iters, cg_converged: fft.cg_converged,
+    solver_validity: fft.solver_validity, kx: therm.kx, ky: therm.ky, kz: therm.kz, ks_val
+  }, o);
+}
+
+/* Stage 1. Returns { reject } for a discarded design, else the prepared
+   design (P) the solve and finishDesign read. */
+function prepareDesign(recipe, opts) {
   const o = opts || {};
   const geo = designGeometry(recipe);
   const mode = geo.sweepMode;
@@ -38,7 +71,7 @@ function estimateHomogenization(recipe, opts) {
      a cell scale (TPMS, beam). */
   if (o.scale && targetHints && targetHints.scale_similarity_floor != null) {
     const s = o.scale, m = (s[0] + s[1] + s[2]) / 3;
-    if (m > 1e-6 && s.every(v => Math.abs(v - m) / m < targetHints.scale_similarity_floor)) return reject('aniso_insufficient');
+    if (m > 1e-6 && s.every(v => Math.abs(v - m) / m < targetHints.scale_similarity_floor)) return { reject: reject('aniso_insufficient') };
   }
 
   /* ── Solver-grid voxels + volume-fraction pre-gate. For PI / noise / grain
@@ -54,7 +87,7 @@ function estimateHomogenization(recipe, opts) {
   const _f = (targetHints && targetHints.pregate_rho_factors) || { lo: 1.0, hi: 1.0 };
   const _lo = (_hiRes ? _rhoMin * 0.7 : _rhoMin) * _f.lo;
   const _hi = (_hiRes ? _rhoMax * 1.15 : _rhoMax) * _f.hi;
-  if (rho_pregate < _lo || rho_pregate > _hi) return reject(rho_pregate < _lo ? 'vf_low' : 'vf_high', rho_pregate);
+  if (rho_pregate < _lo || rho_pregate > _hi) return { reject: reject(rho_pregate < _lo ? 'vf_low' : 'vf_high', rho_pregate) };
 
   /* ── Geometry metrics grid: 96 for PI-TPMS, 64 for noise / grain (thin
      pipes and sheets), else the solver grid itself (pores at 16 as before). */
@@ -73,11 +106,9 @@ function estimateHomogenization(recipe, opts) {
   const connectGate = { x: !!solidPerc.connect_x, y: !!solidPerc.connect_y, z: !!solidPerc.connect_z };
   /* PI / noise / grain: the metrics grid is canonical for VF — gate on it
      here with the strict bounds, and let the solver skip its coarse check. */
-  if (_hiRes && (rho_hi < _rhoMin || rho_hi > _rhoMax)) return reject(rho_hi < _rhoMin ? 'vf_low' : 'vf_high', rho_hi);
-  const fft = fftHomogenize(solverGridSolid, N, mode, Es, nu, connectGate, _contrast, _maxiter, _hiRes);
-  if (!fft || fft.rejected) return reject((fft && fft.reject_reason) || 'unknown', (fft && fft.rho != null) ? fft.rho : 0);
-
-  let { rho, Ex, Ey, Ez, solid: solidVox, cg_iters, cg_converged, solver_validity } = fft;
+  if (_hiRes && (rho_hi < _rhoMin || rho_hi > _rhoMax)) return { reject: reject(rho_hi < _rhoMin ? 'vf_low' : 'vf_high', rho_hi) };
+  /* (the solver's own count of the same voxels — identical to rho_pregate) */
+  let rho = rho_pregate;
   if (rho_hi !== null) rho = rho_hi;
 
   /* Surface complexity: voxel faces between solid and void on the solver
@@ -123,11 +154,11 @@ function estimateHomogenization(recipe, opts) {
     };
   } else {
     // Solid/shell path — tortuosity-only via N=16 voxel mask.
-    // Build void mask from solidVox: solidVox is the solver's binary occupancy;
-    // void = !solid. (solidVox is Uint8Array per the elastic solve.)
+    // Build void mask from solverGridSolid: solverGridSolid is the solver's binary occupancy;
+    // void = !solid. (solverGridSolid is Uint8Array per the elastic solve.)
     const N3 = N * N * N;
     const voidMask = new Uint8Array(N3);
-    for (let i = 0; i < N3; i++) voidMask[i] = solidVox[i] ? 0 : 1;
+    for (let i = 0; i < N3; i++) voidMask[i] = solverGridSolid[i] ? 0 : 1;
 
     const tort = computeTortuosity(voidMask, N);
     const eps_void = 1.0 - rho;
@@ -145,6 +176,22 @@ function estimateHomogenization(recipe, opts) {
     };
   }
 
+
+  return {
+    reject: null, rejectFn: reject, geo, N, mode, isPi, isBeam, isNoise, isGrain, _contrast, _maxiter, _hiRes,
+    solverGridSolid, rho_pregate, rho_hi, rho, solidPerc, connect_idx, connectGate, pores, complexity, geom,
+    cellSizeMm
+  };
+}
+
+/* Stage 3. S = the solve: { Ex, Ey, Ez, cg_iters, cg_converged,
+   solver_validity, kx, ky, kz, ks_val, extra? } (extra: GPU-only fields,
+   appended to the result). */
+function finishDesign(P, S, opts) {
+  const o = opts || {};
+  const Es = o.Es, sigma_ref = o.sigma_ref, eps_yield_um = o.eps_yield_um, linear_cap_kind = o.linear_cap_kind;
+  const { N, rho, solidPerc, connect_idx, pores, complexity, geom, cellSizeMm } = P;
+  const { Ex, Ey, Ez, cg_iters, cg_converged, solver_validity, kx, ky, kz, ks_val } = S;
 
   // ── v0.14.0: anisotropy / directionality split ───────────────────────────
   //   anisotropy   — conventional max/min over PERCOLATING axes only.
@@ -198,11 +245,6 @@ function estimateHomogenization(recipe, opts) {
   // (connect_idx is computed above in the hi-res analysis block — geometric BFS,
   // not the stiffness-threshold proxy that was wrong for PI-TPMS.)
 
-  // Run thermal FFT-CG — reuses solid voxel grid from elastic solve
-  const ks_val = ks || 1.0;  // normalized if no material selected
-  const kv_val = ks_val * 0.0003; // void (air) ≈ 0.03% of solid
-  const therm = thermalHomogenize(solidVox, N, ks_val, kv_val);
-  const { kx, ky, kz } = therm;
   const kmax = Math.max(kx, ky, kz);
   const kmean = (kx + ky + kz) / 3;
   const thermal_anisotropy = kmax / (Math.min(kx,ky,kz) + 1e-9);
@@ -309,7 +351,7 @@ function estimateHomogenization(recipe, opts) {
   const pore_size_norm   = cellSize_um > 0 ? +(pores.pore_size   / cellSize_um).toFixed(4) : 0;
   const throat_size_norm = cellSize_um > 0 ? +(pores.throat_size / cellSize_um).toFixed(4) : 0;
 
-  return {
+  const out = {
     volume_fraction:    +(rho*100).toFixed(2),
     Ex_GPa:             +Ex.toFixed(2),
     Ey_GPa:             +Ey.toFixed(2),
@@ -422,4 +464,7 @@ function estimateHomogenization(recipe, opts) {
     pore_size_p90: pores.pore_size_p90,
     pore_size_cv:  pores.pore_size_cv
   };
+  /* GPU solver: shear moduli, full stiffness, cell aspect, provenance */
+  if (S.extra) Object.assign(out, S.extra);
+  return out;
 }

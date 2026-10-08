@@ -192,8 +192,28 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     pore_size_p90: d.pore_size_p90,
     pore_size_cv:  d.pore_size_cv,
     method: methodLabel || 'FFT-CG',
-    solver_version: SOLVER_VERSION,
+    ...gpuDesignFields(d),
+    solver_version: d.solver_version || SOLVER_VERSION,
     geometry_version: GEOMETRY_VERSION
+  };
+}
+
+/* v0.24.0 — what only the GPU solver reports (additive; F13LD.ingest reads
+   the export as before). Empty for CPU-solved designs, so CPU exports keep
+   their exact shape. */
+function gpuDesignFields(d) {
+  if (!d || d.Gxy_GPa === undefined) return {};
+  return {
+    Gyz_GPa: d.Gyz_GPa, Gxz_GPa: d.Gxz_GPa, Gxy_GPa: d.Gxy_GPa,
+    Gyz_norm: d.Gyz_norm, Gxz_norm: d.Gxz_norm, Gxy_norm: d.Gxy_norm,
+    nu_xy: d.nu_xy, nu_xz: d.nu_xz, nu_yz: d.nu_yz,
+    zener_A: d.zener_A,
+    C_GPa: d.C_GPa,                 // full 6×6 Voigt stiffness [xx yy zz yz xz xy], GPa
+    cell_aspect: d.cell_aspect,     // physical cell edges, max = 1 (stretched cells)
+    island_trim_pct: d.island_trim_pct,
+    island_trim_skipped_pct: d.island_trim_skipped_pct,
+    thermal_converged: d.thermal_converged,
+    solve_ms: d.solve_ms
   };
 }
 
@@ -266,7 +286,19 @@ function exportResults() {
       count:    currentFiltered.length,
       solver: {
         method:   'FFT-CG',
-        version:  SOLVER_VERSION,
+        version:  (lastSweepSettings && lastSweepSettings.solver_version) || SOLVER_VERSION,
+        // v0.24.0: GPU solver settings (absent on CPU sweeps)
+        ...((lastSweepSettings && lastSweepSettings.backend === 'gpu') ? {
+          backend:        'gpu',
+          gpu_adapter:    lastSweepSettings.gpu_adapter,
+          void_ratio:     lastSweepSettings.void_ratio,
+          gpu_cg_tol:     lastSweepSettings.gpu_cg_tol,
+          gpu_cg_maxiter: lastSweepSettings.gpu_cg_maxiter,
+          thermal_cg_tol: lastSweepSettings.thermal_cg_tol,
+          partial_volume: lastSweepSettings.partial_volume,
+          island_trim:    lastSweepSettings.island_trim,
+          load_cases:     6
+        } : {}),
         geometry: GEOMETRY_VERSION,
         N_std:    FFT_N_STD,
         N_pi:     FFT_N_PI,
@@ -437,7 +469,8 @@ function exportResults() {
         pore_size_p10:        d.pore_size_p10,
         pore_size_p50:        d.pore_size_p50,
         pore_size_p90:        d.pore_size_p90,
-        pore_size_cv:         d.pore_size_cv
+        pore_size_cv:         d.pore_size_cv,
+        ...gpuDesignFields(d)
       },
       // The exact recipe this design was solved with (design-tool format).
       design: designRecipeOut(d, 'results-export')

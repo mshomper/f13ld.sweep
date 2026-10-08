@@ -126,3 +126,111 @@ function getSolverPool() {
   }
   return _solverPool;
 }
+
+// ─── GPU solver (v0.24.0) ────────────────────────────────────────────────────
+// One dedicated worker (solver/gpu-worker.js) runs F13LD.lab's WebGPU solver.
+// The CPU workers above prepare each design (geometry, gates, metrics,
+// partial-volume voxels); the GPU worker solves elastic + thermal; the page
+// finishes the metrics (finishDesignGpu). Several designs are in flight on
+// the GPU at once (lanes).
+//   window.SWEEP_GPU = false or ?gpu=0 in the URL → CPU solver only (the
+//   pre-v0.24 physics).
+const SWEEP_GPU_WORKER_URL = 'solver/gpu-worker.js';
+
+class GpuSolverClient {
+  constructor() {
+    this.worker = null;
+    this.pending = new Map();
+    this.nextId = 1;
+    this.ok = false;
+    this.dead = false;
+    this.adapter = null;
+    this.reason = null;
+  }
+  init() {
+    if (this._init) return this._init;
+    this._init = new Promise(resolve => {
+      let w;
+      try { w = new Worker(SWEEP_GPU_WORKER_URL); }
+      catch (e) { this.reason = 'GPU worker failed to start: ' + e.message; return resolve(false); }
+      this.worker = w;
+      const timer = setTimeout(() => { this.reason = 'GPU did not start in time'; resolve(false); }, 20000);
+      w.addEventListener('message', e => {
+        const m = e.data;
+        if (m.type === 'ready') {
+          clearTimeout(timer);
+          this.ok = !!m.ok; this.adapter = m.adapter || null; this.reason = m.reason || null;
+          resolve(this.ok);
+        } else if (m.type === 'solved' || m.type === 'failed') {
+          const p = this.pending.get(m.id);
+          if (!p) return;
+          this.pending.delete(m.id);
+          if (m.type === 'solved') p.resolve(m);
+          else {
+            if (m.fatal) this.dead = true;
+            p.reject(Object.assign(new Error(m.message), { fatal: !!m.fatal }));
+          }
+        }
+      });
+      w.addEventListener('error', e => {
+        clearTimeout(timer);
+        console.error('[gpu] worker error:', e && e.message);
+        if (e && e.preventDefault) e.preventDefault();
+        this.dead = true; this.reason = (e && e.message) || 'GPU worker error';
+        for (const p of this.pending.values()) p.reject(Object.assign(new Error(this.reason), { fatal: true }));
+        this.pending.clear();
+        resolve(false);
+      });
+      w.postMessage({ type: 'init' });
+    });
+    return this._init;
+  }
+  get usable() { return this.ok && !this.dead; }
+  // job: { N, phi, edges, elastic, thermal } → { elastic, thermal, t_ms }
+  solve(job) {
+    if (!this.usable) return Promise.reject(Object.assign(new Error('GPU solver unavailable'), { fatal: true }));
+    const id = this.nextId++;
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.worker.postMessage(Object.assign({ type: 'solve', id }, job), [job.phi.buffer]);
+    });
+  }
+}
+
+let _gpuSolver = null;
+// Resolves to the GPU client when it can be used, else null (CPU solver).
+function gpuSwitchedOff() {
+  if (typeof window === 'undefined') return true;
+  if (window.SWEEP_GPU === false) return true;
+  try { return new URLSearchParams(location.search).get('gpu') === '0'; } catch (e) { return false; }
+}
+async function getGpuSolver() {
+  if (gpuSwitchedOff()) return null;
+  if (!_gpuSolver) _gpuSolver = new GpuSolverClient();
+  const ok = await _gpuSolver.init();
+  return ok && _gpuSolver.usable ? _gpuSolver : null;
+}
+// What the solver line in the sidebar shows.
+function gpuSolverStatus() {
+  if (gpuSwitchedOff()) return { gpu: false, text: 'CPU solver (GPU switched off)' };
+  if (!_gpuSolver || !_gpuSolver._init) return { gpu: null, text: 'Solver: checking for a GPU…' };
+  if (_gpuSolver.usable) return { gpu: true, text: 'GPU · ' + (_gpuSolver.adapter || 'WebGPU') };
+  return { gpu: false, text: 'CPU solver · ' + (_gpuSolver.reason || 'no WebGPU') };
+}
+
+// One design through the pipeline. CPU: the worker does everything.
+// GPU: worker prepares → GPU solves → page finishes. Resolves { attemptIdx, hom }.
+async function computeDesign(pool, gpu, spec, gpuPrec) {
+  if (!gpu || !gpu.usable) return pool.dispatch(spec);
+  const msg = await pool.dispatch(Object.assign({}, spec, { type: 'prepare_design' }));
+  const prep = msg.prep;
+  if (prep.reject) return { attemptIdx: spec.attemptIdx, hom: prep.reject };
+  const o = spec.opts, P = prep.P;
+  const anyAxis = P.connectGate.x || P.connectGate.y || P.connectGate.z;
+  const sol = await gpu.solve({
+    N: P.N, phi: prep.phi, edges: prep.edges,
+    elastic: anyAxis ? { Es: o.Es, nu: o.nu, voidRatio: gpuPrec.voidRatio, tol: gpuPrec.tol, maxiter: gpuPrec.maxiter } : null,
+    thermal: { kS: o.ks || 1.0, kF: (o.ks || 1.0) * 0.0003, tol: gpuPrec.thTol, maxiter: gpuPrec.thMaxiter }
+  });
+  return { attemptIdx: spec.attemptIdx, hom: finishDesignGpu(prep, sol, o, gpuPrec) };
+}

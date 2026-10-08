@@ -17,6 +17,9 @@ const COLUMNS = [
   { label: 'Ex',     key: 'Ex_GPa',             cls: 'td-group-start' },
   { label: 'Ey',     key: 'Ey_GPa',             cls: 'td-group-mid' },
   { label: 'Ez',     key: 'Ez_GPa',             cls: 'td-group-end' },
+  { label: 'Gyz',    key: 'Gyz_GPa',            cls: 'td-group-start' },
+  { label: 'Gxz',    key: 'Gxz_GPa',            cls: 'td-group-mid' },
+  { label: 'Gxy',    key: 'Gxy_GPa',            cls: 'td-group-end' },
   { label: 'E/ρ',    key: 'stiffness_density' },
   { label: 'α/ρ',    key: 'aniso_efficiency' },
   { label: 'Ψ',      key: 'directionality' },
@@ -91,6 +94,8 @@ function columnFor(key) {
 const METRIC_FMT = {
   anisotropy: v => v.toFixed(3),
   Ex_GPa: v => v.toFixed(2), Ey_GPa: v => v.toFixed(2), Ez_GPa: v => v.toFixed(2),
+  Gyz_GPa: v => v.toFixed(2), Gxz_GPa: v => v.toFixed(2), Gxy_GPa: v => v.toFixed(2),
+  nu_xy: v => v.toFixed(3), nu_xz: v => v.toFixed(3), nu_yz: v => v.toFixed(3), zener_A: v => v.toFixed(2),
   stiffness_density: v => v.toFixed(2), aniso_efficiency: v => v.toFixed(2),
   directionality: v => v.toFixed(3), ortho_contrast: v => v.toFixed(3),
   connect_idx: v => v.toFixed(2),
@@ -109,6 +114,7 @@ const METRIC_FMT = {
 };
 function formatMetric(key, v) {
   if (v === null || v === undefined) return '—';
+  if (Array.isArray(v)) return v.join(' × ');
   if (typeof v !== 'number') return String(v);
   if (!Number.isFinite(v)) return '—';
   return METRIC_FMT[key] ? METRIC_FMT[key](v) : (Math.abs(v) >= 1000 ? Math.round(v).toString() : +v.toPrecision(4) + '');
@@ -116,6 +122,7 @@ function formatMetric(key, v) {
 
 const COL_COLORS = {
   anisotropy:'var(--rank1)', Ex_GPa:'#5fb5b5', Ey_GPa:'#c794d4', Ez_GPa:'#d4b04a',
+  Gyz_GPa:'#5fb5b5', Gxz_GPa:'#c794d4', Gxy_GPa:'#d4b04a',
   stiffness_density:'var(--accent3)', aniso_efficiency:'var(--rank1)',
   directionality:'var(--accent2)', ortho_contrast:'var(--warn)',
   connect_idx:'var(--accent2)',

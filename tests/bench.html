@@ -1,0 +1,285 @@
+<!doctype html>
+<!-- F13LD.sweep · tests/bench.html — GPU solver checks and speed bench.
+     Licence: PolyForm Noncommercial 1.0.0 (solver/LICENSE.md) — it runs
+     F13LD.lab's solver files directly.  Dev page; the app never loads it.
+     Open over http(s) (GitHub Pages, raw.githack or a local server). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sweep GPU Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ground:#06080c; --panel:#0d1117; --line:#1f2630; --ink:#d9e1ea; --muted:#7d8896; --neon:#c8f542; --jade:#1D9E75; --sweep:#E39B4A; --bad:#e06a6f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font: 13px/1.5 'JetBrains Mono', ui-monospace, monospace; }
+  main { max-width: 1040px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font: 700 20px 'Exo 2', sans-serif; margin: 0 0 4px; }
+  h1 span { color: var(--sweep); }
+  h2 { font: 700 15px 'Exo 2', sans-serif; margin: 28px 0 6px; }
+  p { color: var(--muted); margin: 4px 0 10px; max-width: 80ch; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+  button, select, input { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+  button { cursor: pointer; }
+  button.go { border-color: var(--neon); color: var(--neon); }
+  button:disabled { opacity: .4; cursor: default; }
+  label { color: var(--muted); }
+  input[type=number] { width: 70px; border-radius: 6px; }
+  pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; margin: 8px 0; min-height: 2.5em; }
+  table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 8px 0; font-size: 12px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: right; overflow: hidden; text-overflow: ellipsis; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 400; }
+  .pass { color: var(--neon); } .fail { color: var(--bad); } .note { color: var(--sweep); }
+  iframe { width: 100%; height: 260px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+</style>
+</head>
+<body>
+<main>
+  <h1>F13LD<span>.sweep</span> · GPU bench</h1>
+  <p id="hw">Checking for WebGPU…</p>
+
+  <h2>1 · Solver checks</h2>
+  <p>Small, quick checks of the parts Sweep adds to F13LD.lab's solver: the stretched-cell Green operator built on the GPU, several designs in flight at once (lanes), the thermal kernel patch, and a known answer for stretched cells — a gyroid sheet in a stretched cell against the same structure as a supercell of cubic voxels. Those two differ only by discretization, so they converge as the grid grows.</p>
+  <div class="row">
+    <label>Grid N <select id="chkN"><option>16</option><option selected>32</option></select></label>
+    <button class="go" id="chkBtn">Run checks</button>
+  </div>
+  <pre id="chkOut">—</pre>
+
+  <h2>2 · Speed: CPU vs GPU on real sweeps</h2>
+  <p>Runs the app itself (below) twice per case with the same seed: once on the CPU solver (<code>?gpu=0</code>, the pre-v0.24 physics: normal stiffness only) and once on the GPU solver. Same designs in both, so the moduli can be compared row by row. Close other GPU-heavy tabs first.</p>
+  <div class="row">
+    <label>Cases <select id="spCases" multiple size="4"></select></label>
+    <label>Designs <input type="number" id="spN" value="24" min="2" max="500"></label>
+    <label>Grid <select id="spGrid"><option>16</option><option selected>32</option><option>64</option></select></label>
+    <label>Precision <select id="spPrec"><option value="fast" selected>Fast</option><option value="rigorous">Rigorous</option></select></label>
+    <label><input type="checkbox" id="spCpu" checked> also run CPU</label>
+    <button class="go" id="spBtn">Run speed bench</button>
+  </div>
+  <table id="spTable"><thead><tr><th style="width:24%">Case · grid</th><th>Designs</th><th>CPU s</th><th>GPU s</th><th>Speed-up</th><th>GPU solve (median)</th><th>E GPU ÷ CPU (median)</th></tr></thead><tbody></tbody></table>
+  <pre id="spOut">—</pre>
+  <iframe id="app" title="Sweep under test"></iframe>
+</main>
+
+<script src="../solver/lab/10-hardware.js"></script>
+<script src="../solver/lab/11-webgpu-device.js"></script>
+<script src="../solver/lab/12-fft-plan.js"></script>
+<script src="../solver/lab/16a-elastic-cpu-ref-full.js"></script>
+<script src="../solver/lab/16b-elastic-solver-full.js"></script>
+<script src="../solver/lab/16g-nonlinear-solver.js"></script>
+<script src="../solver/lab/16i-elastic-fast.js"></script>
+<script src="../solver/lab/17b-thermal-solver.js"></script>
+<script src="../solver/sweep-gpu-kernels.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const out = (id, s) => { $(id).textContent += s + '\n'; };
+const pct = (a, b) => (b ? ((a - b) / Math.abs(b) * 100) : 0);
+const fp = v => (v >= 0 ? '+' : '') + v.toFixed(2) + ' %';
+
+function isoC(E, nu) {
+  const l = E * nu / ((1 + nu) * (1 - 2 * nu)), m = E / (2 * (1 + nu)), C = new Float64Array(36);
+  C[0] = C[7] = C[14] = l + 2 * m; C[1] = C[2] = C[6] = C[8] = C[12] = C[13] = l; C[21] = C[28] = C[35] = m; return C;
+}
+const gyr = (x, y, z) => Math.sin(x) * Math.cos(y) + Math.sin(y) * Math.cos(z) + Math.sin(z) * Math.cos(x);
+/* gyroid sheet |g| < t, partial volume by 4³ sub-samples; `cells` cells per axis */
+function phiGrid(M, cells, t) {
+  const out = new Float32Array(M * M * M), s = 4, TP = 2 * Math.PI;
+  for (let i = 0; i < M; i++) for (let j = 0; j < M; j++) for (let k = 0; k < M; k++) {
+    let n = 0;
+    for (let a = 0; a < s; a++) for (let b = 0; b < s; b++) for (let c = 0; c < s; c++)
+      if (Math.abs(gyr((i + (a + .5) / s) / M * cells[0] * TP, (j + (b + .5) / s) / M * cells[1] * TP, (k + (c + .5) / s) / M * cells[2] * TP)) < t) n++;
+    out[i * M * M + j * M + k] = n / (s * s * s);
+  }
+  return out;
+}
+function moduli(C) {
+  const S = invert6x6(Float64Array.from(C));
+  return { E: [1 / S[0], 1 / S[7], 1 / S[14]], G: [1 / S[21], 1 / S[28], 1 / S[35]] };
+}
+const Es = 110, nu = 0.3, C_s = isoC(Es, nu);
+
+async function initGpu() {
+  await detectHardware();
+  if (!HW.webgpu_available) { $('hw').innerHTML = '<span class="fail">No WebGPU in this browser</span> — the app will use its CPU solver.'; return false; }
+  await ensureDevice();
+  $('hw').innerHTML = '<span class="pass">WebGPU</span> · ' + (HW.adapter_name || 'GPU') + ' · max storage binding ' + Math.round(WGPU.device.limits.maxStorageBufferBindingSize / 1048576) + ' MB';
+  return true;
+}
+
+async function readBuf(buf, bytes) {
+  const d = WGPU.device, rb = d.createBuffer({ size: bytes, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+  const enc = d.createCommandEncoder(); enc.copyBufferToBuffer(buf, 0, rb, 0, bytes); d.queue.submit([enc.finish()]);
+  await rb.mapAsync(GPUMapMode.READ); const a = new Float32Array(rb.getMappedRange().slice(0)); rb.unmap(); rb.destroy(); return a;
+}
+
+async function runChecks() {
+  $('chkBtn').disabled = true; $('chkOut').textContent = '';
+  try {
+    if (!WGPU.device && !(await initGpu())) { out('chkOut', 'No WebGPU — nothing to check.'); return; }
+    const N = +$('chkN').value, N3 = N * N * N, tol = 1e-4, maxIt = 1500, C_v = isoC(Es * 1e-3, nu);
+    let allPass = true;
+    const verdict = (ok, txt) => { if (!ok) allPass = false; out('chkOut', (ok ? 'PASS ' : 'FAIL ') + txt); };
+
+    /* 1 — stretched Γ on the GPU = the same formula on the CPU */
+    for (const e of [[1, 1, 1], [0.5, 0.5, 1], [1, 2, 0.7]]) {
+      const gm = Math.cbrt(e[0] * e[1] * e[2]), inv = e.map(v => gm / v);
+      const gb = new SweepGammaBuilder(N); gb.build(C_s[21], C_s[1], inv);
+      const g = await readBuf(gb.buf, 21 * N3 * 4), c = sweepGammaPackedCPU(N, C_s[21], C_s[1], inv);
+      let md = 0, mx = 0; for (let i = 0; i < g.length; i++) { md = Math.max(md, Math.abs(g[i] - c[i])); mx = Math.max(mx, Math.abs(c[i])); }
+      gb.destroy();
+      verdict(md / mx < 1e-5, `1. Γ̂ on the GPU, cell edges ${e.join(' × ')}: max diff ${(md / mx).toExponential(1)} of max |Γ̂|`);
+    }
+    /* also: equal spacing gives F13LD.lab's answer (Lab's cached Γ̂ vs Sweep's builder, same design) */
+    {
+      const phi = phiGrid(N, [1, 1, 1], 0.5), L = new ElasticFastSolver(N, elasticFastPlan(N)), gb = new SweepGammaBuilder(N);
+      L.upload(phi, elasticFastGamma(N, C_s[21], C_s[1], {}), C_s, C_v, C_s);
+      const a = (await L.homogenize(tol, maxIt, [])).C_eff;
+      L.upload(phi, gb.build(C_s[21], C_s[1], [1, 1, 1]), C_s, C_v, C_s);
+      const b = (await L.homogenize(tol, maxIt, [])).C_eff;
+      L.destroy(); gb.destroy();
+      let md = 0; for (let q = 0; q < 36; q++) md = Math.max(md, Math.abs(a[q] - b[q]) / Math.abs(a[0]));
+      verdict(md < 1e-4, `1. cubic cell: stiffness with Sweep's Γ̂ = with F13LD.lab's (elasticFastGamma): max diff ${md.toExponential(1)} of C11`);
+    }
+
+    /* 2 — lanes: three designs at once give what each gives alone (Lab's path) */
+    {
+      const phis = [phiGrid(N, [1, 1, 1], 0.4), phiGrid(N, [1, 1, 1], 0.7), phiGrid(N, [1, 1, 1], 1.0)];
+      const alone = [];
+      for (const p of phis) alone.push((await elasticFastHomogenize(N, p, C_s, C_v, C_s, { cgTol: tol, cgMaxiter: maxIt }, {}, [])).C_eff);
+      const g = elasticFastGamma(N, C_s[21], C_s[1], {}), fft = elasticFastPlan(N);
+      const lanes = phis.map(() => new ElasticFastSolver(N, fft));
+      const t0 = performance.now();
+      const res = await Promise.all(lanes.map((L, i) => { L.upload(phis[i], g, C_s, C_v, C_s); return L.homogenize(tol, maxIt, []); }));
+      const tPar = performance.now() - t0;
+      let md = 0;
+      res.forEach((r, i) => { for (let q = 0; q < 36; q++) md = Math.max(md, Math.abs(r.C_eff[q] - alone[i][q]) / Math.max(1e-12, Math.abs(alone[i][0]))); });
+      lanes.forEach(L => L.destroy());
+      verdict(md < 1e-6, `2. three designs in flight at once = each alone (F13LD.lab elasticFastHomogenize): max diff ${md.toExponential(1)} · ${tPar.toFixed(0)} ms for all three`);
+    }
+
+    /* 3 — thermal patch with no stretch = Lab's thermal solver */
+    {
+      const phi = phiGrid(N, [1, 1, 1], 0.5), kS = 6.7, kF = 0.027;
+      const lab = new ThermalGPUSolver(N); lab.upload({ phi, n: new Float32Array(3 * N3) });
+      const a = await lab.solve(kS, kF, { tol: 1e-5 });
+      const sw = sweepPatchThermal(new ThermalGPUSolver(N)); sweepThermalUploadPhi(sw, phi);
+      const b = await sw.solve(kS, kF, { tol: 1e-5 });
+      let md = 0; for (let q = 0; q < 9; q++) md = Math.max(md, Math.abs(a.K[q] - b.K[q]) / a.K[0]);
+      lab.destroy(); sw.destroy();
+      verdict(md < 1e-6, `3. thermal, cubic cell: Sweep's patched kernel = F13LD.lab's: max diff ${md.toExponential(1)} (κx ${a.K[0].toFixed(4)} W/m·K)`);
+    }
+
+    /* 4 — stretched cell vs a supercell of cubic voxels (known answer) */
+    {
+      const e = [0.5, 0.5, 1], t = 0.4, M = 2 * N;
+      const phiS = phiGrid(N, [1, 1, 1], t), phiC = phiGrid(M, [2, 2, 1], t);
+      const gm = Math.cbrt(e[0] * e[1] * e[2]), inv = e.map(v => gm / v);
+      const gb = new SweepGammaBuilder(N), L = new ElasticFastSolver(N, elasticFastPlan(N));
+      L.upload(phiS, gb.build(C_s[21], C_s[1], inv), C_s, C_v, C_s);
+      const rS = moduli((await L.homogenize(tol, maxIt, [])).C_eff);
+      L.upload(phiS, elasticFastGamma(N, C_s[21], C_s[1], {}), C_s, C_v, C_s);
+      const rU = moduli((await L.homogenize(tol, maxIt, [])).C_eff);
+      L.destroy(); gb.destroy();
+      const rC = moduli((await elasticFastHomogenize(M, phiC, C_s, C_v, C_s, { cgTol: tol, cgMaxiter: maxIt }, {}, [])).C_eff);
+      const row = r => 'E ' + r.E.map(v => v.toFixed(2)).join(' ') + ' · G ' + r.G.map(v => v.toFixed(2)).join(' ') + ' GPa';
+      out('chkOut', `4. gyroid sheet, cell edges 0.5 × 0.5 × 1:\n     stretched cell, N=${N}:        ${row(rS)}\n     2×2×1 supercell, cube N=${M}: ${row(rC)}\n     cubic voxels (pre-v0.24), N=${N}: ${row(rU)}`);
+      const dS = [...rS.E.map((v, i) => pct(v, rC.E[i])), ...rS.G.map((v, i) => pct(v, rC.G[i]))];
+      const dU = [...rU.E.map((v, i) => pct(v, rC.E[i])), ...rU.G.map((v, i) => pct(v, rC.G[i]))];
+      const worstS = Math.max(...dS.map(Math.abs)), worstU = Math.max(...dU.map(Math.abs));
+      out('chkOut', `     stretched vs supercell: ${dS.map(fp).join('  ')}\n     cubic voxels vs supercell: ${dU.map(fp).join('  ')}`);
+      verdict(worstS < worstU / 2, `4. stretched cell is ${(worstU / Math.max(worstS, 1e-9)).toFixed(1)}× closer to the supercell than cubic voxels (worst ${worstS.toFixed(1)} % vs ${worstU.toFixed(1)} %; the gap left is discretization — it shrinks at the bigger grid)`);
+    }
+
+    /* 5 — thermal, same known answer */
+    {
+      const e = [0.5, 0.5, 1], t = 0.4, M = 2 * N, kS = 6.7, kF = 0.027;
+      const phiS = phiGrid(N, [1, 1, 1], t), phiC = phiGrid(M, [2, 2, 1], t);
+      const gm = Math.cbrt(e[0] * e[1] * e[2]), h = e.map(v => v / gm), ry = (h[0] / h[1]) ** 2, rz = (h[0] / h[2]) ** 2;
+      const S = sweepPatchThermal(new ThermalGPUSolver(N)); sweepThermalUploadPhi(S, phiS); sweepThermalStretch(S, ry, rz);
+      const kSt = sweepThermalUnstretch((await S.solve(kS, kF, { tol: 1e-5 })).K, ry, rz);
+      sweepThermalStretch(S, 1, 1);
+      const kU = (await S.solve(kS, kF, { tol: 1e-5 })).K;
+      S.destroy();
+      const C = sweepPatchThermal(new ThermalGPUSolver(M)); sweepThermalUploadPhi(C, phiC);
+      const kC = (await C.solve(kS, kF, { tol: 1e-5 })).K; C.destroy();
+      const d = [0, 4, 8].map(q => pct(kSt[q], kC[q])), dU = [0, 4, 8].map(q => pct(kU[q], kC[q]));
+      out('chkOut', `5. thermal (Ti in air), same cells: κ stretched ${[0, 4, 8].map(q => kSt[q].toFixed(3)).join(' ')} · supercell ${[0, 4, 8].map(q => kC[q].toFixed(3)).join(' ')} · cubic voxels ${[0, 4, 8].map(q => kU[q].toFixed(3)).join(' ')} W/m·K`);
+      out('chkOut', `     stretched vs supercell: ${d.map(fp).join('  ')} · cubic voxels vs supercell: ${dU.map(fp).join('  ')}`);
+      const wS = Math.max(...d.map(Math.abs)), wU = Math.max(...dU.map(Math.abs));
+      verdict(wS < wU / 2, `5. thermal stretched cell ${(wU / Math.max(wS, 1e-9)).toFixed(1)}× closer to the supercell than cubic voxels`);
+    }
+    out('chkOut', allPass ? '\nAll checks passed.' : '\nSome checks failed — copy this box into the session.');
+  } catch (err) { out('chkOut', 'ERROR ' + (err && err.stack || err)); }
+  finally { $('chkBtn').disabled = false; }
+}
+
+/* ── speed bench: the app itself in the iframe ───────────────────── */
+let CASES = null;
+async function loadCases() {
+  CASES = await (await fetch('recipes.json')).json();
+  const sel = $('spCases');
+  Object.keys(CASES).filter(k => !k.startsWith('_') && k !== 'grain-reactiondiff').forEach((k, i) => {
+    const o = document.createElement('option'); o.value = o.textContent = k; if (['tpms-gyroid-sheet', 'grain-spinodoid', 'beam-bcc'].includes(k)) o.selected = true; sel.appendChild(o);
+  });
+}
+function loadApp(gpu) {
+  return new Promise(res => { const f = $('app'); f.onload = () => res(f.contentWindow); f.src = '../index.html' + (gpu ? '' : '?gpu=0'); });
+}
+async function runOne(win, name, n, grid, prec) {
+  const c = CASES[name];
+  /* the same seeded Math.random in both runs → the same designs */
+  let s = 12345 >>> 0;
+  win.Math.random = () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  win.loadFile(new win.File([JSON.stringify(c.recipe)], name + '.json', { type: 'application/json' }));
+  for (let i = 0; i < 100 && win.document.getElementById('runBtn').disabled; i++) await new Promise(r => setTimeout(r, 50));
+  if (c.ui && c.ui.domain) { win.document.getElementById('domainSel').value = c.ui.domain; win.onDomainChange(); }
+  win.setPrecisionUI(prec); win.setResolutionUI(grid);
+  const sl = win.document.getElementById('samplesSlider'); sl.min = '1'; sl.step = '1'; sl.value = String(n); sl.dispatchEvent(new win.Event('input'));
+  const t0 = performance.now();
+  await win.runSweep();
+  const secs = (performance.now() - t0) / 1000;
+  return { secs, rows: win.results.map(d => ({ attempt: d.attemptIdx, Ex: d.Ex_GPa, Ey: d.Ey_GPa, Ez: d.Ez_GPa, ms: d.solve_ms, conv: d.cg_converged, N: d.grid_N })) };
+}
+async function runSpeed() {
+  $('spBtn').disabled = true; $('spOut').textContent = '';
+  const names = [...$('spCases').selectedOptions].map(o => o.value), n = +$('spN').value, grid = +$('spGrid').value, prec = $('spPrec').value;
+  try {
+    for (const name of names) {
+      let cpu = null;
+      if ($('spCpu').checked) {
+        const w = await loadApp(false);
+        cpu = await runOne(w, name, n, Math.min(grid, 32), prec);
+        out('spOut', `${name}: CPU ${cpu.rows.length} designs in ${cpu.secs.toFixed(1)} s${grid > 32 ? ' (CPU at N=32 — 64 is GPU-only)' : ''}`);
+      }
+      const w2 = await loadApp(true);
+      const st = w2.document.getElementById('solverStatus').textContent;
+      const gpu = await runOne(w2, name, n, grid, prec);
+      const ms = gpu.rows.map(r => r.ms).filter(v => v > 0).sort((a, b) => a - b), med = ms.length ? ms[ms.length >> 1] : 0;
+      out('spOut', `${name}: GPU ${gpu.rows.length} designs in ${gpu.secs.toFixed(1)} s · ${st} · ${gpu.rows.filter(r => r.conv === false).length} unconverged`);
+      let ratio = '—';
+      if (cpu) {
+        const byA = new Map(cpu.rows.map(r => [r.attempt, r]));
+        const rs = [];
+        gpu.rows.forEach(g => { const c = byA.get(g.attempt); if (c) [['Ex', 'Ex'], ['Ey', 'Ey'], ['Ez', 'Ez']].forEach(([a]) => { if (c[a] > 0 && g[a] > 0) rs.push(g[a] / c[a]); }); });
+        rs.sort((a, b) => a - b);
+        if (rs.length) ratio = rs[rs.length >> 1].toFixed(3) + ` (${rs[0].toFixed(2)}–${rs[rs.length - 1].toFixed(2)})`;
+      }
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${name} · N=${gpu.rows[0] ? gpu.rows[0].N : grid}</td><td>${gpu.rows.length}</td><td>${cpu ? cpu.secs.toFixed(1) : '—'}</td><td>${gpu.secs.toFixed(1)}</td><td>${cpu ? (cpu.secs / gpu.secs).toFixed(1) + '×' : '—'}</td><td>${med} ms</td><td>${ratio}</td>`;
+      $('spTable').tBodies[0].appendChild(tr);
+    }
+    out('spOut', 'Done. The GPU run solves the full 6×6 (shear included) with partial-volume voxels, so its E reads lower than the CPU solver\'s — expected.');
+  } catch (err) { out('spOut', 'ERROR ' + (err && err.stack || err)); }
+  finally { $('spBtn').disabled = false; }
+}
+
+$('chkBtn').onclick = runChecks;
+$('spBtn').onclick = runSpeed;
+initGpu().catch(e => { $('hw').textContent = 'WebGPU error: ' + e.message; });
+loadCases();
+</script>
+</body>
+</html>

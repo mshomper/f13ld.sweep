@@ -2,7 +2,10 @@
    F13LD.sweep · worker/sweep-worker.js
    Solver worker. Loads the shared geometry (geom/), the design layer and
    the solver / metrics files the page uses, then answers
-     compute_design  { recipe, opts }  → estimateHomogenization result
+     compute_design  { recipe, opts }  → estimateHomogenization result (CPU solve)
+     prepare_design  { recipe, opts }  → prepareDesignGpu result (the GPU
+                                         solver, solver/gpu-worker.js, does
+                                         the solve; the page finishes it)
      bake            { recipe, N }     → preview field (bakePreviewField)
    Each worker keeps its own solver workspace and Gamma caches
    (44-solver-config.js), reused across designs.
@@ -26,7 +29,9 @@ importScripts(
   '../51-transport.js',
   '../52-geometry-metrics.js',
   '../53-pores.js',
-  '../54-estimate.js'
+  '../54-estimate.js',
+  '../solver/lab/14a-connectivity.js',
+  '../55-estimate-gpu.js'
 );
 
 self.addEventListener('message', e => {
@@ -35,6 +40,13 @@ self.addEventListener('message', e => {
     try {
       const hom = estimateHomogenization(msg.recipe, msg.opts);
       self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, hom });
+    } catch (err) {
+      self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
+    }
+  } else if (msg.type === 'prepare_design') {
+    try {
+      const prep = prepareDesignGpu(msg.recipe, msg.opts);
+      self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, prep }, prep.phi ? [prep.phi.buffer] : []);
     } catch (err) {
       self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
     }

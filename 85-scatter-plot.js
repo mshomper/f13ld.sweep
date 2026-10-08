@@ -13,6 +13,7 @@ let plotHovered = null;
 
 const METRIC_LABELS = {
   anisotropy:'α (Aniso)', Ex_GPa:'Ex', Ey_GPa:'Ey', Ez_GPa:'Ez',
+  Gyz_GPa:'Gyz', Gxz_GPa:'Gxz', Gxy_GPa:'Gxy',
   stiffness_density:'E/ρ', aniso_efficiency:'α/ρ', directionality:'Ψ (Direct.)',
   ortho_contrast:'Ω (Ortho)', connect_idx:'κ (Connect)',
   stiff_axis:'Stiff Axis', keff_x:'kx', keff_y:'ky', keff_z:'kz',

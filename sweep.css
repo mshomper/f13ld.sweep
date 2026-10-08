@@ -873,3 +873,8 @@ th.th-actions, td.td-actions { width: 104px; }
   .col-opt { display: none; }
   th.th-actions, td.td-actions { width: 92px; }
 }
+
+/* v0.24.0 — solver line (GPU adapter or CPU) under the Solver label */
+.solver-status { font-family: var(--mono); font-size: 9px; color: var(--muted); margin: -2px 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.solver-status.gpu { color: var(--green); }
+.direction-toggle button:disabled { opacity: 0.35; cursor: not-allowed; }

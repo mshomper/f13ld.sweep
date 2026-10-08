@@ -37,7 +37,7 @@
       <div class="fh-tool">SWEEP</div>
     </div>
     <div class="fh-right">
-      <span class="fh-ver">v0.23.0</span>
+      <span class="fh-ver">v0.24.0</span>
       <!-- Sweep tool icon — fan of lines emanating from a pivot, per brand guidelines -->
       <div class="fh-ico" title="F13LD.Sweep — parameter-space exploration">
         <svg width="18" height="18" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
@@ -89,6 +89,7 @@
     </div>
 
     <div class="section-label">Solver</div>
+    <div id="solverStatus" class="solver-status">Solver: checking for a GPU…</div>
 
     <!-- v0.16.0: Precision mode toggle. Fast (1e-3 contrast) is the default
          for sweep workloads where relative rankings are what matter — ~5%
@@ -124,6 +125,7 @@
       <div class="direction-toggle" id="resolutionToggle" style="width:100%">
         <button class="active" data-n="16" onclick="setResolutionUI(16)" style="flex:1">N=16</button>
         <button data-n="32" onclick="setResolutionUI(32)" style="flex:1">N=32</button>
+        <button data-n="64" onclick="setResolutionUI(64)" style="flex:1" disabled title="N = 64 needs the GPU solver">N=64</button>
       </div>
       <div id="resolutionHint" style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:4px;text-align:center">
         Sweep default · fast
@@ -213,6 +215,9 @@
             <option value="Ex_GPa">Stiffness — Ex</option>
             <option value="Ey_GPa">Stiffness — Ey</option>
             <option value="Ez_GPa">Stiffness — Ez</option>
+            <option value="Gyz_GPa">Shear modulus — Gyz (GPU)</option>
+            <option value="Gxz_GPa">Shear modulus — Gxz (GPU)</option>
+            <option value="Gxy_GPa">Shear modulus — Gxy (GPU)</option>
             <option value="stiffness_density">Stiffness / Density</option>
             <option value="aniso_efficiency">Anisotropy efficiency</option>
             <option value="directionality">Directionality (Ψ)</option>
@@ -258,6 +263,9 @@
             <option value="Ex_GPa">Stiffness — Ex</option>
             <option value="Ey_GPa">Stiffness — Ey</option>
             <option value="Ez_GPa">Stiffness — Ez</option>
+            <option value="Gyz_GPa">Shear modulus — Gyz (GPU)</option>
+            <option value="Gxz_GPa">Shear modulus — Gxz (GPU)</option>
+            <option value="Gxy_GPa">Shear modulus — Gxy (GPU)</option>
             <option value="stiffness_density">Stiffness / Density</option>
             <option value="aniso_efficiency">Anisotropy efficiency</option>
             <option value="directionality">Directionality (Ψ)</option>
@@ -307,6 +315,9 @@
             <option value="Ex_GPa">Stiffness — Ex</option>
             <option value="Ey_GPa">Stiffness — Ey</option>
             <option value="Ez_GPa">Stiffness — Ez</option>
+            <option value="Gyz_GPa">Shear modulus — Gyz (GPU)</option>
+            <option value="Gxz_GPa">Shear modulus — Gxz (GPU)</option>
+            <option value="Gxy_GPa">Shear modulus — Gxy (GPU)</option>
             <option value="stiffness_density">Stiffness / Density</option>
             <option value="aniso_efficiency">Anisotropy efficiency</option>
             <option value="directionality">Directionality (Ψ)</option>
@@ -570,6 +581,8 @@
 <script src="52-geometry-metrics.js"></script>
 <script src="53-pores.js"></script>
 <script src="54-estimate.js"></script>
+<script src="solver/lab/14a-connectivity.js"></script>
+<script src="55-estimate-gpu.js"></script>
 <script src="60-solver-pool.js"></script>
 <script src="61-sobol.js"></script>
 <script src="62-run-sweep.js"></script>

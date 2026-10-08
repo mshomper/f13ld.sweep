@@ -10,10 +10,11 @@
 - `worker/sweep-worker.js` loads a subset of the same files with `importScripts`; those files must not touch the DOM at load time.
 - Bump `F13LD_SWEEP_VERSION` in `00-config.js` and the header label in `index.html` (`.fh-ver`) on every release.
 - `01-f13-shade.js` holds the shared F13LD-SHADE / F13LD-VIEW blocks — keep them byte-identical with the other F13LD tools.
-- Solver files taken from F13LD.lab keep Lab's licence (PolyForm Noncommercial); everything else is MIT.
+- Solver files taken from F13LD.lab keep Lab's licence (PolyForm Noncommercial); everything else is MIT. They live in `solver/` (own `LICENSE.md` + `NOTICE`): `solver/lab/` is Lab's files byte-for-byte (never edit; refresh with `node tests/parity/solversync.js ../f13ld.lab --write`), Sweep's additions go in `solver/sweep-gpu-kernels.js` / `solver/gpu-worker.js`.
+- GPU checks run on Matt's machine (`tests/bench.html`); don't spend session time on long headless GPU runs. Headless SwiftShader works for quick small-N checks only.
 - Serve over http(s) to test; `file://` does not work (workers).
 
 ## Testing
-- Before merging, run `node tests/harness.js <old build> <new build>` (see `tests/README.md`). Changes that are not meant to move numbers must come out identical.
-- Latest session recap: `docs/SESSION_RECAP_2026-10-08.md`; what's next: `docs/NEXT_STEPS.md`. Refactor plan, decisions and phase status: `docs/REFACTOR.md`. v0.19.0 findings: `docs/AUDIT_v0.19.0.md`.
+- Before merging, run `node tests/harness.js <old build> <new build>` (see `tests/README.md`). It runs the CPU solver path (`window.SWEEP_GPU = false`). Changes that are not meant to move numbers must come out identical.
+- Latest session recap: `docs/SESSION_RECAP_2026-10-08_gpu.md` (before it: `docs/SESSION_RECAP_2026-10-08.md`); what's next: `docs/NEXT_STEPS.md`. Refactor plan, decisions and phase status: `docs/REFACTOR.md`. v0.19.0 findings: `docs/AUDIT_v0.19.0.md`.
 - Cross-tool geometry check: `node tests/parity/parity.js --quick` (needs the other F13LD repos as siblings).

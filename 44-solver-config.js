@@ -34,7 +34,7 @@ const SOLVER_N_OPTIONS = { coarse: 16, fine: 32 };
 let _currentSolverN = 16;
 function getSolverN() { return _currentSolverN; }
 function setSolverN(n) {
-  if (n === 16 || n === 32) _currentSolverN = n;
+  if (n === 16 || n === 32 || n === 64) _currentSolverN = n;   /* 64: GPU only (v0.24.0) */
 }
 // Resolve actual grid N for a given mode. Picker is a floor for STD-family
 // modes; PI-TPMS and beam impose their own (higher) geometric floors.

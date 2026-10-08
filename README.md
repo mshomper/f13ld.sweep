@@ -94,7 +94,22 @@ Color modes:
 
 ## Solver
 
-The homogenization engine is a browser-native FFT-CG (Fast Fourier Transform – Conjugate Gradient) solver based on the Lippmann-Schwinger formulation. It computes effective elastic stiffness by solving three independent normal load cases on a voxelized unit cell, extracting Ex, Ey, Ez from the compliance tensor inverse.
+Since v0.24.0 Sweep solves on the GPU with **F13LD.lab's own WebGPU solver** whenever the browser has WebGPU, and falls back to its older CPU solver otherwise. The sidebar's Solver line says which one is running (GPU and adapter name, or CPU and why).
+
+### GPU solver (v0.24.0)
+
+- **Same code as F13LD.lab.** `solver/lab/` holds Lab's solver files byte-for-byte (FFT, the fast elastic path, the thermal solver; `tests/parity/solversync.js` checks them). They run in their own worker (`solver/gpu-worker.js`), so the page stays responsive.
+- **Elastic:** full 6 × 6 Voigt stiffness from six load cases, so Ex/Ey/Ez are proper Young's moduli (shear and Poisson coupling included) and the shear moduli Gyz, Gxz, Gxy, Poisson's ratios and the Zener ratio are reported. Stiffness reads lower than the CPU solver's normal-only numbers — expected.
+- **Thermal:** Lab's GPU conductivity solver (three load cases at once), in every domain.
+- **Same voxels as Lab:** partial-volume voxels (each surface voxel carries its solid fraction) and Lab's island trim (floating islands removed, beams never trimmed).
+- **Stretched cells:** a cell with unequal edges (TPMS `cell_scale_x/y/z`, beam `scale_xyz`) is solved as stretched — the voxel spacing differs per axis in the Green operator and the thermal operator. Before v0.24.0 cell scale did not change the physics. (F13LD.lab still solves cubic cells; it will take this up later.)
+- **Speed:** CPU workers prepare designs (geometry, gates, pores, curvature, tortuosity) while the GPU solves; several designs are in flight on the GPU at once. Fast precision uses void stiffness 1e-3 and CG tolerance 1e-3 (within ~0.1–0.3 % of a tight solve at a fraction of the iterations); Rigorous uses Lab's sweep settings (void 1e-6, tolerance 1e-4) so its numbers can be checked against Lab. N = 64 is offered on the GPU only.
+- **Switch off:** add `?gpu=0` to the URL for the CPU solver.
+- **Checks on your machine:** `tests/bench.html` (solver checks and a CPU-vs-GPU speed bench on real sweeps).
+
+### CPU solver
+
+The fallback is a browser-native FFT-CG (Fast Fourier Transform – Conjugate Gradient) solver based on the Lippmann-Schwinger formulation. It computes effective elastic stiffness by solving three independent normal load cases on a voxelized unit cell, extracting Ex, Ey, Ez from the compliance tensor inverse.
 
 ### Grid resolution
 
@@ -153,13 +168,15 @@ Since v0.20.0 the tool is split into numbered classic scripts, like F13LD.lab an
 | `40-mode.js` · `41-rasterize.js` | Family registry + mode thresholds · voxel mask |
 | `42-fft.js` · `43-elastic-solver.js` · `44-solver-config.js` · `45-homogenize.js` | FFT · Green operator + CG · solver constants and caches · elastic / thermal homogenization |
 | `50-hires-field.js` · `51-transport.js` · `52-geometry-metrics.js` · `53-pores.js` | Hi-res field · throat / percolation / tortuosity · curvature / topology · pore analysis |
-| `54-estimate.js` | Per-design pipeline (`estimateHomogenization`) |
-| `60-solver-pool.js` · `61-sobol.js` · `62-run-sweep.js` | Worker pool · Sobol sampler · sweep runner |
+| `54-estimate.js` | Per-design pipeline: `prepareDesign` → solve → `finishDesign`; `estimateHomogenization` = the CPU path |
+| `55-estimate-gpu.js` | GPU path: `prepareDesignGpu` (worker: partial volume, island trim, cell edges) · `finishDesignGpu` (page: moduli from the 6 × 6) · GPU precision settings |
+| `60-solver-pool.js` · `61-sobol.js` · `62-run-sweep.js` | Worker pool, GPU solver client, per-design routing (`computeDesign`) · Sobol sampler · sweep runner |
 | `70-export.js` · `71-results-table.js` · `72-mesh-handoff.js` | Results export · table and per-domain columns · F13LD.lab / F13LD.mesh handoff |
 | `80-preview-glsl.js` · `81-preview-gl.js` · `82-design-select.js` · `85-scatter-plot.js` | Preview shader builders · WebGL preview · design select / export · 3D scatter |
 | `99-init.js` | Page init |
-| `worker/sweep-worker.js` | Solver worker (loads `families/`, `40`–`54`) |
-| `tests/` | Dev harness: old-vs-new regression (`harness.js`), load-order check (`loadorder.js`) |
+| `worker/sweep-worker.js` | CPU worker (loads `families/`, `40`–`55`): whole designs on the CPU path, design preparation on the GPU path |
+| `solver/` | **PolyForm Noncommercial** (`solver/LICENSE.md`, `solver/NOTICE`). `lab/` = F13LD.lab's solver files, unchanged · `gpu-worker.js` = the GPU worker · `sweep-gpu-kernels.js` = Sweep's additions (stretched-cell Green operator and thermal scaling) |
+| `tests/` | Dev: old-vs-new regression (`harness.js`, CPU path), load-order check (`loadorder.js`), GPU bench (`bench.html`), stretched-cell CPU check (`gpu/stretch-check.js`), Lab sync checks (`parity/geomsync.js`, `parity/solversync.js`) |
 | `docs/` | `REFACTOR.md` (plan, decisions, phases) · `AUDIT_v0.19.0.md` (findings) |
 
 ---
@@ -186,7 +203,7 @@ The current sweep tool consumes TPMS recipes only. The next major arc factors th
 
 ### Refactor and GPU (in progress)
 
-v0.20.0 split the tool into modules; v0.21.0 builds every design exactly as F13LD.lab and F13LD.mesh do; v0.22.0 fixed the audit's quick items; v0.23.0 refreshed the UI. Next: the WebGPU batched solver from F13LD.lab with shear, stretched cells and proper thermal. See `docs/NEXT_STEPS.md` and `docs/REFACTOR.md`.
+v0.20.0 split the tool into modules; v0.21.0 builds every design exactly as F13LD.lab and F13LD.mesh do; v0.22.0 fixed the audit's quick items; v0.23.0 refreshed the UI; v0.24.0 moved the solver onto the GPU (F13LD.lab's solver, full 6 × 6 with shear, stretched cells, Lab's thermal). Next: the CPU fallback with the same physics, then the UI session. See `docs/NEXT_STEPS.md` and `docs/REFACTOR.md`.
 
 ### Smaller items on the queue
 
@@ -198,4 +215,4 @@ v0.20.0 split the tool into modules; v0.21.0 builds every design exactly as F13L
 
 ## License
 
-MIT
+MIT (`LICENSE`), except the `solver/` folder: F13LD.lab's solver and the code built on it are under the PolyForm Noncommercial License 1.0.0 with F13LD.lab's permission to reproduce published results (`solver/LICENSE.md`, `solver/NOTICE`).

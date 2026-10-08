@@ -16,7 +16,12 @@ npx playwright install chromium     # or point PLAYWRIGHT_BROWSERS_PATH at an ex
 | `harness.js <old> <new> [case,…]` | Runs the same seeded sweep for every case in `recipes.json` in both builds (headless Chromium, one solver worker, `Math.random` seeded, clock frozen) and compares the results array, results table, stats bar, run log, exported results JSON, the F13LD.mesh handoff recipe and preview errors. `tool_version` is ignored. Exit 0 = identical. Writes `harness-last.json` (`HARNESS_OUT` sets the folder). |
 | `parity/geomsync.js <F13LD.lab> [--write]` | The shared geometry blocks in `geom/` are byte-identical to F13LD.lab's; `--write` regenerates them from a Lab checkout. |
 | `loadorder.js [build]` | Static check: no load-time code uses something from a later-numbered file; worker files don't touch the DOM at load; worker only loads files the page loads. |
+| `parity/solversync.js <F13LD.lab> [--write]` | Every file in `solver/lab/` is byte-identical to F13LD.lab's (plus `solver/LICENSE.md`, `NOTICE`); `--write` copies them from a Lab checkout. |
+| `bench.html` (browser, needs WebGPU) | GPU solver checks — stretched Green operator on the GPU vs the CPU formula, Sweep's Γ̂ vs Lab's on a cubic cell, several designs in flight = each alone, thermal patch = Lab's thermal on a cubic cell, stretched cell vs a supercell of cubic voxels (elastic and thermal) — and a CPU-vs-GPU speed bench that runs the app itself on `recipes.json` cases with the same seed. Open over http(s), e.g. `https://raw.githack.com/mshomper/f13ld.sweep/<branch>/tests/bench.html`. |
+| `gpu/stretch-check.js [N]` (node) | The stretched-cell Green operator with F13LD.lab's Float64 CPU reference CG: equals `buildGammaFull` when cubic; stretched cell vs a 2×2×1 supercell; CG tolerance 1e-3 vs 1e-5. N = 8 takes ~3 min, N = 16 ~4 min on two cores. |
 
 Each build is a plain folder: e.g. `git worktree add ../sweep-old v0.19.0` for the old one. The v0.19.0 single file works as the old build too.
+
+The harness sets `window.SWEEP_GPU = false`, so it compares the CPU solver path (which v0.24.0 left unchanged). The GPU path's checks are `bench.html` and `gpu/stretch-check.js`.
 
 `recipes.json` cases come from `f13ld.mesh/tests/recipes.json`; `samples` is the valid-design count per case. A full run takes about 10 minutes on two cores.

@@ -103,7 +103,7 @@ function setPrecisionUI(mode) {
 // resolveGridN). Snapshotting per spec means mid-sweep changes don't
 // poison the run.
 function setResolutionUI(n) {
-  if (n !== 16 && n !== 32) return;
+  if (n !== 16 && n !== 32 && n !== 64) return;
   setSolverN(n);
   const toggle = document.getElementById('resolutionToggle');
   if (toggle) {
@@ -115,8 +115,19 @@ function setResolutionUI(n) {
   if (hint) {
     hint.textContent = n === 16
       ? 'Sweep default · fast'
-      : 'Thin-wall accurate · ~5–10× slower';
+      : n === 32 ? 'Thin-wall accurate · ~5–10× slower'
+      : 'GPU only · fine walls and struts';
   }
+}
+
+/* v0.24.0 — the solver line under the Solver label: GPU (adapter) or CPU.
+   N = 64 is offered only with the GPU solver. */
+function updateSolverStatusUI() {
+  const st = gpuSolverStatus();
+  const el = document.getElementById('solverStatus');
+  if (el) { el.textContent = st.text; el.classList.toggle('gpu', st.gpu === true); }
+  const b64 = document.querySelector('#resolutionToggle button[data-n="64"]');
+  if (b64) { b64.disabled = st.gpu !== true; b64.title = st.gpu === true ? 'N = 64 (GPU)' : 'N = 64 needs the GPU solver'; }
 }
 
 function onDomainChange() {
@@ -200,6 +211,14 @@ const METRIC_INFO_LIST = [
   { key:'Ex_GPa',           sym:'Ex',  name:'Stiffness X',         desc:'effective Young\'s modulus along X (GPa)' },
   { key:'Ey_GPa',           sym:'Ey',  name:'Stiffness Y',         desc:'effective Young\'s modulus along Y (GPa)' },
   { key:'Ez_GPa',           sym:'Ez',  name:'Stiffness Z',         desc:'effective Young\'s modulus along Z (GPa)' },
+  { key:'Gyz_GPa',          sym:'Gyz', name:'Shear Modulus YZ',    desc:'effective shear modulus in the YZ plane (GPa) — GPU solver' },
+  { key:'Gxz_GPa',          sym:'Gxz', name:'Shear Modulus XZ',    desc:'effective shear modulus in the XZ plane (GPa) — GPU solver' },
+  { key:'Gxy_GPa',          sym:'Gxy', name:'Shear Modulus XY',    desc:'effective shear modulus in the XY plane (GPa) — GPU solver' },
+  { key:'nu_xy',            sym:'νxy', name:'Poisson XY',          desc:'lateral contraction in Y under load in X — GPU solver' },
+  { key:'nu_xz',            sym:'νxz', name:'Poisson XZ',          desc:'lateral contraction in Z under load in X — GPU solver' },
+  { key:'nu_yz',            sym:'νyz', name:'Poisson YZ',          desc:'lateral contraction in Z under load in Y — GPU solver' },
+  { key:'zener_A',          sym:'A',   name:'Zener Ratio',         desc:'2·C44 / (C11 − C12); 1 = isotropic for a cubic cell — GPU solver' },
+  { key:'cell_aspect',      sym:'cell',name:'Cell Aspect',         desc:'physical cell edges X × Y × Z, longest = 1 (stretched cells solve as stretched)' },
   { key:'stiffness_density',sym:'E/ρ', name:'Stiff / Density',     desc:'mean stiffness per unit material' },
   { key:'aniso_efficiency', sym:'α/ρ', name:'Aniso / Density',     desc:'directional bias per unit material' },
   { key:'directionality',   sym:'Ψ',   name:'Directionality',      desc:'fraction of total stiffness on peak axis (max/sum, all axes)' },

@@ -40,6 +40,15 @@ async function runSweep() {
   /* Solver settings are fixed for the whole sweep (a toggle mid-sweep
      applies to the next one). */
   const precision = PRECISION_MODES[getPrecisionMode()];
+  /* v0.24.0 — F13LD.lab's GPU solver when this browser has WebGPU, else the
+     CPU solver. N = 64 is a GPU-only grid. */
+  const gpu = await getGpuSolver();
+  updateSolverStatusUI();
+  if (!gpu && getSolverN() > 32) {
+    log('warn', 'No GPU solver here — N = 64 is GPU-only, running at N = 32');
+    setResolutionUI(32);
+  }
+  const gpuPrec = gpu ? GPU_PRECISION[getPrecisionMode()] : null;
   const gridN = resolveGridN(baseGeo.sweepMode);
   lastSweepSettings = null;
   const sweepSettings = {
@@ -47,6 +56,11 @@ async function runSweep() {
     precision_mode: getPrecisionMode(), contrast: precision.contrast, maxiter: precision.maxiter,
     resolution_picker: getSolverN(), grid_N: gridN
   };
+  if (gpu) Object.assign(sweepSettings, {
+    backend: 'gpu', gpu_adapter: gpu.adapter, solver_version: SOLVER_VERSION_GPU,
+    void_ratio: gpuPrec.voidRatio, gpu_cg_tol: gpuPrec.tol, gpu_cg_maxiter: gpuPrec.maxiter,
+    thermal_cg_tol: gpuPrec.thTol, partial_volume: true, island_trim: 'networks', gpu_lanes: gpuLanesFor(gridN)
+  });
 
   const get = id => parseFloat(document.getElementById(id).value) || 0;
   const xLo = nom * get('scaleXlo') / 100;
@@ -133,6 +147,10 @@ async function runSweep() {
   // Solver pool — created lazily and reused across sweeps
   const pool = getSolverPool();
   log('info', `Sampling: ${samplingMethod === 'sobol' ? 'Sobol low-discrepancy (d=8) + uniform random for jitter' : 'uniform random'} · coef normalisation: max(|c|)=1 · Workers: ${pool.nWorkers}`);
+  if (gpu) log('info', `Solver: GPU (${gpu.adapter || 'WebGPU'}) · F13LD.lab elastic 6×6 + thermal · N = ${gridN} · void ${gpuPrec.voidRatio.toExponential(0)} · CG tol ${gpuPrec.tol.toExponential(0)}`);
+  else if (!gpuSwitchedOff()) log('info', `Solver: CPU (${gpuSolverStatus().text.replace(/^CPU solver · /, '')}) — normal stiffness only`);
+  let gpuLostLogged = false;
+  const t0Sweep = performance.now();
 
   let attempts = 0;
   const MAX_ATTEMPTS = nSamples * 20; // safety cap — never spin forever
@@ -227,7 +245,7 @@ async function runSweep() {
     attempts++;
     const spec = buildDesignSpec(attempts);
 
-    return pool.dispatch(spec).then(msg => {
+    return computeDesign(pool, gpu, spec, gpuPrec).then(msg => {
       const hom = msg.hom;
       if (hom && !hom.degenerate) {
         // Valid design — keep it (we'll assign sequential IDs after sweep ends)
@@ -259,6 +277,10 @@ async function runSweep() {
       // Chain the next dispatch (recursion via promise — keeps the worker busy)
       return dispatchChain();
     }).catch(err => {
+      if (err && err.fatal && !gpuLostLogged) {
+        gpuLostLogged = true;
+        log('warn', `GPU solver lost (${err.message}) — the rest of this sweep runs on the CPU solver (normal stiffness only). Re-run for consistent results.`);
+      }
       log('warn', `Worker error on attempt ${spec.attemptIdx}: ${err.message}`);
       discarded++;
       rejectCounts.error++;
@@ -267,8 +289,10 @@ async function runSweep() {
   }
 
   // Kick off nWorkers parallel chains. Each chain keeps its worker busy until done.
+  /* GPU: a few extra chains keep the GPU lanes fed while workers prepare */
+  const nChains = pool.nWorkers + (gpu ? gpuLanesFor(gridN) : 0);
   const chains = [];
-  for (let i = 0; i < pool.nWorkers; i++) {
+  for (let i = 0; i < nChains; i++) {
     chains.push(dispatchChain());
   }
   await Promise.all(chains);
@@ -292,6 +316,13 @@ async function runSweep() {
   progressPct.textContent = '100%';
 
   log('success', `${results.length} valid designs collected · ${discarded} degenerate discarded (${attempts} attempts)`);
+  if (gpu) {
+    const secs = (performance.now() - t0Sweep) / 1000;
+    const solveMs = results.map(r => r.solve_ms).filter(v => v > 0);
+    const med = solveMs.length ? solveMs.sort((a, b) => a - b)[Math.floor(solveMs.length / 2)] : 0;
+    const unconv = results.filter(r => r.cg_converged === false).length;
+    log('info', `  GPU: ${secs.toFixed(1)} s for ${attempts} attempts · median GPU solve ${med} ms per design${unconv ? ` · ${unconv} design(s) stopped before the CG tolerance` : ''}`);
+  }
   // v0.16.0: surface the reason breakdown when there were any discards, so
   // high discard rates can be diagnosed. Display order matches frequency at
   // typical workloads (VF caps first, then numeric edge cases, then errors).
