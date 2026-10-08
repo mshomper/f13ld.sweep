@@ -1,7 +1,23 @@
 /* ============================================================
    F13LD.sweep · 43-elastic-solver.js
-   Green operator, solver workspace and the CG load-case solve (CPU).
+   Isotropic Voigt stiffness, Green operator, solver workspace and the
+   CG load-case solve (CPU).
    ============================================================ */
+
+// ── Isotropic 6x6 Voigt stiffness tensor (flat array, row-major) ─────────────
+// Voigt order: xx yy zz yz xz xy
+function isoC(E, nu) {
+  const lam = E * nu / ((1 + nu) * (1 - 2 * nu));
+  const mu  = E / (2 * (1 + nu));
+  const C = new Float64Array(36);
+  // normal-normal block
+  C[0]=C[7]=C[14] = lam + 2*mu;
+  C[1]=C[2]=C[6]=C[8]=C[12]=C[13] = lam;
+  // shear block
+  C[21]=C[28]=C[35] = mu;
+  return C;
+}
+
 
 // ── Precompute Green operator Gamma for N³ grid ───────────────────────────────
 // Returns flat array of shape N³×6×6 (only normal 3×3 block needed for 3 load cases)

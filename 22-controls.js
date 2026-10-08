@@ -49,15 +49,19 @@ samplesSlider.addEventListener('input', () => {
 // downstream behavior (e.g. disable Run Sweep when blocking=true).
 function checkBeamResolution(recipe, jitterLoFrac = null) {
   if (!recipe || !recipe.geometry) return { ok: true, voxels: Infinity };
-  const cell = recipe.geometry.cell || recipe.geometry.cell_scale || 1.5;
-  const baseR = recipe.geometry.radius || 0.1;
-  // At sweep time, the worst-case radius is jitterLoFrac × baseR (e.g. 0.5 ×
-  // base when the lo input is 50%). At ingest, just use baseR — the lo is
-  // unknown until the user runs the sweep.
-  const effR = jitterLoFrac != null ? baseR * jitterLoFrac : baseR;
+  /* Thinnest strut in one cell, as the solver samples it (cell-local radius;
+     the cell spans N voxels over 2 cell-local units). */
+  let rMin;
+  try {
+    const p = designGeometry(recipe).params;
+    rMin = Infinity;
+    for (let i = 0; i < p.N; i++) rMin = Math.min(rMin, p.rStrut[i]);
+  } catch (e) { return { ok: true, voxels: Infinity }; }
+  const effR = jitterLoFrac != null ? rMin * jitterLoFrac : rMin;
   const N = (typeof FFT_N_BEAM !== 'undefined' ? FFT_N_BEAM : 32);
-  const voxelMm = cell / N;
-  const strutVoxels = (2 * effR) / voxelMm;
+  const strutVoxels = effR * N;
+  const d = SWEEP_FAMILIES.beam.baseDims(recipe);
+  const baseR = Math.min(...d.radius).toFixed(3), cell = d.cell.toFixed(3);
   const ctx = jitterLoFrac != null
     ? `at jitter low (${(jitterLoFrac*100).toFixed(0)}% of base)`
     : 'at base radius';
@@ -84,7 +88,12 @@ function checkBeamResolution(recipe, jitterLoFrac = null) {
 
 function updateScalePreview() {
   if (!baseRecipe) return;
-  const nom = baseRecipe.geometry.cell_scale || 1.0;
+  const fam = SWEEP_FAMILIES[baseFamily];
+  if (!fam.usesCellScale) {
+    document.getElementById('scaleRangePreview').textContent = `not used — ${fam.label} recipes have no cell scale`;
+    return;
+  }
+  const nom = fam.nominalScale(baseRecipe);
   const get = id => parseFloat(document.getElementById(id).value) || 0;
   // lo/hi are % of nominal: 50 means 0.5× nominal, 200 means 2.0× nominal
   const xlo = +(nom * get('scaleXlo') / 100).toFixed(3);

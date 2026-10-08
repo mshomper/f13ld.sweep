@@ -3,23 +3,15 @@
    fftHomogenize (elastic, 3 load cases) and thermalHomogenize.
    ============================================================ */
 
-// v0.14.0: signature extended with optional pre-built mask + connectivity gate.
-//   prebuiltSolid — Float32Array N³ (0/1) from a prior buildVoxels call.
-//                   When supplied, skip the internal buildVoxels (avoids
-//                   double-rasterizing for solid/shell modes where the
-//                   caller already needs the mask for percolation).
-//   connect       — {x, y, z} booleans from hi-res or solver-grid percolation.
-//                   When supplied, gate per-axis CG dispatch — disconnected
-//                   axes report zero stiffness and skip the FFT-CG solve.
-//                   When null/undefined, all axes treated as connected
-//                   (legacy behavior, kept for tests / non-sweep callers).
-// v0.16.0: contrast and maxiter promoted to explicit arguments. Defaults
-// match Fast mode (1e-3 / 600). Legacy callers that pass neither continue
-// to work; the sweep runner now plumbs precision-mode-derived values through.
-function fftHomogenize(family, params, offset, N, mode, wt, Es, nu, nWeights, pipeR, phaseShift, prebuiltSolid, connect, piNorm, shellNorm, contrast, maxiterArg) {
+// fftHomogenize(solid, N, mode, Es, nu, connect, contrast, maxiter)
+//   solid   — Float32Array N³ (0/1): the design's voxels (designVoxels).
+//   mode    — solver-policy mode (geo.sweepMode) for the VF bounds.
+//   connect — {x, y, z} booleans from percolation: disconnected axes report
+//             zero stiffness and skip the FFT-CG solve (null → all axes).
+//   contrast / maxiter — precision mode (default Fast: 1e-3 / 600).
+function fftHomogenize(solid, N, mode, Es, nu, connect, contrast, maxiterArg) {
   const _contrast = (contrast != null) ? contrast : 1e-3;
   const _maxiter  = (maxiterArg != null) ? maxiterArg : CG_MAXITER_FAST;
-  const solid = prebuiltSolid || buildVoxels(family, params, offset, N, mode, wt, nWeights || null, pipeR, phaseShift, undefined, piNorm, shellNorm);
   const N3    = N * N * N;
 
   // Volume fraction — direct voxel count from the already-built solid field.

@@ -5,4 +5,4 @@
    it as meta.tool_version.
    ============================================================ */
 
-const F13LD_SWEEP_VERSION = '0.20.0';
+const F13LD_SWEEP_VERSION = '0.21.0';

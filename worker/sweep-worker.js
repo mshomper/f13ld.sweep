@@ -1,20 +1,23 @@
 /* ============================================================
    F13LD.sweep · worker/sweep-worker.js
-   Solver worker. Loads the same family, solver and metrics files the
-   page uses, then answers compute_design messages from the pool
-   (60-solver-pool.js). Each worker keeps its own solver workspace and
-   Gamma caches (44-solver-config.js), reused across designs.
+   Solver worker. Loads the shared geometry (geom/), the design layer and
+   the solver / metrics files the page uses, then answers
+     compute_design  { recipe, opts }  → estimateHomogenization result
+     bake            { recipe, N }     → preview field (bakePreviewField)
+   Each worker keeps its own solver workspace and Gamma caches
+   (44-solver-config.js), reused across designs.
 
    Only files with no load-time DOM access may be listed here.
    ============================================================ */
 
 importScripts(
-  '../families/fam-tpms.js',
-  '../families/fam-noise.js',
-  '../families/fam-grain.js',
-  '../families/fam-beam.js',
-  '../40-mode.js',
-  '../41-rasterize.js',
+  '../geom/tpms.js',
+  '../geom/noise.js',
+  '../geom/grain.js',
+  '../geom/beam.js',
+  '../geom/voxels.js',
+  '../geom/recipe.js',
+  '../40-design.js',
   '../42-fft.js',
   '../43-elastic-solver.js',
   '../44-solver-config.js',
@@ -26,31 +29,21 @@ importScripts(
   '../54-estimate.js'
 );
 
-// Message handler — receives compute_design messages, returns results.
-// msg.targetHints flows into estimateHomogenization for the target-aware
-// pre-gate (scale similarity + rho-bound tightening).
 self.addEventListener('message', e => {
   const msg = e.data;
   if (msg.type === 'compute_design') {
     try {
-      const hom = estimateHomogenization(
-        msg.family, msg.params, msg.offset,
-        msg.scaleX, msg.scaleY, msg.scaleZ,
-        msg.Es, msg.nu, msg.baseline, msg.sweepMode, msg.sweepWall,
-        msg.nWeights, msg.sweepPipeR, msg.sweepPhaseShift,
-        msg.ks, msg.sigma_ref, msg.voxelToUm, msg.cellMult,
-        msg.eps_yield_um, msg.linear_cap_kind,
-        msg.piNorm, msg.shellNorm,
-        msg.contrast, msg.maxiter, msg.gridN,
-        msg.targetHints
-      );
+      const hom = estimateHomogenization(msg.recipe, msg.opts);
       self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, hom });
     } catch (err) {
-      self.postMessage({
-        type: 'error', attemptIdx: msg.attemptIdx,
-        message: err.message || String(err),
-        stack: err.stack || ''
-      });
+      self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
+    }
+  } else if (msg.type === 'bake') {
+    try {
+      const b = bakePreviewField(msg.recipe, msg.N);
+      self.postMessage({ type: 'baked', key: msg.key, N: b.N, data: b.data, lip: b.lip, family: b.family }, [b.data.buffer]);
+    } catch (err) {
+      self.postMessage({ type: 'bake_error', key: msg.key, message: err.message || String(err) });
     }
   } else if (msg.type === 'invalidate_caches') {
     invalidateSolverCaches();

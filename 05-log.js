@@ -16,3 +16,8 @@ function log(type, msg) {
     body.children[0].remove();
   }
 }
+
+/* Text from a recipe or a file name goes into the log as text, not markup. */
+function escapeLog(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}

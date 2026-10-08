@@ -1,55 +1,8 @@
 /* ============================================================
    F13LD.sweep · 70-export.js
-   Results export: grain helpers, analysis context, per-design homogenization, exportResults.
+   Results export: analysis context, per-design homogenization, the one
+   design-recipe builder (exports and handoffs), exportResults.
    ============================================================ */
-
-// ─── Export Results ───────────────────────────────────────────────────────────
-// ─── Grain export helpers ────────────────────────────────────────────────────
-// Build the F13LD.grain-shaped `field` and `geometry` blocks for sweep exports.
-// These mirror F13LD.grain's recipe schema verbatim so a sweep export round-
-// trips back into F13LD.grain or F13LD.mesh without translation.
-//
-// Note that grain recipes use `field` (not `surface`) and `geometry.topology`
-// (not `geometry.mode`). Call sites that emit grain exports MUST switch keys
-// accordingly — see exportResults / buildMeshRecipe / exportSelectedDesign.
-//
-// All type-specific knobs (n_waves, hu_*, grf_sigma) are emitted regardless
-// of fieldType to match F13LD.grain's uniform export shape; the receiving
-// kernel only reads what's relevant for its field type.
-function buildGrainFieldExport(p) {
-  return {
-    type:                p.fieldType,
-    n_waves:             p.nWaves != null ? p.nWaves : 48,
-    kappa:               p.kappa,
-    frequency:           p.frequency,
-    rng_seed:            p.rngSeed,
-    dir_mode:            p.dirMode,
-    principal_direction: [
-      +p.principalX.toFixed(4),
-      +p.principalY.toFixed(4),
-      +p.principalZ.toFixed(4)
-    ],
-    ortho_weights:       null,
-    hu_n:                p.huN,
-    hu_aspect:           p.huAspect,
-    hu_width:            p.huWidth,
-    hu_cross:            p.huCross != null ? p.huCross : 2.0,
-    hu_sharp:            p.huSharp != null ? p.huSharp : 1.0,
-    hu_blend:            p.huBlend != null ? p.huBlend : 1.0,
-    hu_ell:              p.huEll   != null ? p.huEll   : 1.0,
-    grf_sigma:           p.grfSigma
-  };
-}
-
-function buildGrainGeometryExport(p, baseRecipe) {
-  return {
-    center:      p.isoLevel,
-    half_width:  p.halfWidth,
-    smoothing:   p.smoothing || 0,
-    topology:    baseRecipe?.geometry?.topology || 'sheet',
-    half_invert: !!p.halfInvert
-  };
-}
 
 // ─── Analysis context + per-design homog (P2g) ─────────────────────────────
 // These exist because the export sites used to write `homogenization:
@@ -78,15 +31,21 @@ function _safeGetEl(id) {
 // pore_size_norm in the export, the vault can recover dimensional pore
 // metrics for any cell size without re-solving.
 function buildAnalysisContext() {
+  /* The settings the last sweep actually ran with (snapshotted by runSweep);
+     the live page only before any sweep. */
+  if (typeof lastSweepSettings !== 'undefined' && lastSweepSettings) return JSON.parse(JSON.stringify(lastSweepSettings.context));
+  return buildLiveAnalysisContext();
+}
+
+function buildLiveAnalysisContext() {
   const domainEl   = _safeGetEl('domainSel');
   const materialEl = _safeGetEl('materialSel');
   const sigmaEl    = _safeGetEl('sigmaRef');
   const cellEl     = _safeGetEl('cellSize');
   const domain     = (domainEl && domainEl.value) || 'general';
-  const cfg        = (typeof DOMAIN_CONFIG !== 'undefined' && DOMAIN_CONFIG[domain])
-                     ? DOMAIN_CONFIG[domain]
-                     : { r1: null, r2: null, r3: null };
-  const sigma_ref_GPa = (sigmaEl && sigmaEl.value) ? (parseFloat(sigmaEl.value) / 1000) : null;
+  /* the reference stress the solver used: the input, or its default Es × 1e-4 */
+  const sigma_ref_GPa = (typeof getSigmaRef === 'function' && getSigmaRef() != null) ? getSigmaRef()
+    : ((typeof getSolverMaterial === 'function') ? getSolverMaterial().Es * 0.0001 : null);
   // Cell-size provenance — same derivation used by getVoxelToUm/estimateHomogenization.
   // cellSize_mm is the design-level cell (voxelToUm × N at N=32 reference);
   // independent of cellMult jitter so vault entries stay comparable.
@@ -94,9 +53,14 @@ function buildAnalysisContext() {
   const voxelToUm_um = cellSize_mm * 1000 / 32;
   // currentMaterial is module-scope — null when user hasn't picked one.
   const cm = (typeof currentMaterial !== 'undefined') ? currentMaterial : null;
-  const ranks = [cfg.r1, cfg.r2, cfg.r3]
-    .map((m, i) => m ? { rank: i + 1, metric: m.metric, direction: m.dir } : null)
-    .filter(x => x);
+  /* the rank metrics the user picked (not the domain defaults) */
+  const ranks = [1, 2, 3].map(i => {
+    const el = _safeGetEl('r' + i + 'metric');
+    const m = el && el.value;
+    if (!m || m === 'none') return null;
+    const keep = i > 1 ? parseFloat((_safeGetEl('r' + i + 'keep') || {}).value) : null;
+    return { rank: i, metric: m, direction: (typeof directions !== 'undefined' && directions[i]) || 'max', keep_pct: (keep != null && isFinite(keep)) ? keep : null };
+  }).filter(x => x);
   return {
     domain,
     material: cm ? {
@@ -225,8 +189,28 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     pore_size_p50: d.pore_size_p50,
     pore_size_p90: d.pore_size_p90,
     pore_size_cv:  d.pore_size_cv,
-    method: methodLabel || 'FFT-CG'
+    method: methodLabel || 'FFT-CG',
+    solver_version: SOLVER_VERSION,
+    geometry_version: GEOMETRY_VERSION
   };
+}
+
+/* The design recipe for export / Export Design / F13LD.mesh handoff: the
+   exact recipe the solver built (design-tool format, 40-design.js), with
+   provenance in meta and the design's solver results in homogenization. */
+function designRecipeOut(d, purpose) {
+  const r = JSON.parse(JSON.stringify(d.recipe));
+  r.meta = Object.assign({}, r.meta || {}, {
+    tool: 'f13ld.sweep',
+    tool_version: F13LD_SWEEP_VERSION,
+    timestamp: new Date().toISOString(),
+    source_design_id: d.id,
+    sweep_rank: d.filterRank != null ? d.filterRank : null,
+    purpose: purpose || 'export',
+    context: buildAnalysisContext()
+  });
+  r.homogenization = perDesignHomogenization(d);
+  return r;
 }
 
 function exportResults() {
@@ -271,23 +255,28 @@ function exportResults() {
       // Two sweeps of the same recipe with different rank criteria now
       // produce different design populations — this field is the audit
       // trail. Schema bump 0.16.0 → 0.17.0 reflects the new field.
-      schema_version: '0.17.0',
+      // v0.18.0 (Sweep v0.21.0): designs[].design is the exact recipe the solver
+      // built (design-tool format); base is the completed loaded recipe;
+      // solver/geometry versions recorded here and per design.
+      schema_version: '0.18.0',
       count:    currentFiltered.length,
       solver: {
         method:   'FFT-CG',
+        version:  SOLVER_VERSION,
+        geometry: GEOMETRY_VERSION,
         N_std:    FFT_N_STD,
         N_pi:     FFT_N_PI,
         N_beam:   FFT_N_BEAM,
         cg_tol:   CG_TOL,
         // v0.16.0: precision-mode provenance — which mode produced these
         // results and the resolved contrast / iter cap actually used.
-        precision_mode:     getPrecisionMode(),
-        contrast:           PRECISION_MODES[getPrecisionMode()].contrast,
+        precision_mode:     lastSweepSettings ? lastSweepSettings.precision_mode : getPrecisionMode(),
+        contrast:           lastSweepSettings ? lastSweepSettings.contrast : PRECISION_MODES[getPrecisionMode()].contrast,
         cg_maxiter_fast:    CG_MAXITER_FAST,
         cg_maxiter_rigorous: CG_MAXITER_RIGOROUS,
         // v0.16.0: user-selectable resolution. Per-design actuals are in
         // design.homogenization.grid (may be higher due to family floor).
-        resolution_picker:  getSolverN(),
+        resolution_picker:  lastSweepSettings ? lastSweepSettings.resolution_picker : getSolverN(),
         // v0.17.0: VF bounds provenance. Lower floors relaxed for
         // noise/grain/beam to admit purposefully sparse recipes; upper
         // bound split by mode topology so sheet/half/solid/pi/beam each
@@ -326,40 +315,11 @@ function exportResults() {
     // different domain/material settings are byte-identical and not
     // reproducible.
     context: buildAnalysisContext(),
+    family: baseFamily,
     base: (function() {
-      // Family-aware base block. Pre-1.5b this always reported TPMS-shaped
-      // fields (mode/wall_thickness/offset/cell_scale) even on beam recipes,
-      // which made beam exports show base.mode="shell" — obviously wrong
-      // for a strut lattice. Each family now reports its canonical shape:
-      //   beam  → topology + base radius + cell mm
-      //   grain → grain field type defaults
-      //   tpms  → mode + wall_thickness + offset (existing shape)
-      const baseCommon = {
-        E_solid_GPa: baseRecipe.homogenization?.E_solid_GPa || 100,
-        poisson:     baseRecipe.homogenization?.poisson     || 0.3
-      };
-      if (baseRecipe.family === 'beam' || Array.isArray(baseRecipe.beams)) {
-        return {
-          ...baseCommon,
-          mode:        'beam-solid',
-          topology:    baseRecipe.topology?.name || 'custom',
-          beam_count:  baseRecipe.topology?.beam_count || (baseRecipe.beams || []).length,
-          radius:      baseRecipe.geometry?.radius     || 0.1,
-          cell:        baseRecipe.geometry?.cell       || 1.5,
-          cell_scale:  baseRecipe.geometry?.cell_scale || baseRecipe.geometry?.cell || 1.5
-        };
-      }
-      return {
-        ...baseCommon,
-        mode:             baseRecipe.geometry?.mode || 'shell',
-        wall_thickness:   baseRecipe.geometry?.wall_thickness || 0.3,
-        offset:           baseRecipe.geometry?.offset || 0.0,
-        cell_scale:       baseRecipe.geometry?.cell_scale || 1.0,
-        // TPMS field-normalization flags — round-tripped from the source
-        // F13LD.tpms export. null when not applicable to the recipe's mode.
-        pi_normalize:     (baseRecipe.geometry?.mode === 'pi-tpms') ? !!baseRecipe.geometry?.pi_normalize    : null,
-        shell_normalize:  (baseRecipe.geometry?.mode === 'shell')   ? !!baseRecipe.geometry?.shell_normalize : null
-      };
+      const b = JSON.parse(JSON.stringify(baseRecipe));
+      delete b.homogenization;
+      return b;
     })(),
     designs: currentFiltered.map(d => ({
       id:             d.id,
@@ -448,95 +408,8 @@ function exportResults() {
         pore_size_p90:        d.pore_size_p90,
         pore_size_cv:         d.pore_size_cv
       },
-      // Full design definition for batch_validate.py.
-      // Family-aware surface/field block — noise/grain rebuild the export
-      // schema from the design's params; TPMS uses the legacy term-list shape.
-      // Grain uses 'field' (not 'surface') and grain-shaped geometry.
-      design: (function() {
-        if (d.family === 'grain') {
-          return {
-            meta: baseRecipe.meta,
-            family: d.family,
-            field: buildGrainFieldExport(d.params),
-            geometry: buildGrainGeometryExport(d.params, baseRecipe),
-            homogenization: perDesignHomogenization(d)
-          };
-        }
-        if (d.family === 'beam') {
-          // Beam export — mirrors buildMeshRecipe's beam branch. Per-design
-          // radius vec3, scale vec3, node smoothing + ball radius all
-          // carried explicitly. Was missing pre-Phase-1.5b — the fallthrough
-          // path below spread baseRecipe.geometry which made every exported
-          // design carry the BASE recipe radius (0.1) and BASE cell (1.5),
-          // wiping out the per-design jittered state. Vault and F13LD.mesh
-          // would then ingest 200 identical-looking geometries.
-          const p = d.params;
-          const sx = d.scaleX || 1.0, sy = d.scaleY || 1.0, sz = d.scaleZ || 1.0;
-          const meanScale = Math.cbrt(sx * sy * sz);
-          const radiusMean = +((p.rXmm + p.rYmm + p.rZmm) / 3).toFixed(4);
-          const beamsOut = p.beams.map(b => [b.ax, b.ay, b.az, b.bx, b.by, b.bz]);
-          return {
-            meta: baseRecipe.meta,
-            family: d.family,
-            topology: baseRecipe.topology
-              ? { ...baseRecipe.topology }
-              : { name: p.topology, beam_count: p.beamCount },
-            geometry: {
-              radius: radiusMean,
-              cell: +meanScale.toFixed(4),
-              radius_x: p.rXmm,
-              radius_y: p.rYmm,
-              radius_z: p.rZmm,
-              cell_scale: +meanScale.toFixed(4),
-              scale_xyz: [+sx.toFixed(4), +sy.toFixed(4), +sz.toFixed(4)],
-              node_smoothing_k: p.nodeSmoothKmm || 0,
-              node_ball_radius: p.nodeBallRmm || 0
-            },
-            beams: beamsOut,
-            homogenization: perDesignHomogenization(d)
-          };
-        }
-        const surface = (d.family === 'noise')
-          ? {
-              type: 'noise',
-              noise_type: d.params.noiseType,
-              frequency: d.params.frequency,
-              scale_x: d.params.scaleX, scale_y: d.params.scaleY, scale_z: d.params.scaleZ,
-              center: d.params.isoLevel,
-              half_width: d.params.halfWidth,
-              smoothing: d.params.smoothing || 0,
-              topology: baseRecipe.surface?.topology || 'sheet',
-              octaves: d.params.octaves || null,
-              lacunarity: d.params.lacunarity || null,
-              gain: d.params.gain || null,
-              warp_strength: d.params.noiseType === 'warp' ? d.params.warpStrength : null,
-              distance_metric: d.params.noiseType === 'cellular' ? d.params.distanceMetric : null,
-              curl_step: d.params.noiseType === 'curl' ? d.params.curlStep : null,
-              potential_scale: d.params.noiseType === 'curl' ? d.params.potentialScale : null,
-            }
-          : { type: 'terms', terms: d.termObjects };
-        return {
-          meta: baseRecipe.meta,
-          family: d.family,
-          surface,
-          // v0.13.2: explicitly carry per-design pipe_radius + phase_shift,
-          // not the base recipe's. Pre-v0.13.2, the spread `{...baseRecipe.geometry}`
-          // pulled the BASE recipe's values, which meant every exported design
-          // shared the recipe's phase_shift even though each was solved with
-          // a different one. Result: F13LD.mesh would render the recipe's
-          // phase shift for every design, not the swept-and-solved value.
-          // Same shape as exportSelectedDesign's TPMS branch — single source
-          // of truth for what an exported PI-TPMS geometry block looks like.
-          geometry: {
-            ...baseRecipe.geometry,
-            offset:         d.offset,
-            normal_weights: d.nWeights || null,
-            pipe_radius:    d.pipe_radius != null ? d.pipe_radius : (baseRecipe.geometry?.pipe_radius || null),
-            phase_shift:    d.phase_shift || baseRecipe.geometry?.phase_shift || null
-          },
-          homogenization: perDesignHomogenization(d)
-        };
-      })()
+      // The exact recipe this design was solved with (design-tool format).
+      design: designRecipeOut(d, 'results-export')
     }))
   };
 

@@ -3,6 +3,12 @@
    Solver caches, grid / VF / CG constants, precision modes, Gamma caches.
    ============================================================ */
 
+/* Provenance written into every export (meta.solver and each design's
+   homogenization). Change SOLVER_VERSION whenever solver physics change
+   the numbers; GEOMETRY_VERSION names the shared recipe → voxel code. */
+const SOLVER_VERSION   = 'sweep-cpu-fftcg-normal3 v1';   /* CPU FFT-CG, 3 normal load cases */
+const GEOMETRY_VERSION = 'F13LD-GEOM v1 (shared with F13LD.lab v0.26.0)';
+
 // ── Full FFT-CG homogenization (3 normal load cases) ─────────────────────────
 // ─── Sweep-level solver caches — rebuilt once per sweep, not per design ───────
 // Gamma tensors only depend on N, Es, nu, ks — all constant within a sweep run
