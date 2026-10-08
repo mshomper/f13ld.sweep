@@ -58,7 +58,7 @@
     <label><input type="checkbox" id="spCpu" checked> also run CPU</label>
     <button class="go" id="spBtn">Run speed bench</button>
   </div>
-  <table id="spTable"><thead><tr><th style="width:24%">Case · grid</th><th>Designs</th><th>CPU s</th><th>GPU s</th><th>Speed-up</th><th>GPU solve (median)</th><th>E GPU ÷ CPU (median)</th></tr></thead><tbody></tbody></table>
+  <table id="spTable"><thead><tr><th style="width:22%">Case · grid</th><th>Designs (attempts)</th><th>CPU s</th><th>GPU s</th><th>Speed-up</th><th>GPU designs / s</th><th>GPU had work</th><th>GPU solve (median)</th><th>E GPU ÷ CPU (median)</th></tr></thead><tbody></tbody></table>
   <pre id="spOut">—</pre>
   <iframe id="app" title="Sweep under test"></iframe>
 </main>
@@ -242,7 +242,11 @@ async function runOne(win, name, n, grid, prec) {
   await win.runSweep();
   const secs = (performance.now() - t0) / 1000;
   /* results is a top-level let in the app (10-state.js): not on window, so read it inside the frame */
-  return { secs, rows: win.eval('results').map(d => ({ attempt: d.attemptIdx, Ex: d.Ex_GPa, Ey: d.Ey_GPa, Ez: d.Ez_GPa, ms: d.solve_ms, conv: d.cg_converged, N: d.grid_N })) };
+  const logTxt = win.document.getElementById('logBody').innerText;
+  const am = logTxt.match(/\((\d+) attempts\)/g);
+  const attempts = am ? +am[am.length - 1].match(/\d+/)[0] : null;
+  return { secs, attempts, gpuStats: win.eval('lastSweepGpuStats'), status: win.document.getElementById('solverStatus').textContent,
+    rows: win.eval('results').map(d => ({ attempt: d.attemptIdx, Ex: d.Ex_GPa, Ey: d.Ey_GPa, Ez: d.Ez_GPa, ms: d.solve_ms, conv: d.cg_converged, N: d.grid_N })) };
 }
 async function runSpeed() {
   $('spBtn').disabled = true; $('spOut').textContent = '';
@@ -256,8 +260,8 @@ async function runSpeed() {
         out('spOut', `${name}: CPU ${cpu.rows.length} designs in ${cpu.secs.toFixed(1)} s${grid > 32 ? ' (CPU at N=32 — 64 is GPU-only)' : ''}`);
       }
       const w2 = await loadApp(true);
-      const st = w2.document.getElementById('solverStatus').textContent;
       const gpu = await runOne(w2, name, n, grid, prec);
+      const st = gpu.status;
       const ms = gpu.rows.map(r => r.ms).filter(v => v > 0).sort((a, b) => a - b), med = ms.length ? ms[ms.length >> 1] : 0;
       out('spOut', `${name}: GPU ${gpu.rows.length} designs in ${gpu.secs.toFixed(1)} s · ${st} · ${gpu.rows.filter(r => r.conv === false).length} unconverged`);
       let ratio = '—';
@@ -269,9 +273,11 @@ async function runSpeed() {
         if (rs.length) ratio = rs[rs.length >> 1].toFixed(3) + ` (${rs[0].toFixed(2)}–${rs[rs.length - 1].toFixed(2)})`;
       }
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${name} · N=${gpu.rows[0] ? gpu.rows[0].N : grid}</td><td>${gpu.rows.length}</td><td>${cpu ? cpu.secs.toFixed(1) : '—'}</td><td>${gpu.secs.toFixed(1)}</td><td>${cpu ? (cpu.secs / gpu.secs).toFixed(1) + '×' : '—'}</td><td>${med} ms</td><td>${ratio}</td>`;
+      const busy = gpu.gpuStats && gpu.gpuStats.busyPct != null ? Math.round(gpu.gpuStats.busyPct) + ' %' : '—';
+      tr.innerHTML = `<td>${name} · N=${gpu.rows[0] ? gpu.rows[0].N : grid}</td><td>${gpu.rows.length} (${gpu.attempts != null ? gpu.attempts : '—'})</td><td>${cpu ? cpu.secs.toFixed(1) : '—'}</td><td>${gpu.secs.toFixed(1)}</td><td>${cpu ? (cpu.secs / gpu.secs).toFixed(1) + '×' : '—'}</td><td>${(gpu.rows.length / gpu.secs).toFixed(1)}</td><td>${busy}</td><td>${med} ms</td><td>${ratio}</td>`;
       $('spTable').tBodies[0].appendChild(tr);
     }
+    out('spOut', '"GPU had work" = share of the GPU run with at least one design queued or solving on the GPU. Low: the CPU workers preparing designs are the limit. High while the GPU still idles: round trips to the GPU are the limit.');
     out('spOut', 'Done. The GPU run solves the full 6×6 (shear included) with partial-volume voxels, so its E reads lower than the CPU solver\'s — expected.');
   } catch (err) { out('spOut', 'ERROR ' + (err && err.stack || err)); }
   finally { $('spBtn').disabled = false; }

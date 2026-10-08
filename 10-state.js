@@ -29,3 +29,6 @@ let recipeLoadId = 0;
 let sweptRecipeId = -1;
 let rankMode = 'ideal';   // 'ideal' | 'outlier'
 let colorMode = 'rank';   // 'rank'  | 'terms'
+
+/* v0.24.0 — GPU timing of the last sweep (62-run-sweep.js; read by tests/bench.html) */
+let lastSweepGpuStats = null;

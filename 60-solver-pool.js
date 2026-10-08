@@ -190,10 +190,29 @@ class GpuSolverClient {
   solve(job) {
     if (!this.usable) return Promise.reject(Object.assign(new Error('GPU solver unavailable'), { fatal: true }));
     const id = this.nextId++;
-    return new Promise((resolve, reject) => {
+    this._busyStart();
+    const p = new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
       this.worker.postMessage(Object.assign({ type: 'solve', id }, job), [job.phi.buffer]);
     });
+    const done = () => this._busyEnd();
+    p.then(done, done);
+    return p;
+  }
+  // "GPU had work": wall time with at least one design queued or solving on
+  // the GPU. Low → the CPU workers preparing designs are the limit; high
+  // while the GPU still idles → readback round trips are the limit.
+  resetStats() { this.outstanding = this.outstanding || 0; this.busyMs = 0; this.solves = 0; this._since = this.outstanding ? performance.now() : null; this._t0 = performance.now(); }
+  _busyStart() { this.outstanding = (this.outstanding || 0) + 1; if (this.outstanding === 1) this._since = performance.now(); }
+  _busyEnd() {
+    this.outstanding--; this.solves = (this.solves || 0) + 1;
+    if (this.outstanding === 0 && this._since != null) { this.busyMs = (this.busyMs || 0) + performance.now() - this._since; this._since = null; }
+  }
+  stats() {
+    const now = performance.now();
+    const busy = (this.busyMs || 0) + (this._since != null ? now - this._since : 0);
+    const wall = this._t0 != null ? now - this._t0 : 0;
+    return { busyMs: busy, wallMs: wall, busyPct: wall > 0 ? 100 * busy / wall : 0, solves: this.solves || 0 };
   }
 }
 

@@ -151,6 +151,8 @@ async function runSweep() {
   else if (!gpuSwitchedOff()) log('info', `Solver: CPU (${gpuSolverStatus().text.replace(/^CPU solver · /, '')}) — normal stiffness only`);
   let gpuLostLogged = false;
   const t0Sweep = performance.now();
+  lastSweepGpuStats = null;
+  if (gpu && gpu.resetStats) gpu.resetStats();
 
   let attempts = 0;
   const MAX_ATTEMPTS = nSamples * 20; // safety cap — never spin forever
@@ -321,7 +323,10 @@ async function runSweep() {
     const solveMs = results.map(r => r.solve_ms).filter(v => v > 0);
     const med = solveMs.length ? solveMs.sort((a, b) => a - b)[Math.floor(solveMs.length / 2)] : 0;
     const unconv = results.filter(r => r.cg_converged === false).length;
-    log('info', `  GPU: ${secs.toFixed(1)} s for ${attempts} attempts · median GPU solve ${med} ms per design${unconv ? ` · ${unconv} design(s) stopped before the CG tolerance` : ''}`);
+    const st = gpu.stats ? gpu.stats() : null;
+    const busy = st ? ` · GPU had work ${Math.round(st.busyPct)} % of the time (${st.solves} solves)` : '';
+    log('info', `  GPU: ${secs.toFixed(1)} s for ${attempts} attempts · median GPU solve ${med} ms per design${busy}${unconv ? ` · ${unconv} design(s) stopped before the CG tolerance` : ''}`);
+    lastSweepGpuStats = st ? Object.assign({ secs, attempts }, st) : { secs, attempts };
   }
   // v0.16.0: surface the reason breakdown when there were any discards, so
   // high discard rates can be diagnosed. Display order matches frequency at
