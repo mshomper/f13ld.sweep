@@ -1,12 +1,12 @@
 # F13LD.sweep — next steps
 
-**As of 2026-10-08 (evening).** `main` = v0.23.0. Branch `v0.24.0-gpu` = the GPU solver, waiting for Matt's GPU checks. What happened so far: [`SESSION_RECAP_2026-10-08.md`](SESSION_RECAP_2026-10-08.md). Design decisions and per-version notes: [`REFACTOR.md`](REFACTOR.md). Original findings: [`AUDIT_v0.19.0.md`](AUDIT_v0.19.0.md).
+**As of 2026-10-08 (evening).** `main` = v0.24.0 (GPU solver; branch `v0.24.0-gpu` merged after Matt's GPU checks and speed bench). What happened so far: [`SESSION_RECAP_2026-10-08.md`](SESSION_RECAP_2026-10-08.md). Design decisions and per-version notes: [`REFACTOR.md`](REFACTOR.md). Original findings: [`AUDIT_v0.19.0.md`](AUDIT_v0.19.0.md).
 
 ## 1. Merge v0.22.0 + v0.23.0 — done
 
 Done 2026-10-08. Remaining: run the full parity check (§4), then wipe and reseed Vault from fresh Sweep exports; Ingest needs no changes (shape unchanged, a few added fields).
 
-## 2. GPU solver — v0.24.0 on branch `v0.24.0-gpu` (Phase 3, steps A–D)
+## 2. GPU solver — v0.24.0 on `main` (Phase 3, steps A–D; merged 2026-10-08)
 
 Built 2026-10-08 (session recap [`SESSION_RECAP_2026-10-08_gpu.md`](SESSION_RECAP_2026-10-08_gpu.md), notes in [`REFACTOR.md`](REFACTOR.md)): F13LD.lab's solver files in `solver/lab/` (PolyForm), full 6 × 6 elastic with shear, Lab's GPU thermal, partial volume + island trim as Lab, stretched cells (elastic and thermal), designs in flight on the GPU while CPU workers prepare the next ones.
 

@@ -1,6 +1,6 @@
 # Session recap — 2026-10-08, GPU solver (Sweep v0.24.0)
 
-**Branch:** `v0.24.0-gpu` (not merged). **Before merging:** Matt's GPU checks — [`NEXT_STEPS.md`](NEXT_STEPS.md) §2.
+**Branch:** `v0.24.0-gpu`, **merged to `main` 2026-10-08** after Matt's GPU checks and speed bench. **Before merging:** Matt's GPU checks — [`NEXT_STEPS.md`](NEXT_STEPS.md) §2.
 
 Try it without installing anything:
 - App: `https://raw.githack.com/mshomper/f13ld.sweep/v0.24.0-gpu/index.html` (add `?gpu=0` for the CPU solver)
