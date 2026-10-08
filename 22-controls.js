@@ -67,13 +67,13 @@ function checkBeamResolution(recipe, jitterLoFrac = null) {
     : 'at base radius';
 
   if (strutVoxels < 1.5) {
-    log('warn', `⚠ Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Sub-voxel — solver will see broken/missing struts. Sweep results will not be physically meaningful.`);
+    log('warn', `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Sub-voxel — solver will see broken/missing struts. Sweep results will not be physically meaningful.`);
     log('warn', `  Try: increase recipe radius (currently ${baseR}mm), reduce cell size (currently ${cell}mm), or use F13LD.beam's homogenization directly.`);
     return { ok: false, blocking: true, voxels: strutVoxels,
              message: 'Strut too thin for solver resolution' };
   }
   if (strutVoxels < 2.5) {
-    log('warn', `⚠ Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Borderline — many designs will fail percolation and stiffness will be noise-dominated.`);
+    log('warn', `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Borderline — many designs will fail percolation and stiffness will be noise-dominated.`);
     return { ok: false, blocking: false, voxels: strutVoxels,
              message: 'Strut diameter borderline' };
   }

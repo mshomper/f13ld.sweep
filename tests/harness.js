@@ -43,6 +43,7 @@ function serve(dir) {
 const INIT = `
   (() => {
     let s = 1;
+    window.SWEEP_SETTINGS = false;   /* v0.25.0: no remembered settings — every case starts from the defaults */
     window.SWEEP_GPU = false;   /* v0.24.0: compare the CPU solver path (the GPU path has its own checks, bench.html) */
     window.__seed = v => { s = v >>> 0; };
     Math.random = () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s);
@@ -74,7 +75,7 @@ async function runBuild(browser, url, label) {
       for (let i = 0; i < 100 && document.getElementById('runBtn').disabled; i++) await new Promise(r => setTimeout(r, 50));
       rep.loaded = !document.getElementById('runBtn').disabled;
       rep.fileMeta = document.getElementById('fileMeta').textContent;
-      if (!rep.loaded) { rep.log = document.getElementById('logBody').innerText; return rep; }
+      if (!rep.loaded) { rep.log = [...document.querySelectorAll('#logBody .log-line')].map(l => l.textContent).join('\n'); return rep; }
       if (c.ui) {
         if (c.ui.domain) { document.getElementById('domainSel').value = c.ui.domain; onDomainChange(); }
         if (c.ui.precision) setPrecisionUI(c.ui.precision);
@@ -96,7 +97,8 @@ async function runBuild(browser, url, label) {
         try { showPreview(results[0]); rep.previewBadge = document.getElementById('previewBadge').textContent; }
         catch (e) { rep.previewErr = String(e); }
       }
-      rep.log = document.getElementById('logBody').innerText;
+      /* line by line: innerText drops line breaks once the log sits in a hidden drawer tab (v0.25.0) */
+      rep.log = [...document.querySelectorAll('#logBody .log-line')].map(l => l.textContent).join('\n');
       return rep;
     }, { name, c });
     r.secs = Math.round((Date.now() - t0) / 1000);
@@ -113,6 +115,14 @@ async function runBuild(browser, url, label) {
 const IGNORE = new Set(['tool_version', 'schema_version', 'stiffness_flag', 'void_limited_axes', 'under_resolved', 'stiffness_flag_reasons', 'stiffness_flag_void_share']);
 // …and the flag markers in the table HTML
 const stripFlags = h => typeof h === 'string' ? h.replace(/<span class="sflag"[^>]*><\/span>/g, '').replace(/<span class="sflag-val"[^>]*>([\s\S]*?<\/span>)<\/span>/g, '$1').replace(/<td class="td-rank">/g, '<td class="td-rank">') : h;
+// v0.25.0: icons are SVG now (no glyphs) and header tooltips carry the
+// metric descriptions — markup only, not compared; every cell still is.
+const normUi = h => typeof h === 'string' ? h
+  .replace(/<svg[\s\S]*?<\/svg>/g, '')
+  .replace(/<span class="sort-indicator">[^<]*<\/span>/g, '<span class="sort-indicator"></span>')
+  .replace(/(<th\b[^>]*?) title="[^"]*"/g, '$1')
+  .replace(/<div class="empty-icon">[^<]*<\/div>|<span class="empty-ico">\s*<\/span>/g, '') : h;
+const normLog = t => typeof t === 'string' ? t.replace(/\u26a0 /g, '') : t;
 function firstDiff(a, b, p = '') {
   if (typeof a !== typeof b) return p + ': type ' + typeof a + ' vs ' + typeof b;
   if (a && b && typeof a === 'object') {
@@ -134,8 +144,10 @@ function firstDiff(a, b, p = '') {
     let bad = 0;
     for (const n of names) {
       const a = A[n], b = B[n];
-      const fields = ['loaded', 'fileMeta', 'results', 'table', 'stats', 'plotInfo', 'meshRecipe', 'exportJson', 'exportErr', 'previewBadge', 'previewErr', 'log'];
-      const val = (r, f) => (f === 'exportJson' && typeof r[f] === 'string') ? JSON.parse(r[f]) : f === 'table' ? stripFlags(r[f]) : r[f];
+      /* v0.25.0: the stat cards are gone (a funnel line replaced them) and
+         the preview badge shows the rank — not compared. */
+      const fields = ['loaded', 'fileMeta', 'results', 'table', 'plotInfo', 'meshRecipe', 'exportJson', 'exportErr', 'previewErr', 'log'];
+      const val = (r, f) => (f === 'exportJson' && typeof r[f] === 'string') ? JSON.parse(r[f]) : f === 'table' ? normUi(stripFlags(r[f])) : f === 'log' ? normLog(r[f]) : r[f];
       const diffs = fields.map(f => firstDiff(val(a, f), val(b, f), f)).filter(Boolean);
       if (b.errors.length) diffs.push('new build errors: ' + b.errors.slice(0, 3).join(' || '));
       if (a.errors.length) console.log(`  note: old build errors in ${n}: ${a.errors.slice(0, 2).join(' || ')}`);

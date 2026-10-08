@@ -26,13 +26,9 @@ Built 2026-10-08 (session recap [`SESSION_RECAP_2026-10-08_gpu.md`](SESSION_RECA
 | grids | Spinodoids at N = 16–32 often flag under-resolved (Lab moves 2.5–4.4× from 32 to 64 on one). Consider N = 32 as the GPU floor for grain / noise. |
 | thermal | Pore filler | Kept Sweep's k_void = 0.0003 k_solid. Lab offers air / water / tissue; worth matching. |
 
-## 3. UI — dedicated session
+## 3. UI — v0.25.0 (layout A) — merged to `main` 2026-10-08
 
-- Too much empty space (Matt, 2026-10-08): tighten the stats row, log / plot / preview row and sidebar.
-- Active controls go back to **neon** (Matt, 2026-10-08). Today `--accent` is Sweep's amber (`sweep.css` `:root`); set it to `--neon` and check the selected-row / button tints that use amber rgba values. Sweep's amber stays for the tool name and header tile.
-- Decide: should picking General reset the rank metrics (today they carry over)?
-- Plot: hover from outside the canvas, no depth priority, ideal-corner marker follows disabled ranks (audit U10).
-- Sidebar on phones is very long before the results; consider collapsing it after a run.
+Built 2026-10-08, Configure drawer rebuilt the same day as one Settings panel with SVG icons (notes in `REFACTOR.md`). Merged after Matt's review. Open: should picking General reset the rank metrics; plot hover / depth / ideal-corner nits (audit U10).
 
 ## 4. Smaller open items
 

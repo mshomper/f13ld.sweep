@@ -1,6 +1,6 @@
 /* ============================================================
    F13LD.sweep · 05-log.js
-   Run log panel.
+   Run log (Configure drawer → Log; the latest line shows in the dock).
    ============================================================ */
 
 
@@ -15,6 +15,7 @@ function log(type, msg) {
   if (body.children.length > 1 && body.children[0].querySelector('.log-time')?.textContent === '—') {
     body.children[0].remove();
   }
+  if (typeof dockLog === 'function') dockLog(type, msg);   /* v0.25.0 — the dock's log chip */
 }
 
 /* Text from a recipe or a file name goes into the log as text, not markup. */

@@ -1,0 +1,192 @@
+<!doctype html>
+<!-- F13LD.sweep — Configure drawer mockups (dev file). Two ways to use the
+     width on wide screens. Static; 1920 × 1080 frame scaled to fit. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sweep Drawer Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#06080f;--panel:#111118;--s1:#0c0e16;--s2:#12141f;--s3:#181b29;--hair:rgba(255,255,255,0.07);--hair2:rgba(255,255,255,0.13);
+--t1:#e4e6f2;--t2:#9a9fb7;--t3:#5f6582;--green:#1D9E75;--neon:#c8f542;--sec:#5f9470;--sweep:#E39B4A;--sweep-deep:#633806;--sweep-tile:#FAEEDA;
+--neon-soft:rgba(200,245,66,0.10);--neon-ring:rgba(200,245,66,0.45);--r1:#c8f542;--r2:#1D9E75;--r3:#b598d4;--x:#5fb5b5;--y:#c794d4;--z:#d4b04a;--warn:#f59e0b;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#03040a;color:var(--t2);font:14px/1.5 'Exo 2',system-ui,sans-serif}
+body{overflow-x:hidden}
+.page{max-width:1960px;margin:0 auto;padding:18px 16px 40px}
+h1{font:700 20px 'Exo 2';color:var(--t1)} h1 span{color:var(--sweep)}
+.intro p{color:var(--t2);max-width:100ch;margin:6px 0 0;font-size:13px}
+.pick{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px;align-items:center}
+.pick button{font:600 12px 'Exo 2';color:var(--t2);background:var(--s2);border:1px solid var(--hair2);border-radius:8px;padding:7px 12px;cursor:pointer}
+.pick button.on{color:var(--neon);border-color:var(--neon-ring);background:var(--neon-soft)}
+.pick .hint{font:11px var(--mono);color:var(--t3);margin-left:auto}
+.note{background:var(--s1);border:1px solid var(--hair);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-bottom:10px}
+.note b{color:var(--t1)}
+.stage{width:100%;overflow:hidden;border-radius:12px;border:1px solid var(--hair2);background:var(--bg)}
+.frame{width:1920px;height:1080px;transform-origin:top left;position:relative;background:var(--bg);overflow:hidden}
+/* ghost of the main layout behind the drawer */
+.ghost{position:absolute;inset:48px 0 50px 0;padding:12px 14px;display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1.1fr 1fr;gap:12px;opacity:.55}
+.ghost div{background:var(--panel);border:1px solid var(--hair);border-radius:10px}
+.ghost div:nth-child(3){grid-column:1/-1}
+.top{position:absolute;left:0;right:0;top:0;height:48px;border-bottom:1px solid var(--hair);display:flex;align-items:center;padding:0 16px;gap:12px;font:700 15px 'Exo 2';letter-spacing:.14em;color:var(--sweep)}
+.top i{font-style:normal;color:#1D9E75;letter-spacing:.06em}
+.dock{position:absolute;left:0;right:0;bottom:0;height:50px;background:var(--panel);border-top:1px solid var(--hair);display:flex;align-items:center;gap:10px;padding:0 16px}
+.cfg{height:30px;display:flex;align-items:center;gap:8px;padding:0 11px;border-radius:8px;border:1px solid var(--neon-ring);background:var(--neon-soft);color:var(--neon);font:600 12px 'Exo 2'}
+.tag{height:28px;display:inline-flex;align-items:center;gap:7px;padding:0 9px;border-radius:7px;background:var(--s1);border:1px solid var(--hair);font:500 11px var(--mono);color:var(--t2);white-space:nowrap}
+.tag b{font:600 11.5px 'Exo 2';color:var(--t1)} .tag .d{width:7px;height:7px;border-radius:50%}
+.sp{flex:1}
+.run{height:32px;padding:0 18px;border-radius:8px;background:var(--sweep-deep);color:var(--sweep-tile);font:700 12px 'Exo 2';letter-spacing:.06em;display:inline-flex;align-items:center;min-width:130px;justify-content:center;box-shadow:inset 0 0 0 1px rgba(227,155,74,.4)}
+.logchip{height:28px;display:inline-flex;align-items:center;gap:6px;padding:0 9px;border-radius:7px;background:var(--s1);border:1px solid var(--hair);font:11px var(--mono);color:var(--t2)}
+.logchip b{font:600 11px 'Exo 2';color:var(--t1)}
+/* drawer shell */
+.drawer{position:absolute;left:0;right:0;bottom:50px;background:var(--s1);border-top:1px solid var(--hair2);box-shadow:0 -12px 30px rgba(0,0,0,.45)}
+.lbl{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--sec);margin-bottom:6px}
+.inp{height:30px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px;border:1px solid var(--hair2);border-radius:7px;background:var(--s2);font:12px var(--mono);color:var(--t1);white-space:nowrap;overflow:hidden}
+.inp.dim{color:var(--t3)}
+.help{font-size:11.5px;color:var(--t3);margin-top:5px;line-height:1.45}
+.tog{display:flex;border:1px solid var(--hair2);border-radius:7px;overflow:hidden;height:30px}
+.tog span{flex:1;display:grid;place-items:center;font:600 11px var(--mono);color:var(--t3);border-right:1px solid var(--hair)}
+.tog span:last-child{border-right:0}
+.tog span.on{background:var(--neon-soft);color:var(--neon)} .tog span.na{opacity:.35}
+.rng{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rng div{height:30px;border:1px solid var(--hair2);border-radius:7px;background:var(--s2);font:12px var(--mono);color:var(--t1);display:flex;align-items:center;justify-content:space-between;padding:0 9px}
+.rng i{font-style:normal;font-weight:600}
+.slider{height:30px;display:flex;align-items:center;gap:10px}
+.slider .tr{flex:1;height:4px;border-radius:2px;background:var(--s3);position:relative}
+.slider .tr:before{content:'';position:absolute;left:0;top:0;bottom:0;width:22%;background:var(--neon);border-radius:2px}
+.slider .tr:after{content:'';position:absolute;left:22%;top:50%;width:14px;height:14px;border-radius:50%;background:var(--neon);transform:translate(-50%,-50%)}
+.slider b{font:600 12px var(--mono);color:var(--neon);min-width:34px;text-align:right}
+.rrow{display:grid;grid-template-columns:14px minmax(0,1fr) 90px 74px;gap:8px;align-items:center;margin-bottom:8px}
+.rrow .d{width:9px;height:9px;border-radius:50%}
+.sw{width:30px;height:16px;border-radius:9px;background:#3a2a2a;position:relative}
+.sw.on{background:var(--sweep-deep)} .sw:after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#7d7d8f}
+.sw.on:after{left:16px;background:var(--sweep-tile)}
+
+/* option 1 — Lab-style tabs, fitted */
+.o1{display:grid;grid-template-columns:200px minmax(0,1fr);height:216px}
+.o1 .tabs{border-right:1px solid var(--hair);padding:8px;display:flex;flex-direction:column;gap:2px}
+.o1 .tab{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;font:500 12.5px 'Exo 2';color:var(--t2)}
+.o1 .tab .mv{font:10.5px var(--mono);color:var(--t3)}
+.o1 .tab.on{background:var(--s3);color:var(--t1);box-shadow:inset 2px 0 0 var(--neon)}
+.o1 .body{padding:14px 20px}
+.o1 .head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
+.o1 .head b{font:600 14px 'Exo 2';color:var(--t1)} .o1 .head span{font-size:12px;color:var(--t2)}
+.o1 .row{display:grid;grid-template-columns:1.1fr 1.4fr 1fr 1fr;gap:28px}
+
+/* option 2 — everything at once */
+.o2{height:268px;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.o2 .strip{display:flex;gap:4px;padding:8px 14px 0;border-bottom:1px solid var(--hair)}
+.o2 .strip span{padding:6px 12px;font:500 12px 'Exo 2';color:var(--t2);border-radius:7px 7px 0 0}
+.o2 .strip span.on{color:var(--t1);box-shadow:inset 0 -2px 0 var(--neon)}
+.o2 .strip .r{margin-left:auto;font:11px var(--mono);color:var(--t3);align-self:center}
+.o2 .cols{display:grid;grid-template-columns:1.25fr 1fr 1fr 1.25fr;gap:0}
+.o2 .col{padding:12px 18px;border-right:1px solid var(--hair);display:flex;flex-direction:column;gap:10px;min-width:0}
+.o2 .col:last-child{border-right:0}
+.o2 .ch{font:600 13px 'Exo 2';color:var(--t1);display:flex;align-items:center;gap:8px}
+.o2 .ch .n{font:10.5px var(--mono);color:var(--t3);margin-left:auto}
+.o2 .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <h1>F13LD<span>.sweep</span> · Configure drawer</h1>
+    <p>Why today's drawer feels empty: it opens to a fixed 340 px whatever the tab holds, its fields don't stretch (the Domain tab is one dropdown across 1,400 px), there is no help text under the fields the way Lab has, and the tab rail runs well past its six tabs. Both options below fit the drawer to its content and fill the width. Shown at 1920 × 1080.</p>
+  </div>
+  <div class="pick" id="pick">
+    <button data-v="1" class="on">1 · Lab-style tabs, fitted</button>
+    <button data-v="2">2 · All settings on one panel</button>
+    <span class="hint">1920 × 1080, scaled to fit</span>
+  </div>
+  <div class="note" id="n1"><b>1 — closest to Lab.</b> Same six tabs, but each tab is one row of fields spread across the full width, every field with its help line underneath, and the drawer only as tall as that row (216 px instead of 340). Shown: the Solver tab; Domain &amp; material, Recipe &amp; sweep and Ranks follow the same one-row pattern.</div>
+  <div class="note" id="n2" style="display:none"><b>2 — everything at a glance.</b> Settings, Log and Metric key become three tabs along the top; Settings shows all four groups side by side — Recipe &amp; sweep · Material · Solver · Ranks — so one click shows (and changes) the whole sweep. On screens under about 1,200 px the four columns fold into two rows. 268 px tall.</div>
+
+  <div class="stage" id="stage"><div class="frame" id="frame">
+    <div class="top"><i>F13LD</i> SWEEP</div>
+    <div class="ghost"><div></div><div></div><div></div></div>
+
+    <!-- option 1 -->
+    <div class="drawer o1" id="d1">
+      <div class="tabs">
+        <div class="tab">Recipe &amp; sweep <span class="mv">200 · Sobol</span></div>
+        <div class="tab">Domain &amp; material <span class="mv">Ti-6Al-4V</span></div>
+        <div class="tab on">Solver <span class="mv">GPU · Fast · 32</span></div>
+        <div class="tab">Ranks <span class="mv">E/ρ max</span></div>
+        <div class="tab">Log <span class="mv">1 warn</span></div>
+        <div class="tab">Metric key <span class="mv">8</span></div>
+      </div>
+      <div class="body">
+        <div class="head"><b>Solver</b><span>How each design is solved. Fast is for comparing designs quickly; Rigorous matches F13LD.lab's sweep settings.</span></div>
+        <div class="row">
+          <div><span class="lbl">Solver in use</span><div class="inp"><span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px"></span>GPU · nvidia · lovelace</span></div><div class="help">F13LD.lab's solver: full 6 × 6 stiffness + thermal. Add ?gpu=0 to the address for the CPU solver.</div></div>
+          <div><span class="lbl">Precision</span><div class="tog"><span class="on">FAST</span><span>RIGOROUS</span></div><div class="help">Fast: pores at 1/1000 of the solid, CG 1e-3, metrics on 48³ — weak axes are flagged. Rigorous: pores 1e-6, CG 1e-4, full metrics grids.</div></div>
+          <div><span class="lbl">Resolution</span><div class="tog"><span>16</span><span class="on">32</span><span>64</span></div><div class="help">Voxels per cell edge. PI-TPMS and beams run at 32 or finer.</div></div>
+          <div><span class="lbl">This sweep</span><div class="inp dim">≈ 2.3 designs / s at N = 32</div><div class="help">From your last run. 64 is about 4× slower per design.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- option 2 -->
+    <div class="drawer o2" id="d2" style="display:none">
+      <div class="strip"><span class="on">Settings</span><span>Log · 1 warning</span><span>Metric key</span><span class="r">Esc closes · settings are remembered in this browser</span></div>
+      <div class="cols">
+        <div class="col">
+          <div class="ch">Recipe &amp; sweep <span class="n">TPMS · shell · 3 terms</span></div>
+          <div><span class="lbl">Base recipe</span><div class="inp">gyroid.json <span style="color:var(--t3)">Load…</span></div></div>
+          <div><span class="lbl">Cell scale, % of nominal · min → max</span><div class="rng"><div><i style="color:var(--x)">X</i>50 → 200</div><div><i style="color:var(--y)">Y</i>50 → 200</div><div><i style="color:var(--z)">Z</i>50 → 200</div></div></div>
+          <div class="pair"><div><span class="lbl">Designs</span><div class="slider"><span class="tr"></span><b>200</b></div></div><div><span class="lbl">Sampling</span><div class="inp">Sobol</div></div></div>
+        </div>
+        <div class="col">
+          <div class="ch">Material <span class="n">E 110 GPa · ν 0.34</span></div>
+          <div><span class="lbl">Application domain</span><div class="inp">Biomedical</div></div>
+          <div><span class="lbl">Material</span><div class="inp">Ti-6Al-4V (Grade 5)</div></div>
+          <div class="pair"><div><span class="lbl">Ref. stress</span><div class="inp">2 MPa</div></div><div><span class="lbl">Cell size</span><div class="inp">2.0 mm</div></div></div>
+        </div>
+        <div class="col">
+          <div class="ch">Solver <span class="n"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px"></span>GPU · nvidia</span></div>
+          <div><span class="lbl">Precision</span><div class="tog"><span class="on">FAST</span><span>RIGOROUS</span></div><div class="help">Fast flags axes the pore stiffness props up.</div></div>
+          <div><span class="lbl">Resolution</span><div class="tog"><span>16</span><span class="on">32</span><span>64</span></div><div class="help">PI-TPMS and beams run at 32 or finer.</div></div>
+        </div>
+        <div class="col">
+          <div class="ch">Ranks <span class="n">sort, then keep top %</span></div>
+          <div class="rrow"><span class="d" style="background:var(--r1)"></span><div class="inp">Microstrain avg</div><div class="tog"><span>MAX</span><span class="on">MIN</span></div><div class="inp dim">sort</div></div>
+          <div class="rrow"><span class="d" style="background:var(--r2)"></span><div class="inp">Mean pore size</div><div class="tog"><span class="on">MAX</span><span>MIN</span></div><div class="inp">50 %</div></div>
+          <div class="rrow"><span class="d" style="background:var(--r3)"></span><div class="inp dim">— off —</div><div class="tog"><span class="na">MAX</span><span class="na">MIN</span></div><div class="inp dim">100 %</div></div>
+          <div class="help">Rank 1 sorts; ranks 2 and 3 keep the top share of what's left. The table and plot still sort by any column.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dock">
+      <span class="cfg"><svg width="15" height="15" viewBox="0 0 40 40" aria-hidden="true"><path d="M5 11 H9.5 M18.5 11 H35 M5 29 H21.5 M30.5 29 H35" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="14" cy="11" r="4.5" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="26" cy="29" r="4" fill="#c8f542"/></svg>Configure</span>
+      <span class="tag"><b>200</b> designs · Sobol · 50–200 %</span>
+      <span class="tag"><b>Ti-6Al-4V</b> Biomedical</span>
+      <span class="tag"><span class="d" style="background:var(--green)"></span><b>Fast</b> N=32</span>
+      <span class="tag"><span class="d" style="background:var(--r1)"></span><b>με̄</b> min</span>
+      <span class="tag"><span class="d" style="background:var(--r2)"></span><b>φ</b> max</span>
+      <span class="tag" style="opacity:.55"><span class="d" style="background:var(--r3)"></span><b>R3</b> off</span>
+      <span class="sp"></span>
+      <span class="logchip"><b>Log</b> 24 valid designs collected · 33 discarded</span>
+      <span style="font:11px var(--mono);color:var(--t2)"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px"></span>GPU · nvidia</span>
+      <span class="run">Run sweep</span>
+    </div>
+  </div></div>
+</div>
+<script>
+document.querySelectorAll('#pick button').forEach(function (b) {
+  b.onclick = function () {
+    document.querySelectorAll('#pick button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    var v = b.dataset.v;
+    document.getElementById('d1').style.display = v === '1' ? '' : 'none';
+    document.getElementById('d2').style.display = v === '2' ? '' : 'none';
+    document.getElementById('n1').style.display = v === '1' ? '' : 'none';
+    document.getElementById('n2').style.display = v === '2' ? '' : 'none';
+  };
+});
+function fit() { var st = document.getElementById('stage'), f = document.getElementById('frame'), s = Math.min(1, st.clientWidth / 1920); f.style.transform = 'scale(' + s + ')'; st.style.height = (1080 * s) + 'px'; }
+window.addEventListener('resize', fit); fit();
+</script>
+</body>
+</html>

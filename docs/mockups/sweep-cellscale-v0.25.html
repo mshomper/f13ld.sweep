@@ -1,0 +1,250 @@
+<!doctype html>
+<!-- F13LD.sweep — Cell scale column: smaller ways to show the cells a sweep
+     can draw (dev file). Interactive: change the ranges at the top and every
+     option redraws. Each card is the real column width (~360 px). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sweep Cell Scale Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#06080f;--dr:#0f111a;--s1:#0c0e16;--s2:#12141f;--s3:#181b29;--hair:rgba(255,255,255,0.07);--hair2:rgba(255,255,255,0.13);
+--t1:#e4e6f2;--t2:#9a9fb7;--t3:#5f6582;--green:#1D9E75;--neon:#c8f542;--neon-soft:rgba(200,245,66,0.10);--neon-ring:rgba(200,245,66,0.45);
+--sec:#5f9470;--sweep:#E39B4A;--sweep-deep:#633806;--sweep-ink:#F2C48F;--x:#5fb5b5;--y:#c794d4;--z:#d4b04a;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#03040a;color:var(--t2);font:14px/1.5 'Exo 2',system-ui,sans-serif}
+body{overflow-x:hidden}
+.page{max-width:1240px;margin:0 auto;padding:22px 16px 48px}
+h1{font:700 20px 'Exo 2';color:var(--t1)} h1 span{color:var(--sweep)}
+.intro{color:var(--t2);font-size:13px;max-width:96ch;margin-top:6px}
+/* controls */
+.ctl{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:16px 0 18px;padding:12px 14px;background:var(--s1);border:1px solid var(--hair);border-radius:10px}
+.ctl .lbl{font:600 9.5px var(--mono);color:var(--sec);text-transform:uppercase;letter-spacing:.14em}
+.seg{display:inline-flex;background:var(--s1);border:1px solid var(--hair);border-radius:7px;padding:2px;gap:2px}
+.seg button{height:22px;padding:0 9px;border:0;border-radius:5px;background:transparent;color:var(--t2);font:500 11px/1 var(--mono);cursor:pointer}
+.seg button.on{background:var(--neon-soft);color:var(--neon);box-shadow:inset 0 0 0 1px var(--neon-ring)}
+.ax-in{display:inline-flex;align-items:center;gap:6px;font:11px var(--mono)}
+.ax-in b{font-weight:600} .ax-in input{width:54px;height:26px;background:var(--s2);border:1px solid var(--hair);border-radius:6px;color:var(--t1);font:12px var(--mono);text-align:right;padding:0 6px}
+.preset{margin-left:auto}
+/* grid of options */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(372px,1fr));gap:14px}
+.card{background:var(--dr);border:1px solid var(--hair2);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.card.now{opacity:.8}
+.ch{padding:10px 14px;border-bottom:1px solid var(--hair);display:flex;align-items:baseline;gap:10px}
+.ch b{font:600 13px 'Exo 2';color:var(--t1)} .ch .tag{font:600 10px var(--mono);color:var(--sweep);letter-spacing:.1em}
+.ch .h{margin-left:auto;font:10.5px var(--mono);color:var(--t3);white-space:nowrap}
+.note{padding:10px 14px 12px;font-size:12px;color:var(--t2);border-top:1px solid var(--hair);margin-top:auto}
+.note i{font-style:normal;color:var(--t1)}
+/* the column, as in the app */
+.col{padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.ph{display:flex;align-items:center;gap:10px}
+.ico{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:rgba(227,155,74,.13);color:var(--sweep-ink);box-shadow:inset 0 0 0 1px rgba(227,155,74,.24);flex-shrink:0}
+.ico svg{width:72%;height:72%;overflow:visible} .ico .acc{fill:var(--neon);stroke:var(--sweep-deep);stroke-width:1.4}
+.pt{font:600 13.5px 'Exo 2';color:var(--t1);line-height:1.25} .ps{font-size:11px;color:var(--t3)}
+.chip{height:24px;padding:0 10px;border-radius:12px;border:1px solid var(--neon-ring);background:var(--neon-soft);color:var(--neon);font:500 11px var(--mono);display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap}
+.chip.amb{border-color:rgba(227,155,74,.45);background:rgba(227,155,74,.10);color:var(--sweep)}
+.row{display:grid;grid-template-columns:30px 64px minmax(48px,1fr) 64px;gap:8px;align-items:center}
+.ax{font:600 11px var(--mono)} .ax.x{color:var(--x)} .ax.y{color:var(--y)} .ax.z{color:var(--z)}
+.ax.all{font-size:10px;display:inline-flex;gap:1px} .ax.all i{font-style:normal}
+.num{height:28px;display:flex;align-items:center;justify-content:flex-end;gap:3px;padding:0 8px;background:var(--s1);border:1px solid var(--hair);border-radius:7px;font:500 12px var(--mono);color:var(--t1)}
+.num i{font-style:normal;font-size:10.5px;color:var(--t3)}
+.bar{position:relative;height:28px}
+.bar .trk{position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:var(--s3)}
+.bar .nom{position:absolute;top:7px;bottom:7px;width:1px;background:var(--t3)}
+.bar .band{position:absolute;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:var(--neon);opacity:.75}
+.bar .h{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--dr);border:2px solid var(--neon)}
+.bar.tall{height:40px} .bar.tall .trk,.bar.tall .band{top:14px} .bar.tall .h{top:14px} .bar.tall .nom{top:7px;bottom:19px}
+.bar .tk{position:absolute;top:24px;transform:translateX(-50%);font:10px var(--mono);color:var(--t2);white-space:nowrap}
+.bar .tk.n{color:var(--t3)}
+.abs{font:11px var(--mono);color:var(--t2);display:flex;flex-wrap:wrap;gap:2px 10px}
+.abs .t3{color:var(--t3)}
+.hint{font-size:10.5px;color:var(--t3);line-height:1.45}
+.vz{display:flex;align-items:center;gap:12px}
+.vz svg{flex-shrink:0;overflow:visible}
+.vz .txt{font:11px var(--mono);color:var(--t2);line-height:1.6;min-width:0}
+.vz .txt b{color:var(--sweep);font-weight:600} .vz .txt .t3{color:var(--t3)}
+.gauge{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.gauge .l{font:600 9.5px var(--mono);color:var(--sec);text-transform:uppercase;letter-spacing:.14em;white-space:nowrap}
+.gauge .v{font:600 12px var(--mono);color:var(--sweep);white-space:nowrap}
+.inline{font:11px var(--mono);color:var(--t2);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.inline .sep{width:1px;height:12px;background:var(--hair2)}
+.inline b{color:var(--sweep);font-weight:600}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>F13LD<span>.sweep</span> · Cell scale visual</h1>
+  <p class="intro">Five smaller ways to show which cells a sweep can draw, each in the real column at its real width. Change the ranges or switch to per axis below, and every option redraws. "Most stretched" is the longest high end over the shortest low end on two different axes; that is also the voxel aspect the solver sees, because the grid stays N × N × N.</p>
+
+  <div class="ctl">
+    <span class="lbl">Mode</span>
+    <div class="seg" id="mode"><button data-v="one" class="on">One range</button><button data-v="axes">Per axis</button></div>
+    <span class="ax-in"><b style="color:var(--x)">X</b><input id="xlo" type="number" value="50"><input id="xhi" type="number" value="200"></span>
+    <span class="ax-in"><b style="color:var(--y)">Y</b><input id="ylo" type="number" value="50"><input id="yhi" type="number" value="200"></span>
+    <span class="ax-in"><b style="color:var(--z)">Z</b><input id="zlo" type="number" value="50"><input id="zhi" type="number" value="300"></span>
+    <span class="ax-in"><b>nominal</b><input id="nom" type="number" value="1.5" step="0.1"><span style="color:var(--t3)">mm</span></span>
+    <div class="seg preset" id="preset"><button data-p="a">50–200</button><button data-p="b">80–125</button><button data-p="c">25–400</button></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+var SV = ' fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"';
+var ICO = '<svg viewBox="0 0 40 40"><path d="M11 11 H29 V29 H11 Z"' + SV + '/><path d="M3 20 H8 M32 20 H37 M5.5 17 L3 20 L5.5 23 M34.5 17 L37 20 L34.5 23"' + SV + ' stroke-width="2.2" opacity=".75"/><circle class="acc" cx="20" cy="20" r="3.3"/></svg>';
+var LINK = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 9 L9 7"/><path d="M8.6 4.6 L9.9 3.3 a2.4 2.4 0 0 1 3.4 3.4 L11.4 8.6 M4.6 7.4 L3.1 9 a2.4 2.4 0 0 0 3.4 3.4 L7.8 11.1"/></svg>';
+var ST = { mode: 'one' };
+function $(id) { return document.getElementById(id); }
+function vals() {
+  var r = ['x', 'y', 'z'].map(function (a) { var lo = +$(a + 'lo').value || 1, hi = +$(a + 'hi').value || 1; return [Math.min(lo, hi), Math.max(lo, hi)]; });
+  if (ST.mode === 'one') r = [r[0], r[0].slice(), r[0].slice()];
+  return r;
+}
+function pos(v) { var t = (Math.log(Math.max(10, Math.min(500, v))) - Math.log(10)) / (Math.log(500) - Math.log(10)); return t * 100; }
+function stretch(v) {
+  var b = { r: 1, a: 0, b: 1 };
+  for (var a = 0; a < 3; a++) for (var c = 0; c < 3; c++) if (a !== c && v[a][1] / v[c][0] > b.r) b = { r: v[a][1] / v[c][0], a: a, b: c };
+  b.txt = (b.r >= 9.95 ? Math.round(b.r) : +b.r.toFixed(1)) + ' : 1';
+  return b;
+}
+function mm(p) { var n = +$('nom').value || 1; return +(n * p / 100).toFixed(2); }
+function head(chip) {
+  return '<div class="ph"><span class="ico">' + ICO + '</span><div><div class="pt">Cell scale</div><div class="ps">% of the recipe\'s cell · min to max</div></div>' +
+    (chip || '<span class="chip">' + LINK + (ST.mode === 'one' ? 'One range' : 'Per axis') + '</span>') + '</div>';
+}
+function rows(v, tall, ticks) {
+  var list = ST.mode === 'one' ? [['all', 0]] : [['x', 0], ['y', 1], ['z', 2]];
+  return list.map(function (l) {
+    var lo = v[l[1]][0], hi = v[l[1]][1];
+    var lab = l[0] === 'all' ? '<span class="ax all"><i style="color:var(--x)">X</i><i style="color:var(--y)">Y</i><i style="color:var(--z)">Z</i></span>' : '<span class="ax ' + l[0] + '">' + l[0].toUpperCase() + '</span>';
+    var tk = ticks ? '<span class="tk" style="left:' + pos(lo) + '%">' + mm(lo) + '</span><span class="tk" style="left:' + pos(hi) + '%">' + mm(hi) + '</span>' : '';
+    return '<div class="row">' + lab + '<span class="num">' + lo + '<i>%</i></span><div class="bar' + (tall ? ' tall' : '') + '"><span class="trk"></span><span class="nom" style="left:' + pos(100) + '%"></span>' +
+      '<span class="band" style="left:' + pos(lo) + '%;right:' + (100 - pos(hi)) + '%"></span><span class="h" style="left:' + pos(lo) + '%"></span><span class="h" style="left:' + pos(hi) + '%"></span>' + tk + '</div><span class="num">' + hi + '<i>%</i></span></div>';
+  }).join('');
+}
+function absLine(v) {
+  if (ST.mode === 'one') return '<div class="abs"><span><span class="t3">Cell</span> ' + mm(v[0][0]) + ' – ' + mm(v[0][1]) + ' mm</span><span class="t3">nominal ' + (+$('nom').value) + ' mm</span></div>';
+  return '<div class="abs">' + ['X', 'Y', 'Z'].map(function (a, i) { return '<span><b class="ax ' + a.toLowerCase() + '">' + a + '</b> ' + mm(v[i][0]) + ' – ' + mm(v[i][1]) + '</span>'; }).join('') + '<span class="t3">mm</span></div>';
+}
+var HINT_ONE = 'One range for X, Y and Z — each axis still draws its own scale, so cells stretch.';
+var HINT_AX = 'Each axis draws its scale from its own range.';
+function hint() { return '<div class="hint">' + (ST.mode === 'one' ? HINT_ONE : HINT_AX) + '</div>'; }
+
+/* ── the options ─────────────────────────────────────────────── */
+/* Now: four flat boxes */
+function vNow(v) {
+  var s = stretch(v), lo = v.map(function (a) { return a[0]; }), hi = v.map(function (a) { return a[1]; });
+  var big = Math.max(hi[0], hi[1], 100), H = 52, k = H / big, x = 0, h = '';
+  [[lo[0], lo[1], 'smallest', 'c'], [100, 100, 'recipe', 'n'], [hi[0], hi[1], 'largest', 'c'], [hi[s.a], lo[s.b], s.txt, 's']].forEach(function (c) {
+    var w = Math.max(2, c[0] * k), hh = Math.max(2, c[1] * k), cx = x + Math.max(w, 34) / 2;
+    var st = c[3] === 'n' ? 'fill="none" stroke="#5f6582" stroke-dasharray="3 3"' : c[3] === 's' ? 'fill="rgba(227,155,74,.1)" stroke="#E39B4A"' : 'fill="rgba(200,245,66,.07)" stroke="#c8f542"';
+    h += '<rect x="' + (cx - w / 2) + '" y="' + (H - hh) + '" width="' + w + '" height="' + hh + '" rx="1.5" ' + st + ' stroke-width="1.2"/><text x="' + cx + '" y="' + (H + 13) + '" text-anchor="middle" font-family="JetBrains Mono" font-size="9.5" fill="' + (c[3] === 's' ? '#E39B4A' : '#5f6582') + '">' + c[2] + '</text>';
+    x += Math.max(w, 34) + 18;
+  });
+  return '<div class="col">' + head() + rows(v) + absLine(v) + '<svg width="' + (x - 18) + '" height="' + (H + 16) + '" style="overflow:visible">' + h + '</svg>' + hint() + '</div>';
+}
+
+/* A — sizes on the bar + a stretch chip: no separate drawing */
+function vA(v) {
+  var s = stretch(v);
+  var chips = '<span class="chip amb" title="Most stretched cell (= voxel aspect)">' + stretchGlyph(s.r, 12) + s.txt + '</span>' +
+    '<span class="chip" style="margin-left:6px">' + LINK + (ST.mode === 'one' ? 'One' : 'Per axis') + '</span>';
+  return '<div class="col">' + head(chips) +
+    rows(v, true, true) + '<div class="hint">mm under each end · nominal ' + (+$('nom').value) + ' mm at the tick. ' + (ST.mode === 'one' ? HINT_ONE : HINT_AX) + '</div></div>';
+}
+/* tiny rectangle at the stretch aspect */
+function stretchGlyph(r, H) {
+  var w = Math.min(H * 2.6, H * Math.sqrt(r)), h = Math.max(2.5, w / r);
+  return '<svg width="' + (H * 2.6) + '" height="' + H + '" viewBox="0 0 ' + (H * 2.6) + ' ' + H + '"><rect x="' + ((H * 2.6 - w) / 2) + '" y="' + ((H - h) / 2) + '" width="' + w + '" height="' + h + '" rx="1" fill="rgba(227,155,74,.18)" stroke="currentColor" stroke-width="1.2"/></svg>';
+}
+/* B — one nested glyph + three lines */
+function vB(v) {
+  var s = stretch(v), lo = v.map(function (a) { return a[0]; }), hi = v.map(function (a) { return a[1]; });
+  var big = Math.max(hi[0], hi[1], hi[s.a], 100), S = 52, k = S / big;
+  var sq = function (w, h, st) { return '<rect x="' + ((S - w * k) / 2) + '" y="' + ((S - h * k) / 2) + '" width="' + (w * k) + '" height="' + (h * k) + '" rx="1.2" ' + st + '/>'; };
+  var svg = '<svg width="' + S + '" height="' + S + '">' +
+    sq(hi[0], hi[1], 'fill="rgba(200,245,66,.06)" stroke="#c8f542" stroke-width="1.1"') +
+    sq(100, 100, 'fill="none" stroke="#5f6582" stroke-dasharray="2.5 2.5"') +
+    sq(hi[s.a], lo[s.b], 'fill="rgba(227,155,74,.14)" stroke="#E39B4A" stroke-width="1.1"') +
+    sq(lo[0], lo[1], 'fill="#c8f542" stroke="none" opacity=".9"') + '</svg>';
+  var t = '<div class="txt">' + mm(Math.min(lo[0], lo[1], lo[2])) + ' – ' + mm(Math.max(hi[0], hi[1], hi[2])) + ' mm <span class="t3">· nominal ' + (+$('nom').value) + '</span><br>' +
+    '<span class="t3">most stretched</span> <b>' + s.txt + '</b>' + (ST.mode === 'axes' ? ' <span class="t3">' + 'XYZ'[s.a] + ' over ' + 'XYZ'[s.b] + '</span>' : '') + '</div>';
+  return '<div class="col">' + head() + rows(v) + '<div class="vz">' + svg + t + '</div>' + hint() + '</div>';
+}
+/* C — isometric: the recipe's cube and the most stretched cell */
+function iso(dims, k, ox, oy) {
+  var c = Math.cos(Math.PI / 6), sn = 0.5;
+  var P = function (x, y, z) { return [ox + (x - y) * c * k, oy + (x + y) * sn * k - z * k]; };
+  var X = dims[0], Y = dims[1], Z = dims[2];
+  var v = { o: P(0, 0, 0), x: P(X, 0, 0), y: P(0, Y, 0), xy: P(X, Y, 0), z: P(0, 0, Z), xz: P(X, 0, Z), yz: P(0, Y, Z), xyz: P(X, Y, Z) };
+  return v;
+}
+function seg(a, b, col, extra) { return '<line x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '" stroke="' + col + '" ' + (extra || 'stroke-width="1.4" stroke-linecap="round"') + '/>'; }
+function cuboid(d, k, ox, oy, cols, dashed) {
+  var v = iso(d, k, ox, oy), ex = dashed ? 'stroke-width="1" stroke-dasharray="2.5 2.5"' : null, h = '';
+  var cx = cols[0], cy = cols[1], cz = cols[2];
+  /* visible edges only (viewer looks from +x +y, above) */
+  h += seg(v.y, v.xy, cx, ex) + seg(v.yz, v.xyz, cx, ex) + seg(v.z, v.xz, cx, ex);
+  h += seg(v.x, v.xy, cy, ex) + seg(v.xz, v.xyz, cy, ex) + seg(v.z, v.yz, cy, ex);
+  h += seg(v.x, v.xz, cz, ex) + seg(v.y, v.yz, cz, ex) + seg(v.xy, v.xyz, cz, ex);
+  if (!dashed) h = '<path d="M' + v.z + ' L' + v.xz + ' L' + v.xyz + ' L' + v.yz + ' Z" fill="rgba(200,245,66,.07)"/>' + h;
+  return h;
+}
+function vC(v) {
+  var s = stretch(v), d = [0, 0, 0];
+  var third = 3 - s.a - s.b;
+  d[s.a] = v[s.a][1]; d[s.b] = v[s.b][0]; d[third] = v[third][0];
+  /* fit both cells (sharing the back-bottom corner) into the box */
+  var W = 96, H = 64, pad = 3, pts = [];
+  [d, [100, 100, 100]].forEach(function (q) { var p = iso(q, 1, 0, 0); for (var key in p) pts.push(p[key]); });
+  var minX = Math.min.apply(null, pts.map(function (p) { return p[0]; })), maxX = Math.max.apply(null, pts.map(function (p) { return p[0]; }));
+  var minY = Math.min.apply(null, pts.map(function (p) { return p[1]; })), maxY = Math.max.apply(null, pts.map(function (p) { return p[1]; }));
+  var kk = Math.min((W - 2 * pad) / (maxX - minX), (H - 2 * pad) / (maxY - minY));
+  var ox = pad - minX * kk + ((W - 2 * pad) - (maxX - minX) * kk) / 2, oy = pad - minY * kk + ((H - 2 * pad) - (maxY - minY) * kk) / 2;
+  var svg = '<svg width="' + W + '" height="' + H + '">' + cuboid([100, 100, 100], kk, ox, oy, ['#5f6582', '#5f6582', '#5f6582'], true) + cuboid(d, kk, ox, oy, ['#5fb5b5', '#c794d4', '#d4b04a'], false) + '</svg>';
+  var t = '<div class="txt">' + 'XYZ'.split('').map(function (a, i) { return '<span style="color:var(--' + a.toLowerCase() + ')">' + a + '</span> ' + mm(d[i]); }).join(' &nbsp;') + ' mm<br>' +
+    '<span class="t3">most stretched</span> <b>' + s.txt + '</b><br><span class="t3">dashed = the recipe\'s cell</span></div>';
+  return '<div class="col">' + head() + rows(v) + '<div class="vz">' + svg + t + '</div>' + hint() + '</div>';
+}
+/* D — stretch gauge: 1 : 1 to 10 : 1, log */
+function vD(v) {
+  var s = stretch(v), p = Math.min(1, Math.log(s.r) / Math.log(10)) * 100;
+  var g = '<div class="gauge"><span class="l">Stretch</span><div class="bar" style="height:22px"><span class="trk" style="background:linear-gradient(90deg,var(--s3),rgba(227,155,74,.35))"></span>' +
+    [2, 4].map(function (t) { return '<span class="nom" style="left:' + (Math.log(t) / Math.log(10) * 100) + '%;top:5px;bottom:5px"></span>'; }).join('') +
+    '<span style="position:absolute;left:' + p + '%;top:50%;transform:translate(-50%,-50%);color:var(--sweep)">' + stretchGlyph(s.r, 12).replace('rgba(227,155,74,.18)', '#0f111a') + '</span></div><span class="v">' + s.txt + '</span></div>';
+  return '<div class="col">' + head() + rows(v) + absLine(v) + g + '<div class="hint">Most stretched cell, 1 : 1 to 10 : 1 — also the voxel aspect the solver sees. ' + (ST.mode === 'one' ? 'Each axis still draws its own scale.' : '') + '</div></div>';
+}
+/* E — one sentence with a micro glyph */
+function vE(v) {
+  var s = stretch(v), lo = Math.min(v[0][0], v[1][0], v[2][0]), hi = Math.max(v[0][1], v[1][1], v[2][1]);
+  var line = '<div class="inline"><span><span style="color:var(--t3)">Cells</span> ' + mm(lo) + ' – ' + mm(hi) + ' mm</span><span class="sep"></span>' +
+    '<span style="display:inline-flex;align-items:center;gap:5px;color:var(--sweep)">' + stretchGlyph(s.r, 12) + '<b>' + s.txt + '</b></span><span style="color:var(--t3)">max stretch</span></div>';
+  return '<div class="col">' + head() + rows(v) + line + hint() + '</div>';
+}
+
+var OPTS = [
+  { k: 'Now', t: 'Four boxes (current)', f: vNow, n: 'For comparison. About 90 px for the drawing, and the boxes read as diagrams, not data.', now: true },
+  { k: 'A', t: 'Sizes on the bar + a stretch chip', f: vA, n: 'No separate drawing: the mm sizes sit under the bar\'s ends and the stretch is a chip next to the toggle. <i>Smallest footprint; the numbers live where you drag.</i> Per axis, each bar gets its own sizes.' },
+  { k: 'B', t: 'One nested glyph', f: vB, n: 'A single 52 px tile: smallest cell filled, the recipe\'s dashed, the largest outlined, the most stretched in amber, with two lines of numbers beside it. <i>Same information as now in half the height.</i>' },
+  { k: 'C', t: 'Iso cell', f: vC, n: 'A small isometric wireframe of the most stretched cell over the recipe\'s cube (dashed), edges in the axis colours. <i>Reads as a 3-D cell, like the preview; per axis shows which axis stretches.</i>' },
+  { k: 'D', t: 'Stretch gauge', f: vD, n: 'One slim gauge from 1 : 1 to 10 : 1 with ticks at 2 and 4, the marker drawn at the stretch aspect. <i>Puts the solver-relevant number front and centre</i>; sizes stay as text.' },
+  { k: 'E', t: 'One line', f: vE, n: 'Cells 0.75 – 3 mm · a micro rectangle at the stretch aspect · 4 : 1 max stretch. <i>One text line, about 16 px.</i>' }
+];
+function draw() {
+  var v = vals();
+  $('grid').innerHTML = OPTS.map(function (o) {
+    return '<div class="card' + (o.now ? ' now' : '') + '"><div class="ch"><span class="tag">' + o.k + '</span><b>' + o.t + '</b><span class="h" data-h></span></div>' + o.f(v) + '<div class="note">' + o.n + '</div></div>';
+  }).join('');
+  document.querySelectorAll('.card').forEach(function (c) { var col = c.querySelector('.col'); c.querySelector('[data-h]').textContent = col.offsetHeight + ' px tall'; });
+}
+document.querySelectorAll('#mode button').forEach(function (b) { b.onclick = function () { ST.mode = b.dataset.v; document.querySelectorAll('#mode button').forEach(function (x) { x.classList.toggle('on', x === b); }); draw(); }; });
+document.querySelectorAll('#preset button').forEach(function (b) { b.onclick = function () {
+  var p = { a: [50, 200], b: [80, 125], c: [25, 400] }[b.dataset.p];
+  ['x', 'y', 'z'].forEach(function (a) { $(a + 'lo').value = p[0]; $(a + 'hi').value = p[1]; }); draw(); }; });
+document.querySelectorAll('.ctl input').forEach(function (i) { i.oninput = draw; });
+draw();
+</script>
+</body>
+</html>

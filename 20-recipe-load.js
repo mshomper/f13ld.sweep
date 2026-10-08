@@ -50,7 +50,7 @@ function loadRecipe(json, name) {
   recipeLoadId++;
   const tableWrapEl = document.getElementById('tableWrap');
   if (tableWrapEl) {
-    tableWrapEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⬡</div>'
+    tableWrapEl.innerHTML = '<div class="empty-state">' + swEmptyIcon()
       + '<div>Recipe loaded — click Run Sweep to populate results</div></div>';
   }
   const badgeEl = document.getElementById('resultsBadge');
@@ -91,6 +91,7 @@ function loadRecipe(json, name) {
   document.getElementById('recipeLoaded').style.display = 'block';
   document.getElementById('recipeCard').classList.add('loaded');
   document.getElementById('runBtn').disabled = false;
+  if (typeof updateDock === 'function') updateDock();
 
   log('info', `Loaded: ${escapeLog(name)}`);
   log('accent', escapeLog(summary));

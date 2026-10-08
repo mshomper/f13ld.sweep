@@ -142,7 +142,7 @@ function renderTable(data) {
   const wrap = document.getElementById('tableWrap');
 
   if (data.length === 0) {
-    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">⬡</div><div class="empty-title">No designs passed all filters</div><div class="empty-sub">Try relaxing your filter thresholds</div></div>`;
+    wrap.innerHTML = `<div class="empty-state">${swEmptyIcon()}<div class="empty-title">No designs passed all filters</div><div class="empty-sub">Try relaxing your filter thresholds</div></div>`;
     return;
   }
 
@@ -233,7 +233,7 @@ function renderTable(data) {
       col.cls || '',
       (!rankOf[col.key] && col.key !== 'volume_fraction') ? 'col-opt' : ''
     ].join(' ').trim();
-    const arrow = isActive ? (sortState.dir === 'asc' ? '↑' : '↓') : '↕';
+    const arrow = swGlyph(isActive ? (sortState.dir === 'asc' ? 'up' : 'dn') : 'updn');
     const info = METRIC_INFO[col.key];
     const title = (info ? `${info.name} — ${info.desc}` : col.key) + (rankOf[col.key] ? ` · rank ${rankOf[col.key]} metric` : '');
     const pip = rankOf[col.key] ? `<span class="rank-pip" style="display:inline-block;width:6px;height:6px;margin-right:4px;vertical-align:1px;background:${RANK_COLORS[rankOf[col.key]]}"></span>` : '';

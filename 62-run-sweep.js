@@ -10,11 +10,12 @@ function cancelSweep() {
 
 async function runSweep() {
   if (!baseRecipe) return;
+  if (typeof toggleDrawer === 'function') toggleDrawer(false);   /* v0.25.0 — Run closes the Configure drawer (Matt) */
 
   const btn = document.getElementById('runBtn');
   const cancelBtn = document.getElementById('cancelBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Running...';
+  setRunBtn(true);
   cancelBtn.style.display = 'block';
   window._sweepCancelled = false;
   results = [];
@@ -129,7 +130,7 @@ async function runSweep() {
     if (check.blocking) {
       log('warn', 'Sweep aborted — strut radius below solver resolution. Adjust recipe or jitter range and try again.');
       document.getElementById('runBtn').disabled = false;
-      document.getElementById('runBtn').textContent = '▶ Run Sweep';
+      setRunBtn(false);
       document.getElementById('progressWrap').classList.remove('visible');
       return;
     }
@@ -351,15 +352,14 @@ async function runSweep() {
     progressWrap.classList.remove('visible');
     document.getElementById('logBadge').textContent = 'done';
     btn.disabled = false;
-    btn.textContent = '▶ Run Sweep';
+    setRunBtn(false);
     cancelBtn.style.display = 'none';
     window._sweepCancelled = false;
     return;
   }
 
-  document.getElementById('statSampled').textContent = totalSampled;
-
-  const pctOf = (n) => `${Math.round(n / totalSampled * 100)}% of total`;
+  /* v0.25.0 — the stat cards became a one-line funnel above the table */
+  const funnel = { attempts, valid: totalSampled, r: [] };
 
   // Apply filters — capture count after each rank
   let filtered = [...results];
@@ -372,50 +372,21 @@ async function runSweep() {
   log('info', r1Active
     ? `After Rank 1 sort: ${filtered.length} designs`
     : `Rank 1: inactive — no metric selected`);
-  document.getElementById('statRank1').textContent = filtered.length;
-  document.getElementById('statRank1Pct').textContent = pctOf(filtered.length);
+  funnel.r.push(r1Active ? filtered.length : null);
 
   filtered = applyRankFilter(filtered, 'r2metric', 2, 'r2keep', 'keep');
   log('info', r2Active
     ? `After Rank 2 keep top %: ${filtered.length} designs`
     : `Rank 2: inactive — no metric selected (filter skipped)`);
-  document.getElementById('statRank2').textContent = filtered.length;
-  document.getElementById('statRank2Pct').textContent = pctOf(filtered.length);
+  funnel.r.push(r2Active ? filtered.length : null);
 
   filtered = applyRankFilter(filtered, 'r3metric', 3, 'r3keep', 'keep');
   log('success', r3Active
     ? `After Rank 3 keep top %: ${filtered.length} designs passed all filters`
     : `Rank 3: inactive — no metric selected (filter skipped) · ${filtered.length} designs final`);
-  document.getElementById('statRank3').textContent = filtered.length;
-  document.getElementById('statRank3Pct').textContent = pctOf(filtered.length);
-
-  // Peak values for rank filter cards
-  function setPeakCard(valId, labelId, subId, metricKey, dir, data) {
-    const label = METRIC_LABELS[metricKey] || metricKey;
-    const disabled = !metricKey || metricKey === 'none';
-    document.getElementById(labelId).textContent = disabled ? '—' : `Peak ${label}`;
-    if (disabled || data.length === 0) {
-      document.getElementById(valId).textContent = '—';
-      document.getElementById(subId).textContent = 'no filter chosen';
-      return;
-    }
-    const vals = data.map(d => typeof d[metricKey] === 'number' ? d[metricKey] : null).filter(v => v !== null);
-    if (vals.length === 0) { document.getElementById(valId).textContent = '—'; return; }
-    const peak = dir === 'min' ? Math.min(...vals) : Math.max(...vals);
-    const fmt = peak >= 1000 ? Math.round(peak).toString()
-               : peak >= 10  ? peak.toFixed(1)
-               : peak.toFixed(2);
-    const suffix = metricKey === 'volume_fraction' ? '%' : metricKey === 'anisotropy' ? '×' : '';
-    document.getElementById(valId).textContent = fmt + suffix;
-    document.getElementById(subId).textContent = dir === 'min' ? '▼ min' : '▲ max';
-  }
-
-  const r1key = document.getElementById('r1metric')?.value;
-  const r2key = document.getElementById('r2metric')?.value;
-  const r3key = document.getElementById('r3metric')?.value;
-  setPeakCard('statPeakR1','statPeakR1Label','statPeakR1Sub', r1key, directions[1]||'max', filtered);
-  setPeakCard('statPeakR2','statPeakR2Label','statPeakR2Sub', r2key, directions[2]||'max', filtered);
-  setPeakCard('statPeakR3','statPeakR3Label','statPeakR3Sub', r3key, directions[3]||'max', filtered);
+  funnel.r.push(r3Active ? filtered.length : null);
+  funnel.flagged = filtered.filter(d => d.stiffness_flag).length;
+  renderFunnel(funnel);
 
   // Store reference for rank mode switching, then apply final ranking
   currentFiltered = filtered;
@@ -437,7 +408,7 @@ async function runSweep() {
   progressWrap.classList.remove('visible');
   document.getElementById('logBadge').textContent = 'done';
   btn.disabled = false;
-  btn.textContent = '▶ Run Sweep';
+  setRunBtn(false);
   cancelBtn.style.display = 'none';
   window._sweepCancelled = false;
 }
