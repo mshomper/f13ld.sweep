@@ -36,3 +36,17 @@ Started 2026-10-07. Sweep is for quickly exploring a parameter space as a compar
 ### Noticed while testing (for Phase 2)
 
 - Export Design for a sheet design writes `wall_thickness: null` and `homogenization.grid: 48` with the picker at 16 — part of audit E1 / R1 (geometry and grid recorded from the wrong source).
+
+## v0.21.0 — recipe parity (2026-10-08)
+
+Matt's decisions: Mesh switches to F13LD.grain's random generator; solver files stay PolyForm (Lab's licence), the rest of Sweep MIT; noise fixes and TPMS shell weights go into Lab too; parity fixes before the solver work.
+
+- **Shared geometry.** `geom/` holds F13LD.lab's recipe → voxel code byte-for-byte (`F13LD-GEOM-*` blocks, Lab v0.26.0). `tests/parity/geomsync.js <F13LD.lab>` checks them; `--write` regenerates them. Never edit `geom/` directly.
+- **Designs are recipes.** `families/` vary the loaded recipe and write a new recipe in the design tool's own format (`40-design.js`). The worker builds geometry from it exactly as Lab imports a recipe (`designGeometry`); the results export, Export Design and the Mesh link (`#r=`) write that same recipe. Beams are sampled as one periodic cell.
+- **Fixes this brings:** split-P / F-RD constants, all 13 TPMS presets, field-pair PI-TPMS, normalized-shell gradients, noise (range, seed, hash, foam / strut / veined), grain seed per design and hyperuniform wrap, beam radius units / smooth-min / per-axis cell, anisotropic shell walls, pores no longer double-scaled on normalized modes, export geometry = solved geometry.
+- **Beams** use the voxel solve (analytic estimate removed). Slower on the CPU until the GPU phase.
+- **Preview**: one shader; the design's margin field is baked in a worker and raymarched.
+- **Export shape** kept for F13LD.ingest (validated with its `validateDesign` on every family); `meta.schema_version` 0.18.0, `meta.solver.version` / `geometry` and per-design `solver_version` / `geometry_version` added.
+- Lab v0.26.0 (noise kernel, `normal_weights`, shared blocks) and Mesh v0.9.7 (grain generator, warp strength 0) ship with it.
+
+Not yet done: a local parity script comparing Sweep-generated designs against Mesh voxel by voxel (Sweep ↔ Lab is identical by construction; Lab ↔ Mesh verified per family). Lab samples a stretched beam over Mesh's world cube rather than one cell — a Lab item.

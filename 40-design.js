@@ -77,8 +77,9 @@ function completeRecipe(recipe) {
   const fam = labRecipeInfo(r).family;
   if (fam === 'tpms') {
     const g = r.geometry = r.geometry || {};
-    const mode = g.mode || 'shell';
-    if (g.mode == null) g.mode = mode;
+    /* F13LD.mesh builds any mode other than solid / pi-tpms as a shell */
+    const mode = (g.mode === 'solid' || g.mode === 'pi-tpms') ? g.mode : 'shell';
+    g.mode = mode;
     if (g.shell_normalize == null && mode === 'shell') g.shell_normalize = true;
     if (g.pi_normalize == null && mode === 'pi-tpms') g.pi_normalize = true;
     if (mode === 'pi-tpms' && g.pipe_radius == null) g.pipe_radius = 0.18;

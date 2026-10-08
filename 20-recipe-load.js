@@ -98,7 +98,7 @@ function loadRecipe(json, name) {
   const g0 = json.geometry || {}, g1 = completed.geometry || {};
   const filled = [];
   for (const k of ['mode', 'shell_normalize', 'pi_normalize', 'pipe_radius', 'wall_thickness']) {
-    if (g0[k] == null && g1[k] != null && family === 'tpms') filled.push(`${k} = ${g1[k]}`);
+    if (family === 'tpms' && g1[k] != null && g0[k] !== g1[k]) filled.push(`${k} = ${g1[k]}${g0[k] != null ? ' (was ' + escapeLog(g0[k]) + ')' : ''}`);
   }
   if (family === 'noise' && (json.surface || {}).norm_min == null) filled.push('normalization range (F13LD.noise 32³ scan)');
   if (filled.length) log('info', `Not in the recipe, set as F13LD.mesh reads it: ${filled.join(' · ')}`);

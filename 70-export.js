@@ -200,9 +200,11 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
    provenance in meta and the design's solver results in homogenization. */
 function designRecipeOut(d, purpose) {
   const r = JSON.parse(JSON.stringify(d.recipe));
-  r.meta = Object.assign({}, r.meta || {}, {
-    tool: 'f13ld.sweep',
-    tool_version: F13LD_SWEEP_VERSION,
+  r.meta = Object.assign({}, r.meta || {});
+  /* Results export: no per-export fields in the recipe, so F13LD.ingest's
+     content hash of a design stays stable. Single-design exports and the
+     Mesh link carry their provenance. */
+  if (purpose !== 'results-export') Object.assign(r.meta, {
     timestamp: new Date().toISOString(),
     source_design_id: d.id,
     sweep_rank: d.filterRank != null ? d.filterRank : null,
@@ -317,9 +319,33 @@ function exportResults() {
     context: buildAnalysisContext(),
     family: baseFamily,
     base: (function() {
-      const b = JSON.parse(JSON.stringify(baseRecipe));
-      delete b.homogenization;
-      return b;
+      /* Same shape as v0.20 (F13LD.ingest / validator compatibility). */
+      const g = baseRecipe.geometry || {};
+      const baseCommon = {
+        E_solid_GPa: baseRecipe.homogenization?.E_solid_GPa || 100,
+        poisson:     baseRecipe.homogenization?.poisson     || 0.3
+      };
+      if (baseFamily === 'beam') {
+        const dims = SWEEP_FAMILIES.beam.baseDims(baseRecipe);
+        return {
+          ...baseCommon,
+          mode:        'beam-solid',
+          topology:    baseRecipe.topology?.name || 'custom',
+          beam_count:  baseRecipe.topology?.beam_count || (baseRecipe.beams || []).length,
+          radius:      g.radius != null ? g.radius : 0.1,
+          cell:        +dims.cell.toFixed(4),
+          cell_scale:  +dims.cell.toFixed(4)
+        };
+      }
+      return {
+        ...baseCommon,
+        mode:             baseFamily === 'grain' ? (g.topology || 'sheet') : (g.mode || 'shell'),
+        wall_thickness:   g.wall_thickness || 0.3,
+        offset:           g.offset || 0.0,
+        cell_scale:       g.cell_scale || 1.0,
+        pi_normalize:     (g.mode === 'pi-tpms') ? !!g.pi_normalize    : null,
+        shell_normalize:  (g.mode === 'shell')   ? !!g.shell_normalize : null
+      };
     })(),
     designs: currentFiltered.map(d => ({
       id:             d.id,

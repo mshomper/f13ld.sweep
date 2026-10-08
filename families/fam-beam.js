@@ -77,8 +77,9 @@ SWEEP_FAMILIES.beam = {
     g.radius = +((2 * g.radius_x / s[0] + 2 * g.radius_y / s[1] + 2 * g.radius_z / s[2]) / 3).toFixed(4);
     g.node_smoothing_k = +(draw.u(6) * r0 * 1.5).toFixed(4);
     g.node_ball_radius = +(draw.u(7) * r0 * 2.0).toFixed(4);
-    const rec = { meta: Object.assign({}, base.meta || {}), family: 'beam', geometry: g, beams: J.clone(base.beams) };
-    if (base.topology) rec.topology = J.clone(base.topology);
-    return rec;
+    /* topology is always written (F13LD.ingest needs it to rebuild the lattice) */
+    const topology = base.topology ? J.clone(base.topology)
+      : { name: (base.meta && base.meta.preset) || 'custom', beam_count: base.beams.length };
+    return { meta: Object.assign({}, base.meta || {}), family: 'beam', topology, geometry: g, beams: J.clone(base.beams) };
   }
 };

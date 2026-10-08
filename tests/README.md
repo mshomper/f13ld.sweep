@@ -14,6 +14,7 @@ npx playwright install chromium     # or point PLAYWRIGHT_BROWSERS_PATH at an ex
 | Script | What it checks |
 |---|---|
 | `harness.js <old> <new> [case,…]` | Runs the same seeded sweep for every case in `recipes.json` in both builds (headless Chromium, one solver worker, `Math.random` seeded, clock frozen) and compares the results array, results table, stats bar, run log, exported results JSON, the F13LD.mesh handoff recipe and preview errors. `tool_version` is ignored. Exit 0 = identical. Writes `harness-last.json` (`HARNESS_OUT` sets the folder). |
+| `parity/geomsync.js <F13LD.lab> [--write]` | The shared geometry blocks in `geom/` are byte-identical to F13LD.lab's; `--write` regenerates them from a Lab checkout. |
 | `loadorder.js [build]` | Static check: no load-time code uses something from a later-numbered file; worker files don't touch the DOM at load; worker only loads files the page loads. |
 
 Each build is a plain folder: e.g. `git worktree add ../sweep-old v0.19.0` for the old one. The v0.19.0 single file works as the old build too.
