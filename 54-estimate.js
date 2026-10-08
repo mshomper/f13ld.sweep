@@ -91,12 +91,17 @@ function prepareDesign(recipe, opts) {
 
   /* ── Geometry metrics grid: 96 for PI-TPMS, 64 for noise / grain (thin
      pipes and sheets), else the solver grid itself (pores at 16 as before). */
-  const N_GEO = isPi ? 96 : (isNoise || isGrain) ? 64 : N;
+  /* v0.24.0 — GPU Fast passes metricsN (48): a coarser metrics grid,
+     never coarser than the solver grid. The CPU path keeps 96 / 64. */
+  const N_GEO = (_hiRes && o.metricsN) ? Math.max(o.metricsN, N) : isPi ? 96 : (isNoise || isGrain) ? 64 : N;
   const field = _hiRes ? buildGeomField(geo, N_GEO) : null;
   const geoMask = _hiRes ? field.solidMask : solverGridSolid;
   let rho_hi = null;
   if (_hiRes) { let c = 0; for (let i = 0; i < geoMask.length; i++) c += geoMask[i] > 0.5 ? 1 : 0; rho_hi = c / geoMask.length; }
   const solidPerc = computeSolidPercolation(geoMask, N_GEO);
+  /* v0.24.0 — the solver grid's own connectivity, for the under-resolved
+     flag (finishDesign): a thin design the solver grid can't hold */
+  const solverPerc = _hiRes ? computeSolidPercolation(solverGridSolid, N) : null;
   const connect_idx = solidPerc.connect_idx;
   const poreField = _hiRes ? field : buildGeomField(geo, 16);
   const pores = analyzePoresFromField(poreField.rawField, poreField.voidMask, cellSizeMm, poreField.N);
@@ -179,8 +184,8 @@ function prepareDesign(recipe, opts) {
 
   return {
     reject: null, rejectFn: reject, geo, N, mode, isPi, isBeam, isNoise, isGrain, _contrast, _maxiter, _hiRes,
-    solverGridSolid, rho_pregate, rho_hi, rho, solidPerc, connect_idx, connectGate, pores, complexity, geom,
-    cellSizeMm
+    solverGridSolid, rho_pregate, rho_hi, rho, solidPerc, solverPerc, connect_idx, connectGate, pores, complexity, geom,
+    cellSizeMm, N_GEO
   };
 }
 
@@ -466,5 +471,42 @@ function finishDesign(P, S, opts) {
   };
   /* GPU solver: shear moduli, full stiffness, cell aspect, provenance */
   if (S.extra) Object.assign(out, S.extra);
+  Object.assign(out, stiffnessFlags(P, S, out, Es_ref, rho));
   return out;
+}
+
+/* v0.24.0 — "stiffness may be inflated" flags (both solvers; exported,
+   for F13LD.vault to filter on later).
+     void-limited axis: the pores' stand-in stiffness (void ratio × E_solid,
+       times the pore fraction) is over STIFFNESS_FLAG_VOID_SHARE of that
+       axis's modulus — the axis reads high by about that much.
+     under-resolved: the solver grid can't hold the design — it connects
+       different axes than the finer metrics grid, its solid fraction is
+       off by over 20 %, or the island trim had to be skipped because thin
+       walls broke into pieces (GPU path).
+   → { stiffness_flag, void_limited_axes ('' | 'x' | 'xz' …), under_resolved,
+       stiffness_flag_reasons (text | null) } */
+const STIFFNESS_FLAG_VOID_SHARE = 0.10;
+function stiffnessFlags(P, S, out, Es, rho) {
+  const vr = S.voidRatio != null ? S.voidRatio : (P._contrast != null ? P._contrast : 1e-3);
+  const E = [out.Ex_GPa, out.Ey_GPa, out.Ez_GPa], why = [];
+  const vAxes = [];
+  E.forEach((e, i) => { if (e > 0 && vr * Es * (1 - rho) / e > STIFFNESS_FLAG_VOID_SHARE) vAxes.push('xyz'[i]); });
+  if (vAxes.length) why.push(`pore stiffness is over ${Math.round(STIFFNESS_FLAG_VOID_SHARE * 100)} % of E on ${vAxes.join(', ')}`);
+  const under = [];
+  if (P.solverPerc && P.solidPerc) {
+    const diff = ['x', 'y', 'z'].filter(a => !!P.solverPerc['connect_' + a] !== !!P.solidPerc['connect_' + a]);
+    if (diff.length) under.push(`the solver grid (N = ${P.N}) connects differently from the metrics grid on ${diff.join(', ')}`);
+  }
+  if (P.rho_hi != null && P.rho_hi > 0 && Math.abs(P.rho_pregate - P.rho_hi) / P.rho_hi > 0.2)
+    under.push(`solid fraction is ${Math.round(Math.abs(P.rho_pregate - P.rho_hi) / P.rho_hi * 100)} % off on the solver grid`);
+  if (S.trimSkipped > 0)
+    under.push(`thin walls broke into pieces on the solver grid (${(S.trimSkipped * 100).toFixed(0)} % of the solid)`);
+  why.push(...under);
+  return {
+    stiffness_flag: vAxes.length > 0 || under.length > 0,
+    void_limited_axes: vAxes.join(''),
+    under_resolved: under.length > 0,
+    stiffness_flag_reasons: why.length ? why.join('; ') : null
+  };
 }

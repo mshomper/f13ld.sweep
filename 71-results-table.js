@@ -211,6 +211,10 @@ function renderTable(data) {
         return `<td${cls}><span style="background:${bgColor};color:${textColor};font-weight:600;font-variant-numeric:tabular-nums;font-size:10px;padding:1px 5px;border-radius:4px;white-space:nowrap" title="Frost (1987): ${zone} · <200 disuse · 200–1500 sub-threshold · 1500–3000 osteogenic · >3000 overload">${Math.round(v).toLocaleString()}</span></td>`;
       }
       const suffix = col.key === 'volume_fraction' ? '%' : col.key === 'anisotropy' ? '×' : '';
+      /* v0.24.0 — a modulus the pores' stand-in stiffness props up */
+      const ax = { Ex_GPa: 'x', Ey_GPa: 'y', Ez_GPa: 'z' }[col.key];
+      if (ax && d.void_limited_axes && d.void_limited_axes.includes(ax))
+        return `<td${cls}><span class="sflag-val" title="Reads high: the pores' stand-in stiffness is over 10 % of this modulus">${cell(v, col.key, suffix)}</span></td>`;
       return `<td${cls}>${cell(v, col.key, suffix)}</td>`;
     }).join('');
 
@@ -218,7 +222,8 @@ function renderTable(data) {
       `<button class="row-btn lab" onclick="event.stopPropagation();openInLab(${d.id},this)" title="Open design #${d.id} in F13LD.lab">Lab</button>` +
       `<button class="row-btn mesh" onclick="event.stopPropagation();openInMesh(${d.id},this)" title="Open design #${d.id} in F13LD.mesh">Mesh</button></td>`;
     const sel = (typeof selectedDesign !== 'undefined' && selectedDesign && selectedDesign.id === d.id) ? ' class="selected-row"' : '';
-    return `<tr data-design-id="${d.id}" tabindex="0"${sel} style="cursor:pointer"><td class="td-rank">${badge}</td>${tds}${actions}</tr>`;
+    const flag = d.stiffness_flag ? `<span class="sflag" title="Stiffness may read high: ${escapeLog(d.stiffness_flag_reasons || '')}"></span>` : '';
+    return `<tr data-design-id="${d.id}" tabindex="0"${sel} style="cursor:pointer"><td class="td-rank">${badge}${flag}</td>${tds}${actions}</tr>`;
   }).join('');
 
   const headers = cols.map((col) => {

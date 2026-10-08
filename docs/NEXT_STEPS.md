@@ -22,6 +22,8 @@ Built 2026-10-08 (session recap [`SESSION_RECAP_2026-10-08_gpu.md`](SESSION_RECA
 | E | CPU fallback with the same physics (6 × 6, partial volume, stretched) | Today the CPU path is the pre-v0.24 solver (normal stiffness only); exports say which ran (`solver_version`). Lab's CPU reference (`solver/lab/16a`, `12b`) can do it, slowly. |
 | tune | Lanes and CG block sizes after your bench numbers | 6 / 4 / 2 lanes at N = 16 / 32 / 64 today. If the GPU idles, the CPU preparation is the limit (PI-TPMS, noise and grain build 64–96³ metric grids per design). |
 | Lab | Stretched cells in F13LD.lab | Sweep solves stretched cells as stretched; Lab still solves the cubic voxel grid, so a stretched design sent to Lab reads differently there until Lab takes this up. |
+| flags → Vault | Map `stiffness_flag`, `void_limited_axes`, `under_resolved` (and the shear moduli) in F13LD.ingest and add the columns + a filter in F13LD.vault (not hiding flagged designs). Matt: later, not now. |
+| grids | Spinodoids at N = 16–32 often flag under-resolved (Lab moves 2.5–4.4× from 32 to 64 on one). Consider N = 32 as the GPU floor for grain / noise. |
 | thermal | Pore filler | Kept Sweep's k_void = 0.0003 k_solid. Lab offers air / water / tissue; worth matching. |
 
 ## 3. UI — dedicated session

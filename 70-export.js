@@ -192,9 +192,21 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     pore_size_p90: d.pore_size_p90,
     pore_size_cv:  d.pore_size_cv,
     method: methodLabel || 'FFT-CG',
+    ...stiffnessFlagFields(d),
     ...gpuDesignFields(d),
     solver_version: d.solver_version || SOLVER_VERSION,
     geometry_version: GEOMETRY_VERSION
+  };
+}
+
+/* v0.24.0 — "stiffness may be inflated" flags (stiffnessFlags, 54-estimate.js) */
+function stiffnessFlagFields(d) {
+  if (!d || d.stiffness_flag === undefined) return {};
+  return {
+    stiffness_flag: d.stiffness_flag,
+    void_limited_axes: d.void_limited_axes,
+    under_resolved: d.under_resolved,
+    stiffness_flag_reasons: d.stiffness_flag_reasons
   };
 }
 
@@ -282,11 +294,14 @@ function exportResults() {
       // v0.18.0 (Sweep v0.21.0): designs[].design is the exact recipe the solver
       // built (design-tool format); base is the completed loaded recipe;
       // solver/geometry versions recorded here and per design.
-      schema_version: '0.18.0',
+      // v0.19.0 (Sweep v0.24.0): GPU solver fields (shear moduli, 6×6,
+      // cell aspect …) and the stiffness flags, all additive.
+      schema_version: '0.19.0',
       count:    currentFiltered.length,
       solver: {
         method:   'FFT-CG',
         version:  (lastSweepSettings && lastSweepSettings.solver_version) || SOLVER_VERSION,
+        stiffness_flag_void_share: STIFFNESS_FLAG_VOID_SHARE,
         // v0.24.0: GPU solver settings (absent on CPU sweeps)
         ...((lastSweepSettings && lastSweepSettings.backend === 'gpu') ? {
           backend:        'gpu',
@@ -470,6 +485,7 @@ function exportResults() {
         pore_size_p50:        d.pore_size_p50,
         pore_size_p90:        d.pore_size_p90,
         pore_size_cv:         d.pore_size_cv,
+        ...stiffnessFlagFields(d),
         ...gpuDesignFields(d)
       },
       // The exact recipe this design was solved with (design-tool format).

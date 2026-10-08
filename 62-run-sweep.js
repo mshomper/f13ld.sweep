@@ -145,7 +145,7 @@ async function runSweep() {
   const sampler = makeSampler(samplingMethod, 8, rand);
 
   // Solver pool — created lazily and reused across sweeps
-  const pool = getSolverPool();
+  const pool = getSolverPool(gpu);
   log('info', `Sampling: ${samplingMethod === 'sobol' ? 'Sobol low-discrepancy (d=8) + uniform random for jitter' : 'uniform random'} · coef normalisation: max(|c|)=1 · Workers: ${pool.nWorkers}`);
   if (gpu) log('info', `Solver: GPU (${gpu.adapter || 'WebGPU'}) · F13LD.lab elastic 6×6 + thermal · N = ${gridN} · void ${gpuPrec.voidRatio.toExponential(0)} · CG tol ${gpuPrec.tol.toExponential(0)}`);
   else if (!gpuSwitchedOff()) log('info', `Solver: CPU (${gpuSolverStatus().text.replace(/^CPU solver · /, '')}) — normal stiffness only`);

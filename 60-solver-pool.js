@@ -119,11 +119,17 @@ class SolverPool {
 // Module-scope singleton — created lazily, reused across sweeps.
 // Avoids worker startup latency on every sweep run.
 let _solverPool = null;
-function getSolverPool() {
-  if (!_solverPool || _solverPool.terminated) {
-    const n = Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
-    _solverPool = new SolverPool(n);
-  }
+// v0.24.0: with the GPU solver the workers only prepare designs and the GPU
+// waits on them, so use every thread but two (the page and the GPU worker),
+// up to 16. CPU solver: as before, threads − 1, up to 8.
+function solverPoolSize(gpu) {
+  const hc = navigator.hardwareConcurrency || 4;
+  return gpu ? Math.max(1, Math.min(16, hc - 2)) : Math.max(1, Math.min(8, hc - 1));
+}
+function getSolverPool(gpu) {
+  const n = solverPoolSize(!!gpu);
+  if (_solverPool && !_solverPool.terminated && _solverPool.nWorkers !== n) _solverPool.terminate();
+  if (!_solverPool || _solverPool.terminated) _solverPool = new SolverPool(n);
   return _solverPool;
 }
 
@@ -241,7 +247,8 @@ function gpuSolverStatus() {
 // GPU: worker prepares → GPU solves → page finishes. Resolves { attemptIdx, hom }.
 async function computeDesign(pool, gpu, spec, gpuPrec) {
   if (!gpu || !gpu.usable) return pool.dispatch(spec);
-  const msg = await pool.dispatch(Object.assign({}, spec, { type: 'prepare_design' }));
+  const opts = gpuPrec.metricsN ? Object.assign({}, spec.opts, { metricsN: gpuPrec.metricsN }) : spec.opts;
+  const msg = await pool.dispatch(Object.assign({}, spec, { type: 'prepare_design', opts }));
   const prep = msg.prep;
   if (prep.reject) return { attemptIdx: spec.attemptIdx, hom: prep.reject };
   const o = spec.opts, P = prep.P;

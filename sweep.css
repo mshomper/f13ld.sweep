@@ -878,3 +878,9 @@ th.th-actions, td.td-actions { width: 104px; }
 .solver-status { font-family: var(--mono); font-size: 9px; color: var(--muted); margin: -2px 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .solver-status.gpu { color: var(--green); }
 .direction-toggle button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* v0.24.0 — stiffness flags: a dot on the rank cell, a dotted underline on a
+   modulus the pores' stand-in stiffness props up */
+td.td-rank { position: relative; }
+.sflag { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--warn, #E39B4A); }
+.sflag-val { border-bottom: 1px dotted var(--warn, #E39B4A); }

@@ -109,7 +109,10 @@ async function runBuild(browser, url, label) {
 }
 
 // Fields that are SUPPOSED to change between releases.
-const IGNORE = new Set(['tool_version']);
+// v0.24.0: the stiffness flags and the export schema bump are intended additions.
+const IGNORE = new Set(['tool_version', 'schema_version', 'stiffness_flag', 'void_limited_axes', 'under_resolved', 'stiffness_flag_reasons', 'stiffness_flag_void_share']);
+// …and the flag markers in the table HTML
+const stripFlags = h => typeof h === 'string' ? h.replace(/<span class="sflag"[^>]*><\/span>/g, '').replace(/<span class="sflag-val"[^>]*>([\s\S]*?<\/span>)<\/span>/g, '$1').replace(/<td class="td-rank">/g, '<td class="td-rank">') : h;
 function firstDiff(a, b, p = '') {
   if (typeof a !== typeof b) return p + ': type ' + typeof a + ' vs ' + typeof b;
   if (a && b && typeof a === 'object') {
@@ -132,7 +135,7 @@ function firstDiff(a, b, p = '') {
     for (const n of names) {
       const a = A[n], b = B[n];
       const fields = ['loaded', 'fileMeta', 'results', 'table', 'stats', 'plotInfo', 'meshRecipe', 'exportJson', 'exportErr', 'previewBadge', 'previewErr', 'log'];
-      const val = (r, f) => (f === 'exportJson' && typeof r[f] === 'string') ? JSON.parse(r[f]) : r[f];
+      const val = (r, f) => (f === 'exportJson' && typeof r[f] === 'string') ? JSON.parse(r[f]) : f === 'table' ? stripFlags(r[f]) : r[f];
       const diffs = fields.map(f => firstDiff(val(a, f), val(b, f), f)).filter(Boolean);
       if (b.errors.length) diffs.push('new build errors: ' + b.errors.slice(0, 3).join(' || '));
       if (a.errors.length) console.log(`  note: old build errors in ${n}: ${a.errors.slice(0, 2).join(' || ')}`);

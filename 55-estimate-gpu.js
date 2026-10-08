@@ -24,10 +24,15 @@
    N = 8: moduli within 0.3 % of tolerance 1e-5, at 1/40 of the iterations —
    tests/gpu/stretch-check.js).  Rigorous is
    F13LD.lab's own sweep setting (void 1e-6, tolerance 1e-4), so its numbers
-   can be checked against Lab directly. */
+   can be checked against Lab directly.
+   metricsN: Fast builds the PI-TPMS / noise / grain metrics (pores,
+   curvature, topology, tortuosity, VF) on 48³ instead of 96³ / 64³ (never
+   coarser than the solver grid) — Matt, 2026-10-08: coarser metrics are
+   fine in Fast. Stiffness that Fast's void ratio inflates is flagged
+   (stiffnessFlags, 54-estimate.js). */
 const GPU_PRECISION = {
-  fast:     { voidRatio: 1e-3, tol: 1e-3, maxiter: 800,  thTol: 1e-3, thMaxiter: 1500 },
-  rigorous: { voidRatio: 1e-6, tol: 1e-4, maxiter: 1000, thTol: 1e-5, thMaxiter: 3000 }
+  fast:     { voidRatio: 1e-3, tol: 1e-3, maxiter: 800,  thTol: 1e-3, thMaxiter: 1500, metricsN: 48 },
+  rigorous: { voidRatio: 1e-6, tol: 1e-4, maxiter: 1000, thTol: 1e-5, thMaxiter: 3000, metricsN: null }
 };
 const SOLVER_VERSION_GPU = 'sweep-gpu v1 — F13LD.lab v0.26.0 solver (elastic ef-1 full 6x6, thermal tg-1), partial volume, island trim, stretched cells';
 
@@ -139,6 +144,7 @@ function finishDesignGpu(prep, sol, o, g) {
   };
   return finishDesign(P, {
     Ex: E[0], Ey: E[1], Ez: E[2], cg_iters, cg_converged, solver_validity,
-    kx, ky, kz, ks_val: o.ks || 1.0, extra
+    kx, ky, kz, ks_val: o.ks || 1.0, extra,
+    voidRatio: g.voidRatio, trimSkipped: prep.trimSkipped || 0
   }, o);
 }

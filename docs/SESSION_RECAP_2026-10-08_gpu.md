@@ -69,3 +69,13 @@ Fixed after Matt's first speed-bench run: the bench read the app's `results` thr
 - F13LD.lab solves stretched designs as cubic until Lab takes up stretched cells.
 - Thermal pore filler is Sweep's k_void = 0.0003 k_solid, not Lab's air / water / tissue.
 - If the GPU idles, the CPU preparation is the limit (PI-TPMS, noise and grain build 64–96³ metric grids per design).
+
+## After Matt's speed bench (same day)
+
+| Case, N = 32, 24 designs | CPU s | GPU s | Speed-up | GPU had work |
+|---|---|---|---|---|
+| Gyroid sheet | 68.9 | 13.5 | 5.1× | 58 % |
+| Spinodoid | 74.9 | 10.3 | 7.3× | 66 % |
+| Beam BCC | 70.0 | 2.9 | 24.5× | 89 % |
+
+CPU preparation limits the GPU. Added (decisions in `REFACTOR.md`): stiffness flags (pore-stiffness-limited axes, under-resolved), Fast metrics grid 48³ for PI-TPMS / noise / grain, threads − 2 workers with the GPU. Harness identical on all 11 cases (flags excluded). Flags reach Sweep's export only; Ingest / Vault later.
