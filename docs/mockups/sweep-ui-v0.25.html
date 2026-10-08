@@ -1,0 +1,362 @@
+<!doctype html>
+<!-- F13LD.sweep — UI mockups for v0.25.0 (dev file, not loaded by the app).
+     Three layouts, all sharing Lab's dock + Configure drawer. Static data. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sweep UI Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06080f; --panel:#111118; --panel2:#0e0e1a; --s1:#0c0e16; --s2:#12141f; --s3:#181b29;
+  --hair:rgba(255,255,255,0.07); --hair2:rgba(255,255,255,0.13);
+  --t1:#e4e6f2; --t2:#9a9fb7; --t3:#5f6582;
+  --green:#1D9E75; --neon:#c8f542; --sec:#5f9470;
+  --sweep:#E39B4A; --sweep-deep:#633806; --sweep-tile:#FAEEDA; --sweep-ring:rgba(227,155,74,0.45);
+  --neon-soft:rgba(200,245,66,0.10); --neon-ring:rgba(200,245,66,0.45);
+  --r1:#c8f542; --r2:#1D9E75; --r3:#b598d4; --x:#5fb5b5; --y:#c794d4; --z:#d4b04a; --warn:#f59e0b;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#03040a;color:var(--t2);font:14px/1.5 'Exo 2',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{overflow-x:hidden}
+.page{max-width:1500px;margin:0 auto;padding:18px 16px 40px}
+.intro h1{font:700 20px 'Exo 2';color:var(--t1)} .intro h1 span{color:var(--sweep)}
+.intro p{color:var(--t2);max-width:92ch;margin:6px 0 0;font-size:13px}
+.pick{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px}
+.pick button{font:600 12px 'Exo 2';color:var(--t2);background:var(--s2);border:1px solid var(--hair2);border-radius:8px;padding:7px 12px;cursor:pointer}
+.pick button.on{color:var(--neon);border-color:var(--neon-ring);background:var(--neon-soft)}
+.pick .hint{font:11px var(--mono);color:var(--t3);align-self:center;margin-left:auto}
+.notes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 12px}
+.note{background:var(--s1);border:1px solid var(--hair);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--t2)}
+.note b{color:var(--t1);font-weight:600}
+.note.on{border-color:var(--neon-ring)}
+@media (max-width:900px){.notes{grid-template-columns:1fr}}
+
+/* the 1440 × 900 frame, scaled to fit the page width */
+.stage{width:100%;max-width:1442px;margin:0 auto;overflow:hidden;border-radius:12px;border:1px solid var(--hair2);background:var(--bg)}
+.frame{width:1440px;height:900px;transform-origin:top left;position:relative;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+
+/* header */
+.top{height:48px;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid var(--hair);background:var(--bg);flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px}
+.wm{font:700 17px 'Exo 2';letter-spacing:.06em}
+.div{width:1px;height:20px;background:var(--hair2)}
+.tool{font:700 15px 'Exo 2';letter-spacing:.14em;color:var(--sweep)}
+.recipe{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 8px;border-radius:8px;background:var(--s1);border:1px solid var(--hair2);font:11px var(--mono);color:var(--t2);margin-left:6px;cursor:pointer}
+.recipe b{font:600 12px 'Exo 2';color:var(--t1)} .recipe .chg{color:var(--t3)}
+.top .sp{flex:1}
+.hbtn{height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border-radius:999px;border:1px solid var(--hair2);background:transparent;color:var(--t1);font:600 12px 'Exo 2';cursor:pointer}
+.hbtn.dim{color:var(--t3)}
+.ver{font:11px var(--mono);color:var(--t3)}
+.tile{width:26px;height:26px;border-radius:6px;background:var(--sweep-tile);display:grid;place-items:center}
+
+/* panels */
+.main{flex:1;min-height:0;display:grid;gap:12px;padding:12px 14px}
+.pnl{background:var(--panel);border:1px solid var(--hair);border-radius:12px;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;position:relative}
+.ph{height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--hair);flex-shrink:0}
+.pt{font:600 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--sec)}
+.seg{display:inline-flex;border:1px solid var(--hair2);border-radius:7px;overflow:hidden}
+.seg span{font:11px var(--mono);padding:3px 9px;color:var(--t3);cursor:pointer}
+.seg span.on{background:var(--neon-soft);color:var(--neon)}
+.ph .sp{flex:1}
+.badge{font:11px var(--mono);color:var(--t2);border:1px solid var(--hair2);border-radius:999px;padding:2px 9px}
+.funnel{min-width:0;display:flex;align-items:center;gap:6px;font:11px var(--mono);color:var(--t3);white-space:nowrap;overflow:hidden}
+.funnel b{color:var(--t1);font-weight:600} .funnel .ar{color:var(--t3)}
+.funnel .p1{color:var(--r1)} .funnel .p2{color:var(--r2)} .funnel .p3{color:var(--r3)}
+
+/* plot */
+.plot{flex:1;min-height:0;position:relative}
+.plot svg{position:absolute;inset:0;width:100%;height:100%}
+.axes-pick{position:absolute;left:14px;bottom:12px;display:flex;gap:6px}
+.axes-pick span{font:11px var(--mono);color:var(--t2);background:var(--s1);border:1px solid var(--hair2);border-radius:6px;padding:3px 8px}
+.axes-pick span i{font-style:normal;color:var(--t3);margin-right:4px}
+.legend{position:absolute;right:14px;bottom:12px;display:flex;gap:10px;font:11px var(--mono);color:var(--t3)}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+
+/* inspector */
+.insp{display:flex;flex-direction:column;min-height:0;flex:1}
+.prev{flex:1;min-height:0;position:relative;background:radial-gradient(120% 90% at 50% 40%,#1a2a2c,#0b0f14)}
+.prev svg{position:absolute;inset:0;width:100%;height:100%}
+.prev .cap{position:absolute;left:12px;bottom:10px;font:11px var(--mono);color:var(--t2)}
+.prev .acts{position:absolute;right:10px;top:10px;display:flex;gap:6px}
+.pill{height:26px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;border:1px solid var(--hair2);background:rgba(12,14,22,.8);font:600 11px 'Exo 2';color:var(--t1)}
+.kv{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--hair);border-top:1px solid var(--hair);flex-shrink:0}
+.kv div{background:var(--panel);padding:7px 10px;display:flex;flex-direction:column}
+.kv span{font:10px var(--mono);color:var(--t3);letter-spacing:.06em}
+.kv b{font:600 13px var(--mono);color:var(--t1)}
+.kv b.x{color:var(--x)} .kv b.y{color:var(--y)} .kv b.z{color:var(--z)} .kv b.w{color:var(--warn)}
+.flagline{font:11px var(--mono);color:var(--warn);padding:6px 10px;border-top:1px solid var(--hair);flex-shrink:0}
+
+/* table */
+.tbl{flex:1;min-height:0;overflow:hidden}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font:12px var(--mono)}
+th{font:400 11px var(--mono);color:var(--t3);text-align:right;padding:8px 10px;border-bottom:1px solid var(--hair);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+th:first-child,td:first-child{text-align:center;width:44px}
+th.l,td.l{text-align:left}
+td{padding:7px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.04);color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+tr.sel td{background:var(--neon-soft)}
+tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--neon)}
+.rb{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid;font:600 10px var(--mono)}
+.rb.r1{color:var(--r1);border-color:var(--r1)} .rb.r2{color:var(--r2);border-color:var(--r2)} .rb.r3{color:var(--r3);border-color:var(--r3)}
+.cx{color:var(--x)} .cy{color:var(--y)} .cz{color:var(--z)} .cn{color:var(--r1)} .cv{color:var(--warn)}
+.flg{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-left:4px;vertical-align:2px}
+.uline{border-bottom:1px dotted var(--warn)}
+.rowbtn{font:600 10px 'Exo 2';color:var(--t2);border:1px solid var(--hair2);border-radius:5px;padding:1px 6px;margin-left:4px}
+.pip{display:inline-block;width:6px;height:6px;margin-right:4px;vertical-align:1px;background:var(--r1)}
+
+/* dock + drawer (as F13LD.lab) */
+.dock{height:50px;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--panel);border-top:1px solid var(--hair);flex-shrink:0;position:relative;z-index:3}
+.cfg{height:30px;display:flex;align-items:center;gap:8px;padding:0 11px;border-radius:8px;border:1px solid var(--hair2);background:var(--s2);color:var(--t1);font:600 12px 'Exo 2';cursor:pointer;flex-shrink:0}
+.cfg.open{color:var(--neon);border-color:var(--neon-ring);background:var(--neon-soft)}
+.tags{flex:1;min-width:0;display:flex;gap:6px;overflow:hidden}
+.tag{height:28px;display:inline-flex;align-items:center;gap:7px;padding:0 9px;border-radius:7px;background:var(--s1);border:1px solid var(--hair);font:500 11px var(--mono);color:var(--t2);white-space:nowrap;flex-shrink:0;cursor:pointer}
+.tag b{font:600 11.5px 'Exo 2';color:var(--t1)}
+.tag.off{opacity:.55} .tag.off b{color:var(--t3)}
+.tag .dot{width:7px;height:7px;border-radius:50%}
+.meta{font:500 11px var(--mono);color:var(--t2);white-space:nowrap;display:flex;gap:6px;align-items:center}
+.meta b{color:var(--t1)} .meta .g{color:var(--green)}
+.logchip{height:28px;display:inline-flex;align-items:center;gap:7px;padding:0 9px;border-radius:7px;background:var(--s1);border:1px solid var(--hair);font:11px var(--mono);color:var(--t2);max-width:360px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;flex-shrink:1;min-width:0}
+.logchip b{font:600 11px 'Exo 2';color:var(--t1)}
+.logchip .w{color:var(--warn)}
+.run{height:32px;padding:0 18px;border-radius:8px;border:0;background:var(--sweep-deep);color:var(--sweep-tile);box-shadow:inset 0 0 0 1px rgba(227,155,74,.4);font:700 12px 'Exo 2';letter-spacing:.06em;min-width:130px;display:inline-flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0}
+.drawer{position:absolute;left:0;right:0;bottom:50px;height:0;overflow:hidden;background:var(--s1);border-top:1px solid var(--hair2);display:grid;grid-template-columns:210px 1fr;transition:height .18s;z-index:2}
+.drawer.open{height:300px}
+.dtabs{border-right:1px solid var(--hair);padding:8px}
+.dtab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;font:500 12.5px 'Exo 2';color:var(--t2);cursor:pointer}
+.dtab .mv{font:10.5px var(--mono);color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
+.dtab.on{background:var(--s3);color:var(--t1);box-shadow:inset 2px 0 0 var(--neon)}
+.dbody{padding:14px 18px;overflow:hidden}
+.dh{font:600 14px 'Exo 2';color:var(--t1)} .dsub{font-size:12px;color:var(--t2);margin:2px 0 12px}
+.fgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 22px}
+.f label{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--sec);margin-bottom:6px}
+.inp{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;border:1px solid var(--hair2);border-radius:7px;background:var(--s2);font:12px var(--mono);color:var(--t1)}
+.f p{font-size:11.5px;color:var(--t3);margin-top:5px;line-height:1.45}
+.tog{display:inline-flex;border:1px solid var(--hair2);border-radius:7px;overflow:hidden}
+.tog span{font:600 11px var(--mono);padding:6px 12px;color:var(--t3)}
+.tog span.on{background:var(--neon-soft);color:var(--neon)}
+.tog span.na{opacity:.35}
+.range3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.range3 div{border:1px solid var(--hair2);border-radius:7px;background:var(--s2);padding:4px 8px;font:12px var(--mono);color:var(--t1);display:flex;justify-content:space-between}
+.range3 i{font-style:normal}
+.rk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.rkc{border:1px solid var(--hair2);border-radius:10px;padding:10px;background:var(--s2)}
+.rkc .h{display:flex;align-items:center;gap:7px;font:600 12px 'Exo 2';color:var(--t1);margin-bottom:8px}
+.rkc .h i{width:8px;height:8px;border-radius:50%}
+.rkc .row{display:flex;gap:6px}
+.loglist{font:12px/1.7 var(--mono);color:var(--t2);height:236px;overflow:hidden}
+.loglist .t{color:var(--t3);margin-right:10px}
+.loglist .s{color:var(--green)} .loglist .w{color:var(--warn)}
+
+/* layout variants */
+.A .main{grid-template-columns:minmax(0,2fr) minmax(0,1fr);grid-template-rows:minmax(0,1.15fr) minmax(0,1fr)}
+.A .p-plot{grid-column:1;grid-row:1} .A .p-insp{grid-column:2;grid-row:1} .A .p-tbl{grid-column:1/-1;grid-row:2}
+.B .main{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) 210px}
+.B .p-plot{grid-column:1;grid-row:1/-1} .B .p-tbl{grid-column:2;grid-row:1} .B .p-insp{grid-column:2;grid-row:2}
+.B .p-insp .insp{flex-direction:row} .B .p-tbl .badge{display:none} .B td:nth-child(2),.B th:nth-child(2){display:none} .B .p-insp .prev{flex:0 0 210px} .B .p-insp .kv{flex:1;grid-template-columns:1fr 1fr;border-top:0;border-left:1px solid var(--hair)}
+.C .main{grid-template-columns:1fr;grid-template-rows:1fr;padding:0}
+.C .p-plot{border-radius:0;border:0} .C .p-tbl,.C .p-insp{position:absolute}
+.C .p-insp{right:16px;top:60px;width:300px;height:330px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.C .p-tbl{left:0;right:0;bottom:50px;height:360px;border-radius:14px 14px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.45)}
+.C .grab{position:absolute;left:50%;top:6px;width:44px;height:4px;border-radius:2px;background:var(--hair2);transform:translateX(-50%)}
+.C .p-tbl .ph{padding-top:6px}
+.C .plot{flex:none;height:460px}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <h1>F13LD<span>.sweep</span> · UI mockups</h1>
+    <p>Three layouts for v0.25.0. All three move every sidebar setting into F13LD.lab's dock + Configure drawer, drop the seven stat cards for a one-line funnel above the table, and shrink the pipeline log to a chip in the dock (its full text opens in the drawer). Active controls are neon; Sweep's amber stays for the tool name, the header tile and Run. Click <b>Configure</b>, a dock tag or the log chip to open the drawer; click a table row to select it.</p>
+  </div>
+  <div class="pick" id="pick">
+    <button data-v="A" class="on">A · Plot over table</button>
+    <button data-v="B">B · Plot beside table</button>
+    <button data-v="C">C · Full-screen plot, table sheet</button>
+    <span class="hint">1440 × 900, scaled to fit</span>
+  </div>
+  <div class="notes">
+    <div class="note on" data-n="A"><b>A — recommended.</b> The design space takes the top two-thirds of the width, the selected design's preview and key numbers sit beside it, and the table runs full width below, so all 8 metric columns fit. Phone: plot, then preview, then table.</div>
+    <div class="note" data-n="B"><b>B.</b> The plot is a tall square on the left; the table sits beside it on the right with the preview strip under it. The table gets about 650 px, so it shows the rank metrics, VF and stiffness, and the rest move to the detail view. Phone: same as A.</div>
+    <div class="note" data-n="C"><b>C.</b> The plot fills the screen like a map; the table is a sheet that slides up from the dock (half, full or tucked away) and the preview floats over the plot. Most immersive, but the plot is partly covered while you read the table.</div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="frame A" id="frame">
+      <header class="top">
+        <div class="brand">
+          <svg width="24" height="24" viewBox="0 0 100 100"><defs><clipPath id="cl"><path d="M50,5 C91,5 95,9 95,50 C95,91 91,95 50,95 C9,95 5,91 5,50 C5,9 9,5 50,5Z"/></clipPath></defs><path d="M50,5 C91,5 95,9 95,50 C95,91 91,95 50,95 C9,95 5,91 5,50 C5,9 9,5 50,5Z" fill="#111e13" stroke="#1D9E75" stroke-width="5"/><g clip-path="url(#cl)" fill="none"><path d="M0,50 Q25,40 50,50 Q75,60 100,50" stroke="#c8f542" stroke-width="6"/><path d="M50,0 Q40,25 50,50 Q60,75 50,100" stroke="#c8f542" stroke-width="6"/><path d="M0,31 Q25,21 50,31 Q75,41 100,31 M0,69 Q25,59 50,69 Q75,79 100,69 M31,0 Q21,25 31,50 Q41,75 31,100 M69,0 Q59,25 69,50 Q79,75 69,100" stroke="#2c4e30" stroke-width="3"/><circle cx="50" cy="50" r="7" fill="#c8f542"/></g></svg>
+          <span class="wm"><span style="color:#1D9E75">F</span><span style="color:#c8f542">13</span><span style="color:#1D9E75">LD</span></span>
+          <span class="div"></span><span class="tool">SWEEP</span>
+        </div>
+        <div class="recipe" data-open="sweep" title="Load or change the base recipe">⬡ <b>gyroid.json</b> TPMS · shell · 3 terms <span class="chg">change</span></div>
+        <span class="sp"></span>
+        <button class="hbtn">↓ Export results</button>
+        <button class="hbtn dim">↓ Export design</button>
+        <span class="ver">v0.25.0</span>
+        <span class="tile"><svg width="16" height="16" viewBox="0 0 40 40"><g stroke="#633806" stroke-width="1.8" stroke-linecap="round"><line x1="7" y1="34" x2="18" y2="4"/><line x1="7" y1="34" x2="26" y2="6"/><line x1="7" y1="34" x2="33" y2="10"/><line x1="7" y1="34" x2="37" y2="18" opacity=".5"/><line x1="7" y1="34" x2="37" y2="28" opacity=".25"/></g><circle cx="7" cy="34" r="3" fill="#633806"/></svg></span>
+      </header>
+
+      <div class="main">
+        <section class="pnl p-plot">
+          <div class="ph"><span class="pt">Design space</span><span class="seg"><span class="on">Rank</span><span>Terms</span><span>Flags</span></span><span class="sp"></span><span class="badge">24 designs</span></div>
+          <div class="plot"><svg id="plotSvg" viewBox="0 0 800 420" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="axes-pick"><span><i>X</i>E/ρ</span><span><i>Y</i>Ex</span><span><i>Z</i>ρ%</span></div>
+            <div class="legend"><span><i style="background:var(--r1)"></i>rank 1–3</span><span><i style="background:#3a4150"></i>others</span><span><i style="background:var(--warn)"></i>flagged</span></div>
+          </div>
+        </section>
+
+        <section class="pnl p-insp">
+          <div class="ph"><span class="pt">Design #4</span><span class="badge" style="color:var(--r1);border-color:rgba(200,245,66,.4)">rank 1</span><span class="sp"></span><span class="pill">Lab</span><span class="pill">Mesh</span></div>
+          <div class="insp">
+            <div class="prev"><svg viewBox="0 0 300 220" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="gg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#7fe0c4"/><stop offset="1" stop-color="#1f6f62"/></linearGradient></defs><g transform="translate(150 112)"><path d="M-70,-50 C-30,-80 30,-20 70,-50 C80,-10 40,20 70,50 C30,80 -30,20 -70,50 C-80,10 -40,-20 -70,-50Z" fill="url(#gg)" opacity=".95"/><circle cx="-18" cy="-6" r="16" fill="#0b0f14"/><circle cx="28" cy="20" r="11" fill="#0b0f14"/></g></svg>
+              <div class="cap">Sx 0.87 · Sy 1.63 · Sz 1.63 · cell 1 : 0.54 : 0.54</div></div>
+            <div class="kv">
+              <div><span>VF</span><b>40.2 %</b></div><div><span>E/ρ</span><b style="color:var(--r1)">59.9</b></div><div><span>α</span><b>1.81×</b></div>
+              <div><span>Ex</span><b class="x">24.6</b></div><div><span>Ey</span><b class="y">17.0</b></div><div><span>Ez</span><b class="z">30.7</b></div>
+              <div><span>Gyz</span><b>9.8</b></div><div><span>Gxz</span><b>8.1</b></div><div><span>Gxy</span><b>7.4</b></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="pnl p-tbl">
+          <span class="grab"></span>
+          <div class="ph"><span class="pt">Results</span><span class="seg"><span class="on">Ideal corner</span><span>Outlier</span></span>
+            <span class="funnel"><b>57</b> drawn <span class="ar">→</span> <b>24</b> valid <span class="ar">→</span> <span class="p1">R1</span> sort <b>24</b> <span class="ar">→</span> <span class="p2">R2</span> off <span class="ar">→</span> <span class="p3">R3</span> off · <b>3</b> flagged</span>
+            <span class="sp"></span><span class="badge">24 designs</span></div>
+          <div class="tbl"><table id="tbl"><thead><tr><th>#</th><th>α</th><th>Ex</th><th>Ey</th><th>Ez</th><th>Gxy</th><th><span class="pip"></span>E/ρ</th><th>κ</th><th>ρ%</th><th style="width:116px">Open in</th></tr></thead><tbody></tbody></table></div>
+        </section>
+      </div>
+
+      <div class="drawer" id="drawer">
+        <div class="dtabs" id="dtabs">
+          <div class="dtab on" data-t="sweep">Recipe &amp; sweep <span class="mv">24 · Sobol</span></div>
+          <div class="dtab" data-t="mat">Domain &amp; material <span class="mv">Ti-6Al-4V</span></div>
+          <div class="dtab" data-t="solver">Solver <span class="mv">GPU · Fast · 32</span></div>
+          <div class="dtab" data-t="ranks">Ranks <span class="mv">E/ρ ▲</span></div>
+          <div class="dtab" data-t="log">Log <span class="mv">2 notes</span></div>
+          <div class="dtab" data-t="key">Metric key <span class="mv">26</span></div>
+        </div>
+        <div class="dbody" id="dbody"></div>
+      </div>
+
+      <div class="dock">
+        <button class="cfg" id="cfg"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.6"/><circle cx="5.5" cy="12" r="1.6"/></svg>Configure <span class="chev">▾</span></button>
+        <div class="tags">
+          <span class="tag" data-open="sweep"><b>24</b> designs · Sobol · 50–200 %</span>
+          <span class="tag" data-open="mat"><b>Ti-6Al-4V</b> General</span>
+          <span class="tag" data-open="solver"><b>Fast</b> N=32</span>
+          <span class="tag" data-open="ranks"><span class="dot" style="background:var(--r1)"></span><b>E/ρ</b> ▲</span>
+          <span class="tag off" data-open="ranks"><span class="dot" style="background:var(--r2)"></span><b>R2</b> off</span>
+          <span class="tag off" data-open="ranks"><span class="dot" style="background:var(--r3)"></span><b>R3</b> off</span>
+        </div>
+        <span class="logchip" data-open="log"><b>Log</b> 24 valid · 33 discarded <span class="w">· 1 warning</span></span>
+        <span class="meta"><span class="g">●</span> GPU · nvidia</span>
+        <button class="run"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 1 L9 5 L2 9 Z" fill="currentColor"/></svg>Run sweep</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── static demo data ── */
+var rows = [
+  [1,1.808,24.59,16.98,30.70,7.42,59.87,1.00,40.2,0],[2,1.093,28.10,30.43,30.71,10.2,56.94,1.00,52.3,0],[3,1.236,32.54,26.33,27.63,9.71,55.09,1.00,52.3,0],
+  [4,2.327,39.80,27.61,17.11,8.84,53.48,1.00,52.7,0],[5,1.353,31.66,30.78,23.40,9.95,53.03,1.00,54.0,0],[6,2.351,20.77,35.19,14.97,7.06,52.86,1.00,44.7,0],
+  [7,2.353,12.34,29.03,24.89,6.12,52.59,1.00,42.0,0],[8,5.045,21.68,8.48,42.78,4.91,51.98,1.00,46.8,1],[9,1.280,16.52,13.55,17.34,5.28,48.30,1.00,32.7,0],
+  [10,3.910,0.92,14.10,22.40,0.81,41.20,0.67,37.1,2],[11,1.410,18.20,15.60,21.90,6.40,47.80,1.00,38.9,0],[12,2.020,26.30,13.10,19.40,6.95,46.90,1.00,43.0,0]
+];
+var sel = 1;
+function renderTable() {
+  var tb = document.querySelector('#tbl tbody'), h = '';
+  rows.forEach(function (r, i) {
+    var rank = i < 3 ? '<span class="rb r' + (i + 1) + '">' + (i + 1) + '</span>' : (i + 1);
+    var fl = r[9] ? '<span class="flg" title="stiffness may read high"></span>' : '';
+    var ex = r[9] === 2 ? '<span class="uline">' + r[2].toFixed(2) + '</span>' : r[2].toFixed(2);
+    h += '<tr class="' + (i === sel ? 'sel' : '') + '" data-i="' + i + '"><td>' + rank + fl + '</td><td>' + r[1].toFixed(3) + '×</td><td class="cx">' + ex + '</td><td class="cy">' + r[3].toFixed(2) +
+      '</td><td class="cz">' + r[4].toFixed(2) + '</td><td>' + r[5].toFixed(2) + '</td><td class="cn">' + r[6].toFixed(2) + '</td><td>' + r[7].toFixed(2) + '</td><td class="cv">' + r[8].toFixed(1) +
+      '%</td><td><span class="rowbtn">Lab</span><span class="rowbtn">Mesh</span></td></tr>';
+  });
+  tb.innerHTML = h;
+}
+/* plot: isometric cube, points */
+function renderPlot() {
+  var s = document.getElementById('plotSvg'), W = 800, H = 420, cx = 400, cy = 230, k = 150;
+  function P(x, y, z) { return [cx + (x - z) * k * 0.87, cy + (x + z) * k * 0.5 - y * k * 1.15]; }
+  var e = [[[-1,0,-1],[1,0,-1]],[[1,0,-1],[1,0,1]],[[1,0,1],[-1,0,1]],[[-1,0,1],[-1,0,-1]],[[-1,1,-1],[1,1,-1]],[[1,1,-1],[1,1,1]],[[1,1,1],[-1,1,1]],[[-1,1,1],[-1,1,-1]],[[-1,0,-1],[-1,1,-1]],[[1,0,-1],[1,1,-1]],[[1,0,1],[1,1,1]],[[-1,0,1],[-1,1,1]]];
+  var g = '';
+  for (var i = 1; i < 4; i++) { var t = -1 + i * 0.5, a = P(t, 0, -1), b = P(t, 0, 1), c = P(-1, 0, t), d = P(1, 0, t); g += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="#1c2230"/><line x1="' + c[0] + '" y1="' + c[1] + '" x2="' + d[0] + '" y2="' + d[1] + '" stroke="#1c2230"/>'; }
+  e.forEach(function (l) { var a = P.apply(null, l[0]), b = P.apply(null, l[1]); g += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="#2a3142"/>'; });
+  var ax = [[[ -1,0,1],[1,0,1],'#5fb5b5','E/ρ'],[[-1,0,1],[-1,1,1],'#c794d4','Ex'],[[-1,0,1],[-1,0,-1],'#d4b04a','ρ%']];
+  ax.forEach(function (l) { var a = P.apply(null, l[0]), b = P.apply(null, l[1]); g += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="' + l[2] + '" stroke-width="1.6"/><text x="' + (b[0] + 6) + '" y="' + (b[1] + 4) + '" fill="' + l[2] + '" font-family="JetBrains Mono" font-size="12">' + l[3] + '</text>'; });
+  var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+  var pts = [];
+  for (var n = 0; n < 24; n++) pts.push([rnd() * 2 - 1, rnd(), rnd() * 2 - 1, n]);
+  pts[0] = [0.85, 0.62, 0.1, 0]; pts[1] = [0.6, 0.72, -0.3, 1]; pts[2] = [0.5, 0.8, -0.2, 2]; pts[7] = [0.2, 0.9, -0.6, 7]; pts[9] = [-0.4, 0.05, 0.3, 9];
+  pts.sort(function (a, b) { return (a[0] + a[2]) - (b[0] + b[2]); });
+  var ideal = P(1, 1, -1);
+  g += '<circle cx="' + ideal[0] + '" cy="' + ideal[1] + '" r="9" fill="none" stroke="#e4e6f2" stroke-width="1.2"/><line x1="' + (ideal[0] - 13) + '" y1="' + ideal[1] + '" x2="' + (ideal[0] + 13) + '" y2="' + ideal[1] + '" stroke="#e4e6f2"/><line x1="' + ideal[0] + '" y1="' + (ideal[1] - 13) + '" x2="' + ideal[0] + '" y2="' + (ideal[1] + 13) + '" stroke="#e4e6f2"/><text x="' + (ideal[0] + 12) + '" y="' + (ideal[1] - 10) + '" fill="#9a9fb7" font-family="JetBrains Mono" font-size="11">ideal</text>';
+  pts.forEach(function (p) {
+    var q = P(p[0], p[1], p[2]), i = p[3], col = i === 0 ? '#c8f542' : i === 1 ? '#1D9E75' : i === 2 ? '#b598d4' : (i === 7 || i === 9) ? '#f59e0b' : '#3a4150';
+    var r = i < 3 ? 7 : 5;
+    g += '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + r + '" fill="' + col + '" opacity="' + (i < 3 || i === 7 || i === 9 ? 1 : 0.85) + '"/>';
+    if (i === sel) g += '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="12" fill="none" stroke="#c8f542" stroke-width="1.5"/>';
+  });
+  s.innerHTML = g;
+}
+/* drawer bodies */
+var BODIES = {
+  sweep: '<div class="dh">Recipe &amp; sweep</div><div class="dsub">The design every sample varies, how far, and how many.</div><div class="fgrid">' +
+    '<div class="f"><label>Base recipe</label><div class="inp">gyroid.json <span style="color:var(--t3)">change</span></div><p>TPMS · shell · 3 terms · shell_normalize on. Drop a recipe anywhere on the page.</p></div>' +
+    '<div class="f"><label>Cell scale, % of nominal (min → max)</label><div class="range3"><div><i style="color:var(--x)">X</i>50 → 200</div><div><i style="color:var(--y)">Y</i>50 → 200</div><div><i style="color:var(--z)">Z</i>50 → 200</div></div><p>Nominal cell scale 1 · X 0.5 → 2 · Y 0.5 → 2 · Z 0.5 → 2.</p></div>' +
+    '<div class="f"><label>Designs · sampling</label><div class="inp">24 <span style="color:var(--t3)">Sobol (low-discrepancy)</span></div><p>Sobol covers the space evenly at small counts; uniform random is fully stochastic.</p></div></div>',
+  mat: '<div class="dh">Domain &amp; material</div><div class="dsub">Sets the reference stress, the default ranks and the material the solver uses.</div><div class="fgrid">' +
+    '<div class="f"><label>Application domain</label><div class="inp">General / agnostic ▾</div><p>Domains pick sensible rank metrics and table columns.</p></div>' +
+    '<div class="f"><label>Material</label><div class="inp">Ti-6Al-4V (Grade 5) ▾</div><p>E 110 GPa · ν 0.34 · k 6.7 W/m·K.</p></div>' +
+    '<div class="f"><label>Reference stress · cell size</label><div class="inp">2 MPa <span style="color:var(--t3)">2.0 mm</span></div><p>For microstrain and pore sizes in µm.</p></div></div>',
+  solver: '<div class="dh">Solver</div><div class="dsub">GPU · nvidia · lovelace — F13LD.lab elastic 6 × 6 + thermal.</div><div class="fgrid">' +
+    '<div class="f"><label>Precision</label><span class="tog"><span class="on">FAST</span><span>RIGOROUS</span></span><p>Fast: pores 1/1000 of the solid, CG 1e-3, metrics on 48³ — quick comparisons; weak axes are flagged. Rigorous: F13LD.lab\'s sweep settings.</p></div>' +
+    '<div class="f"><label>Resolution</label><span class="tog"><span>N=16</span><span class="on">N=32</span><span>N=64</span></span><p>PI-TPMS and beams always run at 32 or finer.</p></div>' +
+    '<div class="f"><label>Solver in use</label><div class="inp">GPU · nvidia · lovelace</div><p>Add ?gpu=0 to the address for the CPU solver.</p></div></div>',
+  ranks: '<div class="dh">Ranks</div><div class="dsub">Rank 1 sorts; ranks 2 and 3 keep the top share of what is left. The table and plot can still be sorted by any column.</div><div class="rk">' +
+    '<div class="rkc"><div class="h"><i style="background:var(--r1)"></i>Rank 1 · sort</div><div class="row"><div class="inp" style="flex:1">Stiffness / density ▾</div><span class="tog"><span class="on">MAX</span><span>MIN</span></span></div></div>' +
+    '<div class="rkc"><div class="h"><i style="background:var(--r2)"></i>Rank 2 · keep top %</div><div class="row"><div class="inp" style="flex:1;color:var(--t3)">— off — ▾</div><div class="inp" style="width:70px;color:var(--t3)">100 %</div></div></div>' +
+    '<div class="rkc"><div class="h"><i style="background:var(--r3)"></i>Rank 3 · keep top %</div><div class="row"><div class="inp" style="flex:1;color:var(--t3)">— off — ▾</div><div class="inp" style="width:70px;color:var(--t3)">100 %</div></div></div></div>',
+  log: '<div class="dh">Log</div><div class="loglist"><div><span class="t">15:38:20</span>Solver: GPU (nvidia · lovelace) · F13LD.lab elastic 6×6 + thermal · N = 32 · void 1e-3 · CG tol 1e-3</div><div><span class="t">15:38:22</span><span class="s">24 valid designs collected · 33 degenerate discarded (57 attempts)</span></div><div><span class="t">15:38:22</span>Discard breakdown — vf-hi: 33</div><div><span class="t">15:38:22</span>GPU: 13.5 s for 57 attempts · median GPU solve 320 ms per design · GPU had work 58 % of the time</div><div><span class="t">15:38:22</span><span class="w">3 designs flagged: stiffness may read high</span></div><div><span class="t">15:38:22</span>Ranked by distance from ideal corner across 1 metric</div></div>',
+  key: '<div class="dh">Metric key</div><div class="dsub">Hover any table header or plot axis for the same text.</div><div class="fgrid" style="font:11.5px var(--mono);color:var(--t2)"><div><b style="color:var(--t1)">α</b> anisotropy — strongest ÷ weakest axis</div><div><b style="color:var(--t1)">E/ρ</b> mean stiffness per unit material</div><div><b style="color:var(--t1)">Gxy</b> shear modulus, XY plane</div><div><b style="color:var(--t1)">κ</b> fraction of axes connected</div><div><b style="color:var(--t1)">ρ%</b> solid share of the cell</div><div><b style="color:var(--warn)">●</b> stiffness may read high</div></div>'
+};
+var drawerOpen = false, tab = 'sweep';
+function setTab(t) {
+  tab = t;
+  document.querySelectorAll('.dtab').forEach(function (d) { d.classList.toggle('on', d.dataset.t === t); });
+  document.getElementById('dbody').innerHTML = BODIES[t];
+}
+function openDrawer(open, t) {
+  drawerOpen = open;
+  document.getElementById('drawer').classList.toggle('open', open);
+  document.getElementById('cfg').classList.toggle('open', open);
+  if (t) setTab(t);
+}
+document.getElementById('cfg').onclick = function () { openDrawer(!drawerOpen); };
+document.querySelectorAll('[data-open]').forEach(function (el) { el.onclick = function () { openDrawer(!(drawerOpen && tab === el.dataset.open), el.dataset.open); }; });
+document.querySelectorAll('.dtab').forEach(function (d) { d.onclick = function () { setTab(d.dataset.t); }; });
+document.getElementById('tbl').onclick = function (e) { var tr = e.target.closest('tr[data-i]'); if (!tr) return; sel = +tr.dataset.i; renderTable(); renderPlot(); };
+document.querySelectorAll('#pick button').forEach(function (b) {
+  b.onclick = function () {
+    document.querySelectorAll('#pick button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    document.querySelectorAll('.note').forEach(function (n) { n.classList.toggle('on', n.dataset.n === b.dataset.v); });
+    document.getElementById('frame').className = 'frame ' + b.dataset.v;
+  };
+});
+/* scale the 1440 × 900 frame to the page width (no horizontal scroll) */
+function fit() {
+  var st = document.getElementById('stage'), f = document.getElementById('frame'), s = Math.min(1, st.clientWidth / 1440);
+  f.style.transform = 'scale(' + s + ')'; st.style.height = (900 * s) + 'px';
+}
+window.addEventListener('resize', fit);
+setTab('sweep'); renderTable(); renderPlot(); fit();
+</script>
+</body>
+</html>
