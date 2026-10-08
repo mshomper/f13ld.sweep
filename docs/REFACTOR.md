@@ -61,3 +61,14 @@ From `docs/AUDIT_v0.19.0.md`. Numbers move on purpose (seeded sampling, periodic
 - Ranking: KNN / k-means skip missing metrics; keep-% clamped to 1–100. U-strain target bias sign fixed. Hidden σ_ref field ignored.
 - Solver pool: jobs tracked per worker; a crashed worker rejects its own job and is replaced.
 - Export adds `throat_x/y/z`, `tortuosity_nonperc` per design (additive; shape unchanged).
+
+## v0.23.0 — UI pass (2026-10-08)
+No numbers move; export shape unchanged.
+- Styling follows F13LD.lab: Exo 2 + JetBrains Mono, Lab's panel / line / ink tokens, Lab's pill buttons. Sweep's own accent (`--sweep` #E39B4A on dark, `--sweep-deep` #633806, `--sweep-tile` #FAEEDA) replaces neon for active marks; neon / green / lavender stay as rank colours.
+- Results table: at most 8 metric columns — volume fraction, the active rank metrics (marked with their rank colour), then the domain's key metrics (`DOMAIN_COLUMNS` in 71-results-table.js). Ex/Ey/Ez and kx/ky/kz show whole or not at all. The metric key follows the table.
+- Clicking a row (or Enter on it) opens a detail panel with every metric and design parameter, plus Open in Lab / Mesh.
+- Every row is rendered (the 200-row cap is gone), so the table and the design-space plot always show the same designs.
+- Each row has Lab and Mesh push buttons. Lab gets the same `#r=` recipe as Mesh, plus `geometry.cell_size_mm` from the sweep context (non-beam) and a title.
+- No horizontal scrolling: fixed table layout; under 760 px the page is one column and only rank, rank-metric, VF and action columns stay.
+- Keyboard: rows and headers are focusable; Enter / Space selects or sorts; ↑ ↓ move between rows; focus previews like hover.
+- Fixed: duplicate `nominalLabel` id; loading a recipe reset the k-means map to an array (crashed Terms colouring on the next sweep); missing values sort last.

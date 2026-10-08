@@ -194,41 +194,47 @@ function setDirBtn(rank, dir) {
   });
 }
 
-function renderMetricKey() {
-  const ALL_KEY_ENTRIES = [
-    { key:'anisotropy',      sym:'α',    name:'Anisotropy Ratio',    desc:'strongest vs. weakest axis' },
-    { key:'stiffness_density',sym:'E/ρ', name:'Stiff / Density',     desc:'mean stiffness per unit material' },
-    { key:'aniso_efficiency', sym:'α/ρ', name:'Aniso / Density',     desc:'directional bias per unit material' },
-    { key:'directionality',   sym:'Ψ',   name:'Directionality',      desc:'fraction of total stiffness on peak axis (max/sum, all axes)' },
-    { key:'ortho_contrast',   sym:'Ω',   name:'Ortho Spread',        desc:'spread across all three axes' },
-    { key:'stiff_axis',       sym:'ax',  name:'Stiff Axis',          desc:'X/Y/Z direction of peak stiffness' },
-    { key:'connect_idx',      sym:'κ',   name:'Connectivity',        desc:'fraction of axes mechanically connected' },
-    { key:'keff_x',           sym:'kx',  name:'Thermal Cond. X',     desc:'effective k in X direction' },
-    { key:'keff_y',           sym:'ky',  name:'Thermal Cond. Y',     desc:'effective k in Y direction' },
-    { key:'keff_z',           sym:'kz',  name:'Thermal Cond. Z',     desc:'effective k in Z direction' },
-    { key:'thermal_anisotropy',sym:'kα', name:'Thermal Aniso.',      desc:'max vs. min directional conductivity' },
-    { key:'k_density',        sym:'k/ρ', name:'Thermal / Density',   desc:'mean k per unit material volume' },
-    { key:'U_strain',         sym:'U',   name:'Strain Energy',       desc:'mean strain energy density (kJ/m³) under ref stress' },
-    { key:'microstrain_x',    sym:'με·X',name:'Microstrain X',       desc:'με under ref load in X' },
-    { key:'microstrain_y',    sym:'με·Y',name:'Microstrain Y',       desc:'με under ref load in Y' },
-    { key:'microstrain_z',    sym:'με·Z',name:'Microstrain Z',       desc:'με under ref load in Z' },
-    { key:'microstrain_avg',  sym:'με̄', name:'Avg Microstrain (Frost)',  desc:'isotropic mean · Frost (1987): <200 disuse · 200–1500 maintenance · 1500–3000 osteogenic ✓ · >3000 overload' },
-    { key:'pore_size',        sym:'φ',   name:'Mean Pore Size',      desc:'inscribed sphere diameter (µm)' },
-    { key:'throat_size',      sym:'φt',  name:'Min Throat Diam.',    desc:'narrowest pore connection (µm)' },
-    { key:'throat_ratio',     sym:'φt/c',name:'Throat Ratio',        desc:'v0.13: throat as fraction of cell — raw, no VF gate (vault composes any gate)' },
-    { key:'perc_idx',         sym:'perc',name:'Void Percolation',    desc:'fraction of axes with open pore channels' },
-    { key:'surface_complexity',sym:'SA', name:'Surface Complexity',  desc:'SA/V proxy — v0.13: raw, no min(1,…) cap' },
-    { key:'volume_fraction',  sym:'ρ%',  name:'Volume Fraction',     desc:'% of unit cell that is solid material' },
-  ];
+// Metric names / symbols / descriptions — metric key, table headers, detail panel.
+const METRIC_INFO_LIST = [
+  { key:'anisotropy',      sym:'α',    name:'Anisotropy Ratio',    desc:'strongest vs. weakest axis' },
+  { key:'Ex_GPa',           sym:'Ex',  name:'Stiffness X',         desc:'effective Young\'s modulus along X (GPa)' },
+  { key:'Ey_GPa',           sym:'Ey',  name:'Stiffness Y',         desc:'effective Young\'s modulus along Y (GPa)' },
+  { key:'Ez_GPa',           sym:'Ez',  name:'Stiffness Z',         desc:'effective Young\'s modulus along Z (GPa)' },
+  { key:'stiffness_density',sym:'E/ρ', name:'Stiff / Density',     desc:'mean stiffness per unit material' },
+  { key:'aniso_efficiency', sym:'α/ρ', name:'Aniso / Density',     desc:'directional bias per unit material' },
+  { key:'directionality',   sym:'Ψ',   name:'Directionality',      desc:'fraction of total stiffness on peak axis (max/sum, all axes)' },
+  { key:'ortho_contrast',   sym:'Ω',   name:'Ortho Spread',        desc:'spread across all three axes' },
+  { key:'stiff_axis',       sym:'ax',  name:'Stiff Axis',          desc:'X/Y/Z direction of peak stiffness' },
+  { key:'connect_idx',      sym:'κ',   name:'Connectivity',        desc:'fraction of axes mechanically connected' },
+  { key:'keff_x',           sym:'kx',  name:'Thermal Cond. X',     desc:'effective k in X direction' },
+  { key:'keff_y',           sym:'ky',  name:'Thermal Cond. Y',     desc:'effective k in Y direction' },
+  { key:'keff_z',           sym:'kz',  name:'Thermal Cond. Z',     desc:'effective k in Z direction' },
+  { key:'thermal_anisotropy',sym:'kα', name:'Thermal Aniso.',      desc:'max vs. min directional conductivity' },
+  { key:'k_density',        sym:'k/ρ', name:'Thermal / Density',   desc:'mean k per unit material volume' },
+  { key:'U_strain',         sym:'U',   name:'Strain Energy',       desc:'mean strain energy density (kJ/m³) under ref stress' },
+  { key:'microstrain_x',    sym:'με·X',name:'Microstrain X',       desc:'με under ref load in X' },
+  { key:'microstrain_y',    sym:'με·Y',name:'Microstrain Y',       desc:'με under ref load in Y' },
+  { key:'microstrain_z',    sym:'με·Z',name:'Microstrain Z',       desc:'με under ref load in Z' },
+  { key:'microstrain_avg',  sym:'με̄', name:'Avg Microstrain (Frost)',  desc:'isotropic mean · Frost (1987): <200 disuse · 200–1500 maintenance · 1500–3000 osteogenic ✓ · >3000 overload' },
+  { key:'pore_size',        sym:'φ',   name:'Mean Pore Size',      desc:'inscribed sphere diameter (µm)' },
+  { key:'throat_size',      sym:'φt',  name:'Min Throat Diam.',    desc:'narrowest pore connection (µm)' },
+  { key:'throat_ratio',     sym:'φt/c',name:'Throat Ratio',        desc:'v0.13: throat as fraction of cell — raw, no VF gate (vault composes any gate)' },
+  { key:'perc_idx',         sym:'perc',name:'Void Percolation',    desc:'fraction of axes with open pore channels' },
+  { key:'surface_complexity',sym:'SA', name:'Surface Complexity',  desc:'SA/V proxy — v0.13: raw, no min(1,…) cap' },
+  { key:'volume_fraction',  sym:'ρ%',  name:'Volume Fraction',     desc:'% of unit cell that is solid material' },
+];
+const METRIC_INFO = Object.fromEntries(METRIC_INFO_LIST.map(e => [e.key, e]));
 
-  const visible = activeDomainShow;
-  const entries = ALL_KEY_ENTRIES.filter(e => visible.includes(e.key));
+// Metric key lists what the results table shows (71-results-table.js).
+function renderMetricKey(keys) {
+  if (!keys) keys = (typeof tableColumnKeys === 'function') ? tableColumnKeys().keys : activeDomainShow;
+  const entries = METRIC_INFO_LIST.filter(e => keys.includes(e.key));
   const html = entries.map(e => `
-    <div style="display:grid;grid-template-columns:28px 1fr;gap:4px;align-items:baseline">
-      <span style="color:var(--accent);font-size:11px;font-family:'Azeret Mono',monospace">${e.sym}</span>
-      <span><span style="color:var(--text)">${e.name}</span> <span style="color:var(--muted)">— ${e.desc}</span></span>
-    </div>`).join('');
-
+    <div style="display:grid;grid-template-columns:34px 1fr;gap:4px;align-items:baseline">
+      <span style="color:var(--accent);font-size:11px;font-family:var(--mono)">${e.sym}</span>
+      <span><span style="color:var(--ink)">${e.name}</span> <span style="color:var(--muted)">— ${e.desc}</span></span>
+    </div>`).join('') +
+    `<div style="color:var(--ink-dim);margin-top:4px">Click a row for every metric of that design.</div>`;
   const container = document.getElementById('metricKeyBody');
   if (container) container.innerHTML = html;
 }

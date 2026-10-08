@@ -143,7 +143,7 @@ function drawPlot() {
     const ly = e.sy + (e.sy - o.sy) * 0.18;
     pctx.fillStyle = ax.color;
     pctx.globalAlpha = 0.9;
-    pctx.font = `500 8.5px "Azeret Mono", monospace`;
+    pctx.font = `500 8.5px "JetBrains Mono", monospace`;
     pctx.textAlign = 'center';
     pctx.fillText(ax.label, lx, ly);
     pctx.globalAlpha = 1;
@@ -223,7 +223,7 @@ function drawPlot() {
   pctx.lineTo(idealProj.sx, idealProj.sy + 7);
   pctx.stroke();
   pctx.fillStyle = 'rgba(255,255,255,0.45)';
-  pctx.font = '300 8px "Azeret Mono", monospace';
+  pctx.font = '400 8px "JetBrains Mono", monospace';
   pctx.textAlign = 'center';
   pctx.fillText('ideal', idealProj.sx, idealProj.sy + 16);
 
@@ -238,11 +238,11 @@ function drawPlot() {
       pctx.roundRect(tx, ty - 12, 115, 44, 4);
       pctx.fill();
       pctx.fillStyle = '#c8f542';
-      pctx.font = '500 10px "Azeret Mono", monospace';
+      pctx.font = '500 10px "JetBrains Mono", monospace';
       pctx.textAlign = 'left';
       pctx.fillText(`#${plotHovered.id}`, tx + 8, ty + 2);
       pctx.fillStyle = '#7a9ab5';
-      pctx.font = '300 9px "Azeret Mono", monospace';
+      pctx.font = '400 9px "JetBrains Mono", monospace';
       pctx.fillText(`${(plotHovered[axes.x]||0).toFixed(2)} · ${(plotHovered[axes.y]||0).toFixed(2)} · ${(plotHovered[axes.z]||0).toFixed(2)}`, tx + 8, ty + 16);
       pctx.fillStyle = '#5a7a5a';
       pctx.fillText(`aniso ${(plotHovered.anisotropy||0).toFixed(2)}×`, tx + 8, ty + 28);
@@ -323,17 +323,7 @@ window.addEventListener('mousemove', e => {
 // Click to select
 plotCanvas.addEventListener('click', () => {
   if (plotHovered) {
-    selectedDesign = plotHovered;
-    document.querySelectorAll('tr.selected-row').forEach(r => r.classList.remove('selected-row'));
-    const row = document.querySelector(`tr[data-design-id="${plotHovered.id}"]`);
-    if (row) { row.classList.add('selected-row'); row.scrollIntoView({ block: 'nearest' }); }
-    const btn = document.getElementById('exportDesignBtn');
-    btn.disabled = false;
-    btn.style.color = 'var(--accent)';
-    btn.style.borderColor = 'rgba(200,245,66,0.4)';
-    btn.style.cursor = 'pointer';
-    document.getElementById('selectedLabel').textContent = `design #${plotHovered.id} selected`;
-    document.getElementById('selectedLabel').style.color = 'var(--accent)';
+    selectDesign(plotHovered, { scroll: true });
     drawPlot();
   }
 });

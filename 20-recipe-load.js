@@ -45,7 +45,7 @@ function loadRecipe(json, name) {
   results = [];
   currentFiltered = [];
   plotData = [];
-  clusterAssignments = [];
+  clusterAssignments = new Map();
   lastSweepTargetProfile = null;
   recipeLoadId++;
   const tableWrapEl = document.getElementById('tableWrap');
@@ -57,8 +57,9 @@ function loadRecipe(json, name) {
   if (badgeEl) badgeEl.textContent = '0 designs';
   for (const id of ['validateBtn', 'exportDesignBtn']) {
     const b = document.getElementById(id);
-    if (b) { b.disabled = true; b.style.opacity = '0.5'; b.style.cursor = 'not-allowed'; }
+    if (b) b.disabled = true;            /* look comes from .pill-btn:disabled */
   }
+  if (typeof clearSelection === 'function') clearSelection();
   if (typeof drawPlot === 'function') drawPlot();
   document.getElementById('runBtn').disabled = true;
 

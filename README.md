@@ -23,8 +23,9 @@ f13ld.sweep takes an implicit recipe (exported from other [f13ld](f13ld.app) too
 3. Select your application domain and material
 4. Set your filtration ranks and target metrics
 5. Run the sweep — results populate in real time
-6. Hover rows to preview surface geometry; click to select
-7. Export results JSON for ingestion into the [field.vault](https://mshomper.github.io/f13ld.vault)
+6. Hover rows to preview surface geometry; click a row to see every metric of that design
+7. Push a design to [F13LD.lab](https://mshomper.github.io/f13ld.lab) for a full solve, or to [F13LD.mesh](https://mshomper.github.io/f13ld.mesh) to print it — Lab / Mesh buttons on each row
+8. Export results JSON for F13LD.ingest
 
 ---
 
@@ -53,7 +54,7 @@ f13ld.sweep takes an implicit recipe (exported from other [f13ld](f13ld.app) too
 
 ## Application Domains
 
-Selecting a domain filters the visible metrics, sets domain-appropriate rank defaults, and constrains the material selector to relevant alloys and polymers.
+Selecting a domain picks the table's columns (at most 8: volume fraction, the rank metrics, then the domain's key metrics — every metric is still computed, exported, and listed in the row detail panel), sets domain-appropriate rank defaults, and constrains the material selector to relevant alloys and polymers.
 
 | Domain | Default Material Options | Primary Rank Default |
 |--------|--------------------------|----------------------|
@@ -154,7 +155,7 @@ Since v0.20.0 the tool is split into numbered classic scripts, like F13LD.lab an
 | `50-hires-field.js` · `51-transport.js` · `52-geometry-metrics.js` · `53-pores.js` | Hi-res field · throat / percolation / tortuosity · curvature / topology · pore analysis |
 | `54-estimate.js` | Per-design pipeline (`estimateHomogenization`) |
 | `60-solver-pool.js` · `61-sobol.js` · `62-run-sweep.js` | Worker pool · Sobol sampler · sweep runner |
-| `70-export.js` · `71-results-table.js` · `72-mesh-handoff.js` | Results export · table · F13LD.mesh handoff |
+| `70-export.js` · `71-results-table.js` · `72-mesh-handoff.js` | Results export · table and per-domain columns · F13LD.lab / F13LD.mesh handoff |
 | `80-preview-glsl.js` · `81-preview-gl.js` · `82-design-select.js` · `85-scatter-plot.js` | Preview shader builders · WebGL preview · design select / export · 3D scatter |
 | `99-init.js` | Page init |
 | `worker/sweep-worker.js` | Solver worker (loads `families/`, `40`–`54`) |

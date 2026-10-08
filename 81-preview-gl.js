@@ -154,7 +154,7 @@ function showPreview(design) {
 
 /* Hover a row → preview it (after the pointer settles for a moment). */
 let previewHoverT = 0;
-document.getElementById('tableWrap').addEventListener('mouseover', e => {
+const previewRowHandler = e => {
   const row = e.target.closest('tr');
   if (!row || !row.dataset.designId) return;
   const id = parseInt(row.dataset.designId);
@@ -163,4 +163,6 @@ document.getElementById('tableWrap').addEventListener('mouseover', e => {
     const design = currentFiltered.find(d => d.id === id);
     if (design) showPreview(design);
   }, 80);
-});
+};
+document.getElementById('tableWrap').addEventListener('mouseover', previewRowHandler);
+document.getElementById('tableWrap').addEventListener('focusin', previewRowHandler);   /* keyboard */

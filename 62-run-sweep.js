@@ -395,7 +395,7 @@ async function runSweep() {
   if (validateBtnEl) {
     validateBtnEl.disabled = false;
     validateBtnEl.style.opacity = '';
-    validateBtnEl.style.cursor = 'pointer';
+    validateBtnEl.style.cursor = '';
   }
 
   progressWrap.classList.remove('visible');
