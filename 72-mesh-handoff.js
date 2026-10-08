@@ -48,21 +48,21 @@ function openHandoff(designId, btn, tool) {
   if (fullUrl.length > HANDOFF_URL_MAX_BYTES) {
     navigator.clipboard.writeText(JSON.stringify(recipe, null, 2)).then(() => {
       log('warn', `Recipe for design #${designId} too large for a link (${fullUrl.length} bytes) — copied JSON to clipboard instead. Drop the JSON into ${name}.`);
-      if (btn) flashBtn(btn, '⎘', 'var(--warn)');
+      if (btn) flashBtn(btn, swGlyph('copy') + '<span>Copied</span>', 'var(--warn)');
     }).catch(() => log('warn', `Recipe for design #${designId} too large for a link, and the clipboard is blocked — use Export Design.`));
     return;
   }
   window.open(fullUrl, '_blank', 'noopener,noreferrer');
   log('accent', `Design #${designId} → ${name} (${fullUrl.length} bytes encoded)`);
-  if (btn) flashBtn(btn, '✓', 'var(--success)');
+  if (btn) flashBtn(btn, swGlyph('tick'), 'var(--success)');
 }
 
 function openInMesh(designId, btn) { openHandoff(designId, btn, 'mesh'); }
 function openInLab(designId, btn)  { openHandoff(designId, btn, 'lab'); }
 
 function flashBtn(btn, glyph, color) {
-  const orig = btn.textContent;
-  btn.textContent = glyph;
+  const orig = btn.innerHTML;
+  btn.innerHTML = glyph;
   btn.style.color = color;
-  setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 900);
+  setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 900);
 }

@@ -220,10 +220,10 @@ const METRIC_INFO_LIST = [
   { key:'nu_yz',            sym:'νyz', name:'Poisson YZ',          desc:'lateral contraction in Z under load in Y — GPU solver' },
   { key:'zener_A',          sym:'A',   name:'Zener Ratio',         desc:'2·C44 / (C11 − C12); 1 = isotropic for a cubic cell — GPU solver' },
   { key:'cell_aspect',      sym:'cell',name:'Cell Aspect',         desc:'physical cell edges X × Y × Z, longest = 1 (stretched cells solve as stretched)' },
-  { key:'stiffness_flag',   sym:'⚑',   name:'Stiffness Flag',      desc:'stiffness may read high — see the reasons below' },
-  { key:'stiffness_flag_reasons', sym:'⚑', name:'Flag Reasons',      desc:'why the stiffness may read high' },
-  { key:'void_limited_axes',sym:'⚑E',  name:'Pore-Stiffness Axes', desc:'axes where the pores\' stand-in stiffness is over 10 % of E (Fast reads them high)' },
-  { key:'under_resolved',   sym:'⚑N',  name:'Under-resolved',      desc:'the solver grid is too coarse for this design — try a finer grid or check in F13LD.lab' },
+  { key:'stiffness_flag',   sym:'', name:'Stiffness Flag',      desc:'stiffness may read high — see the reasons below' },
+  { key:'stiffness_flag_reasons', sym:'', name:'Flag Reasons',      desc:'why the stiffness may read high' },
+  { key:'void_limited_axes',sym:'', name:'Pore-Stiffness Axes', desc:'axes where the pores\' stand-in stiffness is over 10 % of E (Fast reads them high)' },
+  { key:'under_resolved',   sym:'', name:'Under-resolved',      desc:'the solver grid is too coarse for this design — try a finer grid or check in F13LD.lab' },
   { key:'stiffness_density',sym:'E/ρ', name:'Stiff / Density',     desc:'mean stiffness per unit material' },
   { key:'aniso_efficiency', sym:'α/ρ', name:'Aniso / Density',     desc:'directional bias per unit material' },
   { key:'directionality',   sym:'Ψ',   name:'Directionality',      desc:'fraction of total stiffness on peak axis (max/sum, all axes)' },
@@ -239,7 +239,7 @@ const METRIC_INFO_LIST = [
   { key:'microstrain_x',    sym:'με·X',name:'Microstrain X',       desc:'με under ref load in X' },
   { key:'microstrain_y',    sym:'με·Y',name:'Microstrain Y',       desc:'με under ref load in Y' },
   { key:'microstrain_z',    sym:'με·Z',name:'Microstrain Z',       desc:'με under ref load in Z' },
-  { key:'microstrain_avg',  sym:'με̄', name:'Avg Microstrain (Frost)',  desc:'isotropic mean · Frost (1987): <200 disuse · 200–1500 maintenance · 1500–3000 osteogenic ✓ · >3000 overload' },
+  { key:'microstrain_avg',  sym:'με̄', name:'Avg Microstrain (Frost)',  desc:'isotropic mean · Frost (1987): <200 disuse · 200–1500 maintenance · 1500–3000 osteogenic (target) · >3000 overload' },
   { key:'pore_size',        sym:'φ',   name:'Mean Pore Size',      desc:'inscribed sphere diameter (µm)' },
   { key:'throat_size',      sym:'φt',  name:'Min Throat Diam.',    desc:'narrowest pore connection (µm)' },
   { key:'throat_ratio',     sym:'φt/c',name:'Throat Ratio',        desc:'v0.13: throat as fraction of cell — raw, no VF gate (vault composes any gate)' },
@@ -258,7 +258,7 @@ function renderMetricKey(keys) {
       <span style="color:var(--accent);font-size:11px;font-family:var(--mono)">${e.sym}</span>
       <span><span style="color:var(--ink)">${e.name}</span> <span style="color:var(--muted)">— ${e.desc}</span></span>
     </div>`).join('') +
-    `<div style="color:var(--ink-dim);margin-top:4px">Click a row for every metric of that design.</div>`;
+    `<div style="color:var(--ink-dim);margin-top:4px">Select a row, then All metrics, for every metric of that design.</div>`;
   const container = document.getElementById('metricKeyBody');
   if (container) container.innerHTML = html;
 }

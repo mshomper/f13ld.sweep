@@ -40,14 +40,14 @@
         <div class="recipe-card recipe-chip" id="recipeCard" title="Drop a recipe JSON here (or anywhere on the page), or click to choose a file">
       <input type="file" accept=".json" id="fileInput" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2">
       <div id="recipeEmpty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 0">
-        <div style="font-size:16px;opacity:0.3">⬡</div>
+        <span class="ico ico-sm" data-ico="cell"></span>
         <div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center">
           <span style="color:var(--accent)">Drop JSON</span> or click
         </div>
       </div>
       <div id="recipeLoaded" style="display:none;padding:7px 12px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-          <div style="color:var(--accent);font-size:12px">⬡</div>
+          <span class="ico ico-sm" data-ico="cell"></span>
           <div id="fileName" style="font-family:var(--mono);font-size:11px;color:var(--accent);
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">—</div>
           <div style="font-family:var(--mono);font-size:9px;color:var(--muted);
@@ -59,8 +59,8 @@
       </div>
     </div>
     <div class="fh-actions">
-      <button id="validateBtn" class="pill-btn" onclick="exportResults()" title="All designs, every metric (F13LD.ingest format)">↓ Export results</button>
-      <button id="exportDesignBtn" class="pill-btn ghost" onclick="exportSelectedDesign()" disabled title="The selected design's recipe">↓ Export design</button>
+      <button id="validateBtn" class="pill-btn" onclick="exportResults()" title="All designs, every metric (F13LD.ingest format)" data-g="down" data-label="Export results"></button>
+      <button id="exportDesignBtn" class="pill-btn ghost" onclick="exportSelectedDesign()" disabled title="The selected design's recipe" data-g="down" data-label="Export design"></button>
     </div>
     <div class="fh-right">
       <span class="fh-ver">v0.25.0</span>
@@ -96,7 +96,7 @@
       <div class="preview-body plot-body">
         <canvas id="plotCanvas" style="width:100%;height:100%;display:block;opacity:1"></canvas>
         <div class="preview-empty" id="plotEmpty">
-          <div class="empty-icon" style="font-size:28px;opacity:0.2">⬡</div>
+          <span class="empty-ico" data-ico="cell"></span>
           <div style="font-size:12px;color:var(--muted2);margin-top:8px">Run a sweep to see<br>the design space</div>
         </div>
         <div class="preview-info" id="plotInfo"></div>
@@ -113,7 +113,7 @@
       <div class="preview-body insp-body">
         <canvas id="previewCanvas"></canvas>
         <div class="preview-empty" id="previewEmpty">
-          <div class="empty-icon" style="font-size:28px;opacity:0.2">⬡</div>
+          <span class="empty-ico" data-ico="cell"></span>
           <div style="font-size:12px;color:var(--muted2);margin-top:8px">Hover a result row<br>to preview its surface</div>
         </div>
         <div class="preview-info" id="previewInfo"></div>
@@ -137,7 +137,7 @@
       <div class="detail-panel" id="detailPanel" aria-live="polite"></div>
       <div class="table-wrap" id="tableWrap">
         <div class="empty-state">
-          <div class="empty-icon">⬡</div>
+          <span class="empty-ico" data-ico="cell"></span>
           <div class="empty-title">No results yet</div>
           <div class="empty-sub">Load a recipe, then Run sweep</div>
         </div>
@@ -146,26 +146,136 @@
 
   </main>
 
-  <!-- Configure drawer (slides up over the panels; never resizes them) -->
+  <!-- Configure drawer (slides up over the panels; never resizes them).
+       Settings shows every setting on one panel; its controls drive the
+       legacy controls in #nativeCtl (hidden), which keep their ids and
+       handlers — the sweep code reads those (24-drawer.js). -->
   <div class="cfg-drawer" id="cfgDrawer" role="region" aria-label="Sweep settings">
-    <div class="dr-tabs" id="drTabs">
-      <button class="dr-tab on" data-tab="sweep" onclick="dockTab('sweep')">Recipe &amp; sweep <span class="mv" id="mvSweep"></span></button>
-      <button class="dr-tab" data-tab="mat" onclick="dockTab('mat')">Domain &amp; material <span class="mv" id="mvMat"></span></button>
-      <button class="dr-tab" data-tab="solver" onclick="dockTab('solver')">Solver <span class="mv" id="mvSolver"></span></button>
-      <button class="dr-tab" data-tab="ranks" onclick="dockTab('ranks')">Ranks <span class="mv" id="mvRanks"></span></button>
-      <button class="dr-tab" data-tab="log" onclick="dockTab('log')">Log <span class="mv" id="mvLog"></span></button>
-      <button class="dr-tab" data-tab="key" onclick="dockTab('key')">Metric key <span class="mv" id="mvKey"></span></button>
+    <div class="dr-strip" id="drTabs" role="tablist">
+      <button class="dr-tab on" type="button" role="tab" data-tab="set" onclick="dockTab('set')"><span class="ico ico-sm" data-ico="sliders"></span><span class="nm">Settings</span></button>
+      <button class="dr-tab" type="button" role="tab" data-tab="log" onclick="dockTab('log')"><span class="ico ico-sm" data-ico="log"></span><span class="nm">Log</span><span class="mv" id="mvLog"></span></button>
+      <button class="dr-tab" type="button" role="tab" data-tab="key" onclick="dockTab('key')"><span class="ico ico-sm" data-ico="key"></span><span class="nm">Metric key</span><span class="mv" id="mvKey"></span></button>
+      <span class="dr-strip-note">Settings apply to the next run · Esc closes</span>
+      <button class="dr-x" type="button" onclick="toggleDrawer(false)" title="Close (Esc)" aria-label="Close settings" data-g="x"></button>
     </div>
     <div class="dr-body">
 
-      <div class="dr-pane on" data-pane="sweep">
-        <div class="dr-h">Recipe &amp; sweep <span>The design every sample varies, how far, and how many. Drop a recipe JSON anywhere on the page to load it.</span></div>
-        <div class="dr-grid">
-          <div class="dr-f">
-            <div class="section-label">Base recipe</div>
-            <div class="dr-recipe"><span id="drRecipeName">No recipe loaded</span><button class="pill-btn ghost" onclick="document.getElementById('fileInput').click()">Load recipe…</button></div>
+      <div class="dr-pane on" data-pane="set" id="setPane">
+        <div class="dr-cols">
+
+          <section class="dr-col" data-col="sweep">
+            <div class="dr-ph"><span class="ico ico-lg" data-ico="sweep"></span><div class="dr-pt-wrap"><div class="dr-pt">Sweep</div><div class="dr-ps">The recipe every design varies</div></div></div>
+            <div class="dr-f">
+              <label>Recipe</label>
+              <div class="rc-row">
+                <span class="ico ico-md" data-ico="cell"></span>
+                <span class="rc-txt"><b id="drRecipeName">No recipe loaded</b><small id="drRecipeMeta">Drop a JSON anywhere on the page</small></span>
+                <button class="mini-btn" type="button" onclick="document.getElementById('fileInput').click()" data-g="upload" data-label="Load"></button>
+              </div>
+            </div>
+            <div class="dr-f">
+              <label for="pxN">Designs</label>
+              <div class="f-row">
+                <div class="seg" data-seg="n"><button type="button" data-v="50">50</button><button type="button" data-v="100">100</button><button type="button" data-v="200">200</button><button type="button" data-v="500">500</button><button type="button" data-v="1000">1000</button></div>
+                <input class="num" id="pxN" data-px="n" type="number" min="10" max="1000" step="10" aria-label="Number of designs">
+              </div>
+              <div class="hint">Valid designs kept; draws that fail the gates are redrawn.</div>
+            </div>
+            <div class="dr-f">
+              <label>Sampling</label>
+              <div class="seg" data-seg="samp"><button type="button" data-v="sobol">Sobol</button><button type="button" data-v="uniform">Random</button></div>
+              <div class="hint" id="hSamp"></div>
+            </div>
+          </section>
+
+          <section class="dr-col" data-col="scale">
+            <div class="dr-ph"><span class="ico ico-lg" data-ico="scale"></span><div class="dr-pt-wrap"><div class="dr-pt">Cell scale</div><div class="dr-ps">% of the recipe's cell · min to max</div></div>
+              <button class="chip" type="button" id="pxLink" onclick="pxToggleLink()" title="One range for X, Y and Z, or a range per axis"></button></div>
+            <div class="dr-f" id="fScale">
+              <div class="sc-rows" id="pxScale"></div>
+              <div class="sc-abs" id="scAbs"></div>
+              <svg class="sc-viz" id="scViz" aria-hidden="true"></svg>
+              <div class="hint" id="hScale"></div>
+            </div>
+          </section>
+
+          <section class="dr-col" data-col="mat">
+            <div class="dr-ph"><span class="ico ico-lg mdl" data-ico="material"></span><div class="dr-pt-wrap"><div class="dr-pt">Material</div><div class="dr-ps">The domain sets materials, columns and ranks</div></div></div>
+            <div class="dr-f">
+              <div class="pair">
+                <div class="dr-f"><label>Domain</label><div class="dd" id="domainDd"></div></div>
+                <div class="dr-f" id="fMat"><label>Base material</label><div class="dd dd-r" id="materialDd"></div></div>
+              </div>
+              <div class="hint" id="hMat"></div>
+            </div>
+            <div class="dr-f">
+              <div class="pair">
+                <div class="dr-f" id="fSigma"><label for="pxSigma">Ref. stress</label><span class="num-u"><input class="num" id="pxSigma" data-px="sigma" type="number" min="0.01" max="10000" step="0.5"><i>MPa</i></span></div>
+                <div class="dr-f"><label for="pxCell">Cell size</label><span class="num-u"><input class="num" id="pxCell" data-px="cell" type="number" min="0.1" max="100" step="0.1"><i>mm</i></span></div>
+              </div>
+              <div class="hint" id="hRef"></div>
+            </div>
+          </section>
+
+          <section class="dr-col" data-col="solver">
+            <div class="dr-ph"><span class="ico ico-lg" data-ico="solver"></span><div class="dr-pt-wrap"><div class="dr-pt">Solver</div><div class="dr-ps">How each design is solved</div></div></div>
+            <div class="dr-f">
+              <label>In use</label>
+              <div class="st-box" id="pxSolver"><span class="st-dot"></span><span class="st-txt">Checking for a GPU…</span></div>
+              <div class="hint" id="hSolver"></div>
+            </div>
+            <div class="dr-f">
+              <label>Precision</label>
+              <div class="seg" data-seg="prec"><button type="button" data-v="fast">Fast</button><button type="button" data-v="rigorous">Rigorous</button></div>
+              <div class="hint" id="hPrec"></div>
+            </div>
+            <div class="dr-f">
+              <label>Grid</label>
+              <div class="seg" data-seg="grid"><button type="button" data-v="16">16³</button><button type="button" data-v="32">32³</button><button type="button" data-v="64">64³</button></div>
+              <div class="hint" id="hGrid"></div>
+            </div>
+          </section>
+
+          <section class="dr-col" data-col="ranks">
+            <div class="dr-ph"><span class="ico ico-lg" data-ico="ranks"></span><div class="dr-pt-wrap"><div class="dr-pt">Ranks</div><div class="dr-ps">Sort, then keep the top share</div></div></div>
+            <div class="rk-head"><span></span><label>Metric</label><label>Direction</label><label>Keep top</label></div>
+            <div class="rk-rows">
+              <div class="rk-row"><span class="rk-n r1">1</span><div class="dd dd-r" id="rk1Dd"></div>
+                <div class="seg" data-seg="dir1"><button type="button" data-v="max" data-g="up" data-label="max" title="Higher is better"></button><button type="button" data-v="min" data-g="dn" data-label="min" title="Lower is better"></button></div>
+                <span class="rk-sorts">sorts all</span></div>
+              <div class="rk-row"><span class="rk-n r2">2</span><div class="dd dd-r" id="rk2Dd"></div>
+                <div class="seg" data-seg="dir2"><button type="button" data-v="max" data-g="up" data-label="max" title="Higher is better"></button><button type="button" data-v="min" data-g="dn" data-label="min" title="Lower is better"></button></div>
+                <span class="num-u"><i class="pre">top</i><input class="num" id="pxKeep2" data-px="keep2" type="number" min="1" max="100" step="1" placeholder="100" aria-label="Rank 2: keep top percent"><i>%</i></span></div>
+              <div class="rk-row"><span class="rk-n r3">3</span><div class="dd dd-r" id="rk3Dd"></div>
+                <div class="seg" data-seg="dir3"><button type="button" data-v="max" data-g="up" data-label="max" title="Higher is better"></button><button type="button" data-v="min" data-g="dn" data-label="min" title="Lower is better"></button></div>
+                <span class="num-u"><i class="pre">top</i><input class="num" id="pxKeep3" data-px="keep3" type="number" min="1" max="100" step="1" placeholder="100" aria-label="Rank 3: keep top percent"><i>%</i></span></div>
+            </div>
+            <div class="hint">Rank 1 sorts every valid design; ranks 2 and 3 each keep the top share of what is left. The table still sorts by any column; a new domain resets the ranks.</div>
+          </section>
+
+        </div>
+      </div>
+
+      <div class="dr-pane" data-pane="log">
+        <div class="dr-loghead"><span class="panel-badge" id="logBadge">idle</span><span class="hint">Every step of the last run, newest at the bottom.</span></div>
+        <div class="log-body" id="logBody">
+          <div class="log-line">
+            <span class="log-time">—</span>
+            <span class="log-msg">Drop a JSON recipe to begin.</span>
           </div>
-          <div class="dr-f wide">
+        </div>
+      </div>
+
+      <div class="dr-pane" data-pane="key">
+        <div id="metricKeyBody" class="metric-key"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Legacy controls — hidden. The sweep code, the export and the test
+       harness read these ids; the Settings panel above drives them. -->
+  <div id="nativeCtl" hidden>
     <div class="control-group">
       <div class="control-label">
         Periodicity variation
@@ -206,13 +316,7 @@
         </select>
       </div>
     </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="dr-pane" data-pane="mat">
-        <div class="dr-h">Domain &amp; material <span>The domain sets the reference stress, the default ranks and the table's columns; the material sets the solid the solver uses.</span></div>
-        <div class="dr-grid">
     <div class="control-group" style="margin-bottom:8px">
       <div class="control-label">Application domain</div>
       <select id="domainSel" onchange="onDomainChange()">
@@ -243,12 +347,7 @@
         </div>
       </div>
     </div>
-        </div>
-      </div>
 
-      <div class="dr-pane" data-pane="solver">
-        <div class="dr-h">Solver <span>GPU: F13LD.lab's solver (elastic 6 × 6 + thermal). Add ?gpu=0 to the address for the CPU solver.</span></div>
-        <div class="dr-grid">
     <div class="dr-f solver-line"><div class="section-label">Solver in use</div><div id="solverStatus" class="solver-status">Solver: checking for a GPU…</div></div>
 
     <!-- v0.16.0: Precision mode toggle. Fast (1e-3 contrast) is the default
@@ -259,8 +358,6 @@
     <div class="control-group" style="margin-bottom:8px">
       <div class="control-label">
         Precision
-        <span style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:4px"
-              title="Fast: contrast Cv/Cs=1e-3, ~5% systematic accuracy cost, ~3× faster. Rigorous: contrast Cv/Cs=1e-4, within ~1.5% of infinite-contrast asymptote. Use Rigorous for publication-grade absolute stiffness; use Fast for sweeps (rankings preserved either way).">ⓘ</span>
       </div>
       <div class="direction-toggle" id="precisionToggle" style="width:100%">
         <button class="active" data-mode="fast" onclick="setPrecisionUI('fast')" style="flex:1">FAST</button>
@@ -279,8 +376,6 @@
     <div class="control-group" style="margin-bottom:8px">
       <div class="control-label">
         Resolution
-        <span style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-left:4px"
-              title="N=16: sweep default. Fast and accurate enough for solid TPMS, grain, noise, and ranking-based design exploration. N=32: needed for thin-wall TPMS (sheet mode) when absolute moduli matter. PI-TPMS and beam always run at ≥32 regardless of picker — sub-voxel pipes / struts can't be resolved at N=16.">ⓘ</span>
       </div>
       <div class="direction-toggle" id="resolutionToggle" style="width:100%">
         <button class="active" data-n="16" onclick="setResolutionUI(16)" style="flex:1">N=16</button>
@@ -291,12 +386,7 @@
         Sweep default · fast
       </div>
     </div>
-        </div>
-      </div>
 
-      <div class="dr-pane" data-pane="ranks">
-        <div class="dr-h">Ranks <span>Rank 1 sorts; ranks 2 and 3 keep the top share of what is left. The table and the plot can still be sorted by any column.</span></div>
-        <div class="dr-ranks">
     <!-- Rank 1 -->
     <div class="rank-block">
       <div class="rank-header">
@@ -447,42 +537,23 @@
         </div>
       </div>
     </div>
-        </div>
-      </div>
 
-      <div class="dr-pane" data-pane="log">
-        <div class="dr-h">Log <span class="panel-badge" id="logBadge">idle</span></div>
-        <div class="log-body" id="logBody">
-          <div class="log-line">
-            <span class="log-time">—</span>
-            <span class="log-msg">Drop a JSON recipe to begin.</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="dr-pane" data-pane="key">
-        <div class="dr-h">Metric key <span>The metrics the table shows. Hover a column header for the same text.</span></div>
-        <div id="metricKeyBody" class="metric-key"></div>
-      </div>
-
-    </div>
   </div>
 
   <!-- Dock — one row: Configure · a tag per setting · log · solver · Run -->
   <footer class="dock">
     <button class="cfg-btn" id="cfgBtn" type="button" onclick="toggleDrawer()" aria-expanded="false" aria-controls="cfgDrawer" title="Recipe, sweep ranges, material, solver and ranks">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.6"/><circle cx="5.5" cy="12" r="1.6"/></svg>
-      Configure <span class="chev">▾</span>
+      <span class="ico ico-md" data-ico="sliders"></span><span>Configure</span><span class="chev" data-g="chev"></span>
     </button>
     <div class="dock-tags" id="dockTags"></div>
     <div class="progress-wrap" id="progressWrap">
       <div class="progress-label"><span id="progressLabel">Sampling...</span><span id="progressPct">0%</span></div>
       <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     </div>
-    <button class="log-chip" id="logChip" type="button" onclick="dockTab('log', true)" title="Open the log"><b>Log</b> <span id="logChipMsg">Drop a JSON recipe to begin.</span> <span class="w" id="logChipWarn"></span></button>
+    <button class="log-chip" id="logChip" type="button" onclick="dockTab('log', true)" title="Open the log"><span class="ico ico-sm" data-ico="log"></span><b>Log</b> <span id="logChipMsg">Drop a JSON recipe to begin.</span> <span class="w" id="logChipWarn"></span></button>
     <span class="dock-hw" id="dockHw"></span>
-    <button id="cancelBtn" class="cancel-btn" onclick="cancelSweep()" style="display:none">✕ Cancel</button>
-    <button class="run" id="runBtn" onclick="runSweep()" disabled>▶ Run Sweep</button>
+    <button id="cancelBtn" class="cancel-btn" onclick="cancelSweep()" style="display:none" data-g="x" data-label="Cancel"></button>
+    <button class="run" id="runBtn" onclick="runSweep()" disabled></button>
   </footer>
 
   <div class="col-tip" id="colTip" role="tooltip"></div>
@@ -498,6 +569,7 @@
 <script src="21-materials-domain.js"></script>
 <script src="22-controls.js"></script>
 <script src="23-dock.js"></script>
+<script src="24-drawer.js"></script>
 <script src="geom/tpms.js"></script>
 <script src="geom/noise.js"></script>
 <script src="geom/grain.js"></script>

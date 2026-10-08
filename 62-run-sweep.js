@@ -15,7 +15,7 @@ async function runSweep() {
   const btn = document.getElementById('runBtn');
   const cancelBtn = document.getElementById('cancelBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Running...';
+  setRunBtn(true);
   cancelBtn.style.display = 'block';
   window._sweepCancelled = false;
   results = [];
@@ -130,7 +130,7 @@ async function runSweep() {
     if (check.blocking) {
       log('warn', 'Sweep aborted — strut radius below solver resolution. Adjust recipe or jitter range and try again.');
       document.getElementById('runBtn').disabled = false;
-      document.getElementById('runBtn').textContent = '▶ Run Sweep';
+      setRunBtn(false);
       document.getElementById('progressWrap').classList.remove('visible');
       return;
     }
@@ -352,7 +352,7 @@ async function runSweep() {
     progressWrap.classList.remove('visible');
     document.getElementById('logBadge').textContent = 'done';
     btn.disabled = false;
-    btn.textContent = '▶ Run Sweep';
+    setRunBtn(false);
     cancelBtn.style.display = 'none';
     window._sweepCancelled = false;
     return;
@@ -408,7 +408,7 @@ async function runSweep() {
   progressWrap.classList.remove('visible');
   document.getElementById('logBadge').textContent = 'done';
   btn.disabled = false;
-  btn.textContent = '▶ Run Sweep';
+  setRunBtn(false);
   cancelBtn.style.display = 'none';
   window._sweepCancelled = false;
 }

@@ -28,7 +28,7 @@ Built 2026-10-08 (session recap [`SESSION_RECAP_2026-10-08_gpu.md`](SESSION_RECA
 
 ## 3. UI — v0.25.0 on branch `v0.25.0-ui` (layout A)
 
-Built 2026-10-08 (notes in `REFACTOR.md`). Waiting for Matt's click-test before merging. Still open from the old list: should picking General reset the rank metrics; plot hover / depth / ideal-corner nits (audit U10).
+Built 2026-10-08, Configure drawer rebuilt the same day as one Settings panel with SVG icons (notes in `REFACTOR.md`). Waiting for Matt's click-test before merging. Open: settings remembered per browser (Lab does it; Sweep keeps only the tab and the cell-scale link); the ◐ in the shared F13LD-VIEW button (`01-f13-shade.js`, all tools); should picking General reset the rank metrics; plot hover / depth / ideal-corner nits (audit U10).
 
 ## 4. Smaller open items
 

@@ -113,14 +113,14 @@ h1{font:700 20px 'Exo 2';color:var(--t1)} h1 span{color:var(--sweep)}
         <div class="tab">Recipe &amp; sweep <span class="mv">200 · Sobol</span></div>
         <div class="tab">Domain &amp; material <span class="mv">Ti-6Al-4V</span></div>
         <div class="tab on">Solver <span class="mv">GPU · Fast · 32</span></div>
-        <div class="tab">Ranks <span class="mv">E/ρ ▲</span></div>
+        <div class="tab">Ranks <span class="mv">E/ρ max</span></div>
         <div class="tab">Log <span class="mv">1 warn</span></div>
         <div class="tab">Metric key <span class="mv">8</span></div>
       </div>
       <div class="body">
         <div class="head"><b>Solver</b><span>How each design is solved. Fast is for comparing designs quickly; Rigorous matches F13LD.lab's sweep settings.</span></div>
         <div class="row">
-          <div><span class="lbl">Solver in use</span><div class="inp"><span><span style="color:var(--green)">●</span> GPU · nvidia · lovelace</span></div><div class="help">F13LD.lab's solver: full 6 × 6 stiffness + thermal. Add ?gpu=0 to the address for the CPU solver.</div></div>
+          <div><span class="lbl">Solver in use</span><div class="inp"><span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px"></span>GPU · nvidia · lovelace</span></div><div class="help">F13LD.lab's solver: full 6 × 6 stiffness + thermal. Add ?gpu=0 to the address for the CPU solver.</div></div>
           <div><span class="lbl">Precision</span><div class="tog"><span class="on">FAST</span><span>RIGOROUS</span></div><div class="help">Fast: pores at 1/1000 of the solid, CG 1e-3, metrics on 48³ — weak axes are flagged. Rigorous: pores 1e-6, CG 1e-4, full metrics grids.</div></div>
           <div><span class="lbl">Resolution</span><div class="tog"><span>16</span><span class="on">32</span><span>64</span></div><div class="help">Voxels per cell edge. PI-TPMS and beams run at 32 or finer.</div></div>
           <div><span class="lbl">This sweep</span><div class="inp dim">≈ 2.3 designs / s at N = 32</div><div class="help">From your last run. 64 is about 4× slower per design.</div></div>
@@ -136,41 +136,41 @@ h1{font:700 20px 'Exo 2';color:var(--t1)} h1 span{color:var(--sweep)}
           <div class="ch">Recipe &amp; sweep <span class="n">TPMS · shell · 3 terms</span></div>
           <div><span class="lbl">Base recipe</span><div class="inp">gyroid.json <span style="color:var(--t3)">Load…</span></div></div>
           <div><span class="lbl">Cell scale, % of nominal · min → max</span><div class="rng"><div><i style="color:var(--x)">X</i>50 → 200</div><div><i style="color:var(--y)">Y</i>50 → 200</div><div><i style="color:var(--z)">Z</i>50 → 200</div></div></div>
-          <div class="pair"><div><span class="lbl">Designs</span><div class="slider"><span class="tr"></span><b>200</b></div></div><div><span class="lbl">Sampling</span><div class="inp">Sobol ▾</div></div></div>
+          <div class="pair"><div><span class="lbl">Designs</span><div class="slider"><span class="tr"></span><b>200</b></div></div><div><span class="lbl">Sampling</span><div class="inp">Sobol</div></div></div>
         </div>
         <div class="col">
           <div class="ch">Material <span class="n">E 110 GPa · ν 0.34</span></div>
-          <div><span class="lbl">Application domain</span><div class="inp">Biomedical ▾</div></div>
-          <div><span class="lbl">Material</span><div class="inp">Ti-6Al-4V (Grade 5) ▾</div></div>
+          <div><span class="lbl">Application domain</span><div class="inp">Biomedical</div></div>
+          <div><span class="lbl">Material</span><div class="inp">Ti-6Al-4V (Grade 5)</div></div>
           <div class="pair"><div><span class="lbl">Ref. stress</span><div class="inp">2 MPa</div></div><div><span class="lbl">Cell size</span><div class="inp">2.0 mm</div></div></div>
         </div>
         <div class="col">
-          <div class="ch">Solver <span class="n"><span style="color:var(--green)">●</span> GPU · nvidia</span></div>
+          <div class="ch">Solver <span class="n"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px"></span>GPU · nvidia</span></div>
           <div><span class="lbl">Precision</span><div class="tog"><span class="on">FAST</span><span>RIGOROUS</span></div><div class="help">Fast flags axes the pore stiffness props up.</div></div>
           <div><span class="lbl">Resolution</span><div class="tog"><span>16</span><span class="on">32</span><span>64</span></div><div class="help">PI-TPMS and beams run at 32 or finer.</div></div>
         </div>
         <div class="col">
           <div class="ch">Ranks <span class="n">sort, then keep top %</span></div>
-          <div class="rrow"><span class="d" style="background:var(--r1)"></span><div class="inp">Microstrain avg ▾</div><div class="tog"><span>MAX</span><span class="on">MIN</span></div><div class="inp dim">sort</div></div>
-          <div class="rrow"><span class="d" style="background:var(--r2)"></span><div class="inp">Mean pore size ▾</div><div class="tog"><span class="on">MAX</span><span>MIN</span></div><div class="inp">50 %</div></div>
-          <div class="rrow"><span class="d" style="background:var(--r3)"></span><div class="inp dim">— off — ▾</div><div class="tog"><span class="na">MAX</span><span class="na">MIN</span></div><div class="inp dim">100 %</div></div>
+          <div class="rrow"><span class="d" style="background:var(--r1)"></span><div class="inp">Microstrain avg</div><div class="tog"><span>MAX</span><span class="on">MIN</span></div><div class="inp dim">sort</div></div>
+          <div class="rrow"><span class="d" style="background:var(--r2)"></span><div class="inp">Mean pore size</div><div class="tog"><span class="on">MAX</span><span>MIN</span></div><div class="inp">50 %</div></div>
+          <div class="rrow"><span class="d" style="background:var(--r3)"></span><div class="inp dim">— off —</div><div class="tog"><span class="na">MAX</span><span class="na">MIN</span></div><div class="inp dim">100 %</div></div>
           <div class="help">Rank 1 sorts; ranks 2 and 3 keep the top share of what's left. The table and plot still sort by any column.</div>
         </div>
       </div>
     </div>
 
     <div class="dock">
-      <span class="cfg">⚙ Configure ▴</span>
+      <span class="cfg"><svg width="15" height="15" viewBox="0 0 40 40" aria-hidden="true"><path d="M5 11 H9.5 M18.5 11 H35 M5 29 H21.5 M30.5 29 H35" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="14" cy="11" r="4.5" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="26" cy="29" r="4" fill="#c8f542"/></svg>Configure</span>
       <span class="tag"><b>200</b> designs · Sobol · 50–200 %</span>
       <span class="tag"><b>Ti-6Al-4V</b> Biomedical</span>
       <span class="tag"><span class="d" style="background:var(--green)"></span><b>Fast</b> N=32</span>
-      <span class="tag"><span class="d" style="background:var(--r1)"></span><b>με̄</b> ▼</span>
-      <span class="tag"><span class="d" style="background:var(--r2)"></span><b>φ</b> ▲</span>
+      <span class="tag"><span class="d" style="background:var(--r1)"></span><b>με̄</b> min</span>
+      <span class="tag"><span class="d" style="background:var(--r2)"></span><b>φ</b> max</span>
       <span class="tag" style="opacity:.55"><span class="d" style="background:var(--r3)"></span><b>R3</b> off</span>
       <span class="sp"></span>
       <span class="logchip"><b>Log</b> 24 valid designs collected · 33 discarded</span>
-      <span style="font:11px var(--mono);color:var(--t2)"><span style="color:var(--green)">●</span> GPU · nvidia</span>
-      <span class="run">▶ Run Sweep</span>
+      <span style="font:11px var(--mono);color:var(--t2)"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px"></span>GPU · nvidia</span>
+      <span class="run">Run sweep</span>
     </div>
   </div></div>
 </div>

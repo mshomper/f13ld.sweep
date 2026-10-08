@@ -83,3 +83,5 @@ CPU preparation limits the GPU. Added (decisions in `REFACTOR.md`): stiffness fl
 ## UI session (same day) — v0.25.0, branch `v0.25.0-ui`
 
 Mockups of three layouts (`docs/mockups/sweep-ui-v0.25.html`); Matt picked A. Built: dock + Configure drawer replacing the sidebar, design space + inspector over the full-width table, funnel line replacing the stat cards, log as a dock chip, recipe chip and exports in the header, column-header tooltips, neon active controls. Harness identical on the CPU path. Details in `REFACTOR.md` → v0.25.0.
+
+Second pass: Run closes the drawer; the drawer is now one Settings panel (Sweep · Cell scale · Material · Solver · Ranks) in Lab's control kit — design-count presets, one-range / per-axis cell scale with draggable log bars and the drawn cells to scale, grouped drop-downs — plus Log and Metric key tabs; every emoji / glyph icon replaced by SVG icons in Lab's style. Harness identical on all 11 cases. Try it: `https://raw.githack.com/mshomper/f13ld.sweep/v0.25.0-ui/index.html`.

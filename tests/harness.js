@@ -114,6 +114,14 @@ async function runBuild(browser, url, label) {
 const IGNORE = new Set(['tool_version', 'schema_version', 'stiffness_flag', 'void_limited_axes', 'under_resolved', 'stiffness_flag_reasons', 'stiffness_flag_void_share']);
 // …and the flag markers in the table HTML
 const stripFlags = h => typeof h === 'string' ? h.replace(/<span class="sflag"[^>]*><\/span>/g, '').replace(/<span class="sflag-val"[^>]*>([\s\S]*?<\/span>)<\/span>/g, '$1').replace(/<td class="td-rank">/g, '<td class="td-rank">') : h;
+// v0.25.0: icons are SVG now (no glyphs) and header tooltips carry the
+// metric descriptions — markup only, not compared; every cell still is.
+const normUi = h => typeof h === 'string' ? h
+  .replace(/<svg[\s\S]*?<\/svg>/g, '')
+  .replace(/<span class="sort-indicator">[^<]*<\/span>/g, '<span class="sort-indicator"></span>')
+  .replace(/(<th\b[^>]*?) title="[^"]*"/g, '$1')
+  .replace(/<div class="empty-icon">[^<]*<\/div>|<span class="empty-ico">\s*<\/span>/g, '') : h;
+const normLog = t => typeof t === 'string' ? t.replace(/\u26a0 /g, '') : t;
 function firstDiff(a, b, p = '') {
   if (typeof a !== typeof b) return p + ': type ' + typeof a + ' vs ' + typeof b;
   if (a && b && typeof a === 'object') {
@@ -138,7 +146,7 @@ function firstDiff(a, b, p = '') {
       /* v0.25.0: the stat cards are gone (a funnel line replaced them) and
          the preview badge shows the rank — not compared. */
       const fields = ['loaded', 'fileMeta', 'results', 'table', 'plotInfo', 'meshRecipe', 'exportJson', 'exportErr', 'previewErr', 'log'];
-      const val = (r, f) => (f === 'exportJson' && typeof r[f] === 'string') ? JSON.parse(r[f]) : f === 'table' ? stripFlags(r[f]) : r[f];
+      const val = (r, f) => (f === 'exportJson' && typeof r[f] === 'string') ? JSON.parse(r[f]) : f === 'table' ? normUi(stripFlags(r[f])) : f === 'log' ? normLog(r[f]) : r[f];
       const diffs = fields.map(f => firstDiff(val(a, f), val(b, f), f)).filter(Boolean);
       if (b.errors.length) diffs.push('new build errors: ' + b.errors.slice(0, 3).join(' || '));
       if (a.errors.length) console.log(`  note: old build errors in ${n}: ${a.errors.slice(0, 2).join(' || ')}`);

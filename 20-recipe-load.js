@@ -50,7 +50,7 @@ function loadRecipe(json, name) {
   recipeLoadId++;
   const tableWrapEl = document.getElementById('tableWrap');
   if (tableWrapEl) {
-    tableWrapEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⬡</div>'
+    tableWrapEl.innerHTML = '<div class="empty-state">' + swEmptyIcon()
       + '<div>Recipe loaded — click Run Sweep to populate results</div></div>';
   }
   const badgeEl = document.getElementById('resultsBadge');

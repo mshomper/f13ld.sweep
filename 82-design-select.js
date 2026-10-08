@@ -56,7 +56,7 @@ function renderDetailPanel(d) {
     const txt = typeof v === 'boolean' ? (v ? 'yes' : 'no') : formatMetric(k, v);
     return `<div class="dp-item${shown.has(k) ? ' shown' : ''}" title="${escapeLog(title || k)}"><span class="k">${escapeLog(label)}</span><span class="v">${escapeLog(txt)}</span></div>`;
   };
-  const main = METRIC_INFO_LIST.filter(e => e.key in d).map(e => item(e.key, `${e.sym} ${e.name}`, `${e.name} — ${e.desc}`));
+  const main = METRIC_INFO_LIST.filter(e => e.key in d).map(e => item(e.key, e.sym ? `${e.sym} ${e.name}` : e.name, `${e.name} — ${e.desc}`));
   const rest = Object.keys(d).filter(k => !DETAIL_SKIP.has(k) && !k.startsWith('_') && !METRIC_INFO[k] &&
       (d[k] === null || ['number', 'string', 'boolean'].includes(typeof d[k])))
     .map(k => item(k, k));
@@ -67,7 +67,7 @@ function renderDetailPanel(d) {
     <div class="dp-head">
       <span class="dp-title">Design #${d.id}${d.filterRank ? ` · rank ${d.filterRank}` : ''}</span>
       <span class="dp-sub">${escapeLog((d.family || baseFamily || '') + (sub ? ' · ' + sub : ''))}</span>
-      <button class="pill-btn ghost" onclick="toggleDetails(false)" title="Hide all metrics" aria-label="Hide all metrics">✕</button>
+      <button class="pill-btn ghost" onclick="toggleDetails(false)" title="Hide all metrics" aria-label="Hide all metrics">${swGlyph('x')}</button>
     </div>
     <div class="dp-grid">${main.join('')}${rest.length ? '<div class="dp-sep">design &amp; solver</div>' + rest.join('') : ''}</div>`;
   panel.classList.toggle('open', detailOpen);
@@ -151,8 +151,8 @@ function exportSelectedDesign() {
 
   // Flash confirmation
   const btn = document.getElementById('exportDesignBtn');
-  const orig = btn.textContent;
-  btn.textContent = '✓ Downloaded';
+  const orig = btn.innerHTML;
+  btn.innerHTML = swGlyph('tick') + '<span>Downloaded</span>';
   btn.style.color = 'var(--success)';
-  setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
+  setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
 }

@@ -191,10 +191,10 @@ tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--neon)}
           <span class="wm"><span style="color:#1D9E75">F</span><span style="color:#c8f542">13</span><span style="color:#1D9E75">LD</span></span>
           <span class="div"></span><span class="tool">SWEEP</span>
         </div>
-        <div class="recipe" data-open="sweep" title="Load or change the base recipe">⬡ <b>gyroid.json</b> TPMS · shell · 3 terms <span class="chg">change</span></div>
+        <div class="recipe" data-open="sweep" title="Load or change the base recipe"><b>gyroid.json</b> TPMS · shell · 3 terms <span class="chg">change</span></div>
         <span class="sp"></span>
-        <button class="hbtn">↓ Export results</button>
-        <button class="hbtn dim">↓ Export design</button>
+        <button class="hbtn">Export results</button>
+        <button class="hbtn dim">Export design</button>
         <span class="ver">v0.25.0</span>
         <span class="tile"><svg width="16" height="16" viewBox="0 0 40 40"><g stroke="#633806" stroke-width="1.8" stroke-linecap="round"><line x1="7" y1="34" x2="18" y2="4"/><line x1="7" y1="34" x2="26" y2="6"/><line x1="7" y1="34" x2="33" y2="10"/><line x1="7" y1="34" x2="37" y2="18" opacity=".5"/><line x1="7" y1="34" x2="37" y2="28" opacity=".25"/></g><circle cx="7" cy="34" r="3" fill="#633806"/></svg></span>
       </header>
@@ -235,7 +235,7 @@ tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--neon)}
           <div class="dtab on" data-t="sweep">Recipe &amp; sweep <span class="mv">24 · Sobol</span></div>
           <div class="dtab" data-t="mat">Domain &amp; material <span class="mv">Ti-6Al-4V</span></div>
           <div class="dtab" data-t="solver">Solver <span class="mv">GPU · Fast · 32</span></div>
-          <div class="dtab" data-t="ranks">Ranks <span class="mv">E/ρ ▲</span></div>
+          <div class="dtab" data-t="ranks">Ranks <span class="mv">E/ρ max</span></div>
           <div class="dtab" data-t="log">Log <span class="mv">2 notes</span></div>
           <div class="dtab" data-t="key">Metric key <span class="mv">26</span></div>
         </div>
@@ -243,17 +243,17 @@ tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--neon)}
       </div>
 
       <div class="dock">
-        <button class="cfg" id="cfg"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.6"/><circle cx="5.5" cy="12" r="1.6"/></svg>Configure <span class="chev">▾</span></button>
+        <button class="cfg" id="cfg"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 4h7M12 4h2M2 12h2M7 12h7"/><circle cx="10.5" cy="4" r="1.6"/><circle cx="5.5" cy="12" r="1.6"/></svg>Configure <span class="chev"></span></button>
         <div class="tags">
           <span class="tag" data-open="sweep"><b>24</b> designs · Sobol · 50–200 %</span>
           <span class="tag" data-open="mat"><b>Ti-6Al-4V</b> General</span>
           <span class="tag" data-open="solver"><b>Fast</b> N=32</span>
-          <span class="tag" data-open="ranks"><span class="dot" style="background:var(--r1)"></span><b>E/ρ</b> ▲</span>
+          <span class="tag" data-open="ranks"><span class="dot" style="background:var(--r1)"></span><b>E/ρ</b> max</span>
           <span class="tag off" data-open="ranks"><span class="dot" style="background:var(--r2)"></span><b>R2</b> off</span>
           <span class="tag off" data-open="ranks"><span class="dot" style="background:var(--r3)"></span><b>R3</b> off</span>
         </div>
         <span class="logchip" data-open="log"><b>Log</b> 24 valid · 33 discarded <span class="w">· 1 warning</span></span>
-        <span class="meta"><span class="g">●</span> GPU · nvidia</span>
+        <span class="meta"><span class="g" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor"></span> GPU · nvidia</span>
         <button class="run"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 1 L9 5 L2 9 Z" fill="currentColor"/></svg>Run sweep</button>
       </div>
     </div>
@@ -313,19 +313,19 @@ var BODIES = {
     '<div class="f"><label>Cell scale, % of nominal (min → max)</label><div class="range3"><div><i style="color:var(--x)">X</i>50 → 200</div><div><i style="color:var(--y)">Y</i>50 → 200</div><div><i style="color:var(--z)">Z</i>50 → 200</div></div><p>Nominal cell scale 1 · X 0.5 → 2 · Y 0.5 → 2 · Z 0.5 → 2.</p></div>' +
     '<div class="f"><label>Designs · sampling</label><div class="inp">24 <span style="color:var(--t3)">Sobol (low-discrepancy)</span></div><p>Sobol covers the space evenly at small counts; uniform random is fully stochastic.</p></div></div>',
   mat: '<div class="dh">Domain &amp; material</div><div class="dsub">Sets the reference stress, the default ranks and the material the solver uses.</div><div class="fgrid">' +
-    '<div class="f"><label>Application domain</label><div class="inp">General / agnostic ▾</div><p>Domains pick sensible rank metrics and table columns.</p></div>' +
-    '<div class="f"><label>Material</label><div class="inp">Ti-6Al-4V (Grade 5) ▾</div><p>E 110 GPa · ν 0.34 · k 6.7 W/m·K.</p></div>' +
+    '<div class="f"><label>Application domain</label><div class="inp">General / agnostic</div><p>Domains pick sensible rank metrics and table columns.</p></div>' +
+    '<div class="f"><label>Material</label><div class="inp">Ti-6Al-4V (Grade 5)</div><p>E 110 GPa · ν 0.34 · k 6.7 W/m·K.</p></div>' +
     '<div class="f"><label>Reference stress · cell size</label><div class="inp">2 MPa <span style="color:var(--t3)">2.0 mm</span></div><p>For microstrain and pore sizes in µm.</p></div></div>',
   solver: '<div class="dh">Solver</div><div class="dsub">GPU · nvidia · lovelace — F13LD.lab elastic 6 × 6 + thermal.</div><div class="fgrid">' +
     '<div class="f"><label>Precision</label><span class="tog"><span class="on">FAST</span><span>RIGOROUS</span></span><p>Fast: pores 1/1000 of the solid, CG 1e-3, metrics on 48³ — quick comparisons; weak axes are flagged. Rigorous: F13LD.lab\'s sweep settings.</p></div>' +
     '<div class="f"><label>Resolution</label><span class="tog"><span>N=16</span><span class="on">N=32</span><span>N=64</span></span><p>PI-TPMS and beams always run at 32 or finer.</p></div>' +
     '<div class="f"><label>Solver in use</label><div class="inp">GPU · nvidia · lovelace</div><p>Add ?gpu=0 to the address for the CPU solver.</p></div></div>',
   ranks: '<div class="dh">Ranks</div><div class="dsub">Rank 1 sorts; ranks 2 and 3 keep the top share of what is left. The table and plot can still be sorted by any column.</div><div class="rk">' +
-    '<div class="rkc"><div class="h"><i style="background:var(--r1)"></i>Rank 1 · sort</div><div class="row"><div class="inp" style="flex:1">Stiffness / density ▾</div><span class="tog"><span class="on">MAX</span><span>MIN</span></span></div></div>' +
-    '<div class="rkc"><div class="h"><i style="background:var(--r2)"></i>Rank 2 · keep top %</div><div class="row"><div class="inp" style="flex:1;color:var(--t3)">— off — ▾</div><div class="inp" style="width:70px;color:var(--t3)">100 %</div></div></div>' +
-    '<div class="rkc"><div class="h"><i style="background:var(--r3)"></i>Rank 3 · keep top %</div><div class="row"><div class="inp" style="flex:1;color:var(--t3)">— off — ▾</div><div class="inp" style="width:70px;color:var(--t3)">100 %</div></div></div></div>',
+    '<div class="rkc"><div class="h"><i style="background:var(--r1)"></i>Rank 1 · sort</div><div class="row"><div class="inp" style="flex:1">Stiffness / density</div><span class="tog"><span class="on">MAX</span><span>MIN</span></span></div></div>' +
+    '<div class="rkc"><div class="h"><i style="background:var(--r2)"></i>Rank 2 · keep top %</div><div class="row"><div class="inp" style="flex:1;color:var(--t3)">— off —</div><div class="inp" style="width:70px;color:var(--t3)">100 %</div></div></div>' +
+    '<div class="rkc"><div class="h"><i style="background:var(--r3)"></i>Rank 3 · keep top %</div><div class="row"><div class="inp" style="flex:1;color:var(--t3)">— off —</div><div class="inp" style="width:70px;color:var(--t3)">100 %</div></div></div></div>',
   log: '<div class="dh">Log</div><div class="loglist"><div><span class="t">15:38:20</span>Solver: GPU (nvidia · lovelace) · F13LD.lab elastic 6×6 + thermal · N = 32 · void 1e-3 · CG tol 1e-3</div><div><span class="t">15:38:22</span><span class="s">24 valid designs collected · 33 degenerate discarded (57 attempts)</span></div><div><span class="t">15:38:22</span>Discard breakdown — vf-hi: 33</div><div><span class="t">15:38:22</span>GPU: 13.5 s for 57 attempts · median GPU solve 320 ms per design · GPU had work 58 % of the time</div><div><span class="t">15:38:22</span><span class="w">3 designs flagged: stiffness may read high</span></div><div><span class="t">15:38:22</span>Ranked by distance from ideal corner across 1 metric</div></div>',
-  key: '<div class="dh">Metric key</div><div class="dsub">Hover any table header or plot axis for the same text.</div><div class="fgrid" style="font:11.5px var(--mono);color:var(--t2)"><div><b style="color:var(--t1)">α</b> anisotropy — strongest ÷ weakest axis</div><div><b style="color:var(--t1)">E/ρ</b> mean stiffness per unit material</div><div><b style="color:var(--t1)">Gxy</b> shear modulus, XY plane</div><div><b style="color:var(--t1)">κ</b> fraction of axes connected</div><div><b style="color:var(--t1)">ρ%</b> solid share of the cell</div><div><b style="color:var(--warn)">●</b> stiffness may read high</div></div>'
+  key: '<div class="dh">Metric key</div><div class="dsub">Hover any table header or plot axis for the same text.</div><div class="fgrid" style="font:11.5px var(--mono);color:var(--t2)"><div><b style="color:var(--t1)">α</b> anisotropy — strongest ÷ weakest axis</div><div><b style="color:var(--t1)">E/ρ</b> mean stiffness per unit material</div><div><b style="color:var(--t1)">Gxy</b> shear modulus, XY plane</div><div><b style="color:var(--t1)">κ</b> fraction of axes connected</div><div><b style="color:var(--t1)">ρ%</b> solid share of the cell</div><div><b style="color:var(--warn)"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#f59e0b"></span></b> stiffness may read high</div></div>'
 };
 var drawerOpen = false, tab = 'sweep';
 function setTab(t) {
