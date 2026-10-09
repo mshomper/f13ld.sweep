@@ -244,7 +244,7 @@ function paintScale() {
   hint.textContent = (linked
     ? 'One range for X, Y and Z — each axis still draws its own scale, so cells stretch.'
     : 'Each axis draws its scale from its own range.') +
-    (baseFamily === 'beam' ? ' Beams: the strut radius uses the same range.' : '');
+    (baseFamily === 'beam' ? ' Beams: the strut radius follows the density.' : '');
 }
 
 /* The most stretched cell the sweep can draw, as a small isometric wireframe
@@ -336,6 +336,9 @@ function onSeg(btn) {
   var group = btn.parentNode.dataset.seg, v = btn.dataset.v;
   if (group === 'n') pxSet('samplesSlider', v, 'input');
   else if (group === 'samp') pxSet('samplingMethod', v, 'change');
+  else if (group === 'vary') pxSet('variationMode', v, 'change');
+  else if (group === 'spread') { pxSet('spreadPct', v, 'input'); updateDensityAuto(); }
+  else if (group === 'dens') { pxSet('vfAuto', v === 'auto' ? '1' : '0', 'input'); if (v === 'auto') updateDensityAuto(); }
   else if (group === 'prec') setPrecisionUI(v);
   else if (group === 'grid') setResolutionUI(+v);
   else if (/^dir\d$/.test(group)) setDirBtn(+group.slice(3), v);
@@ -354,6 +357,21 @@ function onNum(inp, commit) {
     if (!isFinite(v) || v <= 0) return;
     if (commit) { v = Math.max(1, Math.min(500, v)); inp.value = v; }
     scWrite(inp.dataset.ax, inp.dataset.end, v);
+  } else if (k === 'spread') {
+    if (!isFinite(v) || v <= 0) return;
+    if (commit) { v = Math.max(1, Math.min(90, Math.round(v))); inp.value = v; }
+    pxSet('spreadPct', v, 'input');
+    updateDensityAuto();
+  } else if (k === 'vflo' || k === 'vfhi') {
+    if (!isFinite(v) || v <= 0) return;
+    var b = densityBounds();
+    if (commit) { v = Math.max(b.lo * 100, Math.min(b.hi * 100, v)); inp.value = +v.toFixed(1); }
+    pxSet('vfAuto', '0', 'input');
+    pxSet(k === 'vflo' ? 'vfLo' : 'vfHi', +v.toFixed(1), 'input');
+    if (commit) {   /* keep the ends in order */
+      var lo = parseFloat(dockVal('vfLo')), hi = parseFloat(dockVal('vfHi'));
+      if (lo > hi) pxSet(k === 'vflo' ? 'vfHi' : 'vfLo', +v.toFixed(1), 'input');
+    }
   } else if (k === 'sigma') { if (isFinite(v) && v > 0) pxSet('sigmaRef', raw, 'input'); }
   else if (k === 'cell') { if (isFinite(v) && v > 0) pxSet('cellSize', raw, 'input'); }
   else if (k === 'keep2' || k === 'keep3') {
@@ -378,6 +396,25 @@ function paintSettings() {
   var samp = dockVal('samplingMethod');
   paintSeg('samp', samp);
   pxEl('hSamp').textContent = samp === 'uniform' ? 'Independent uniform draws.' : 'Low-discrepancy: even coverage, best at small counts.';
+  /* v0.26.0 — variation, spread, density window */
+  var vary = dockVal('variationMode') === 'explore' ? 'explore' : 'neighbourhood';
+  paintSeg('vary', vary);
+  pxEl('hVary').textContent = vary === 'explore'
+    ? 'Wider redraw: TPMS terms and frequencies, fresh random seeds, noise octaves, beam nodes. Designs can stop looking like the recipe.'
+    : 'The recipe keeps its identity — terms, phases, seed, topology — and its settings move around their own values.';
+  var sp = dockVal('spreadPct');
+  paintSeg('spread', sp);
+  pxVal('pxSpread', sp);
+  var dAuto = dockVal('vfAuto') === '1';
+  pxVal('pxVfLo', dockVal('vfLo'));
+  pxVal('pxVfHi', dockVal('vfHi'));
+  paintSeg('dens', dAuto ? 'auto' : 'set');
+  var db = (typeof baseRecipe !== 'undefined' && baseRecipe) ? densityBounds() : null;
+  pxEl('fDens').classList.toggle('na', !db);
+  pxEl('hDens').textContent = !db ? 'Load a recipe to set the density window.'
+    : 'Solid % drawn for each design; its ' + ((densityKnob(baseRecipe) || { name: 'thickness' }).name.replace(' ×', '').replace('_', ' ')) + ' is set to hit it. ' +
+      (baseDensity != null ? 'Recipe ' + (baseDensity * 100).toFixed(1) + ' %' + (dAuto ? ' ± spread' : '') + ' · ' : '') +
+      'solver range ' + Math.round(db.lo * 100) + '–' + Math.round(db.hi * 100) + ' %.';
   /* cell scale */
   paintScale();
   /* material */
@@ -437,8 +474,14 @@ function initSettings() {
     var b = e.target.closest && e.target.closest('.seg button');
     if (b && !b.disabled && pane.contains(b)) onSeg(b);
   });
-  pane.addEventListener('input', function (e) { if (e.target.matches && e.target.matches('input.num[data-px]')) onNum(e.target, false); });
-  pane.addEventListener('change', function (e) { if (e.target.matches && e.target.matches('input.num[data-px]')) onNum(e.target, true); });
+  /* v0.26.0 — only a real keystroke in a density field switches the window to Set */
+  var numEv = function (e, commit) {
+    if (!(e.target.matches && e.target.matches('input.num[data-px]'))) return;
+    if (!e.isTrusted && (e.target.dataset.px === 'vflo' || e.target.dataset.px === 'vfhi')) return;
+    onNum(e.target, commit);
+  };
+  pane.addEventListener('input', function (e) { numEv(e, false); });
+  pane.addEventListener('change', function (e) { numEv(e, true); });
   pane.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.matches && e.target.matches('input.num[data-px]')) e.target.blur(); });
   pane.addEventListener('pointerdown', scDrag);
   document.addEventListener('click', function (e) { if (DD_OPEN && !(e.target.closest && e.target.closest('.dd'))) closeDropdowns(); });
@@ -448,7 +491,8 @@ function initSettings() {
 }
 
 /* ── settings remembered per browser (as F13LD.lab v0.24.0) ─────────
-   Everything in the Settings panel: designs, sampling, cell-scale ranges and
+   Everything in the Settings panel: designs, sampling, variation and spread
+   (v0.26.0 — not the density window: it follows the recipe), cell-scale ranges and
    the one-range / per-axis choice, domain, material, reference stress, cell
    size, precision, grid, ranks (metric, direction, keep top %). Saved on
    every change; nothing saved (new browser, cleared data, private window) →
@@ -462,6 +506,7 @@ function swHasOpt(id, v) { var e = pxEl(id); if (!e) return false; for (var i = 
 function swSnapshot() {
   return {
     n: +dockVal('samplesSlider'), samp: dockVal('samplingMethod'),
+    vary: dockVal('variationMode'), spread: +dockVal('spreadPct'),
     scale: SC_AX.map(function (a) { return [pxNum('scale' + a + 'lo'), pxNum('scale' + a + 'hi')]; }),
     link: typeof DOCK_STATE.link === 'boolean' ? DOCK_STATE.link : null,
     domain: dockVal('domainSel'), material: pxEl('materialGroup').style.display !== 'none' ? dockVal('materialSel') : '', sigma: dockVal('sigmaRef'), cell: dockVal('cellSize'),
@@ -474,6 +519,8 @@ function swApply(s) {
   var ok = function (v, lo, hi) { v = parseFloat(v); return isFinite(v) && v >= lo && v <= hi; };
   if (ok(s.n, 1, 100000)) pxSet('samplesSlider', Math.max(10, Math.min(1000, Math.round(s.n / 10) * 10)), 'input');
   if (s.samp === 'sobol' || s.samp === 'uniform') pxSet('samplingMethod', s.samp, 'change');
+  if (s.vary === 'neighbourhood' || s.vary === 'explore') pxSet('variationMode', s.vary, 'change');
+  if (ok(s.spread, 1, 90)) { pxSet('spreadPct', Math.round(s.spread), 'input'); if (typeof baseRecipe !== 'undefined' && baseRecipe) updateDensityAuto(); }
   if (Array.isArray(s.scale) && s.scale.length === 3) s.scale.forEach(function (r, i) {
     if (Array.isArray(r) && ok(r[0], 1, 500) && ok(r[1], 1, 500) && +r[0] <= +r[1]) { pxSet('scale' + SC_AX[i] + 'lo', +r[0], 'input'); pxSet('scale' + SC_AX[i] + 'hi', +r[1], 'input'); }
   });

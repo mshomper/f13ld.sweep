@@ -47,7 +47,7 @@ samplesSlider.addEventListener('input', () => {
 //
 // Returns { ok, blocking, voxels, message } so callers can also gate
 // downstream behavior (e.g. disable Run Sweep when blocking=true).
-function checkBeamResolution(recipe, jitterLoFrac = null) {
+function checkBeamResolution(recipe, jitterLoFrac = null, label = null) {
   if (!recipe || !recipe.geometry) return { ok: true, voxels: Infinity };
   /* Thinnest strut in one cell, as the solver samples it (cell-local radius;
      the cell spans N voxels over 2 cell-local units). */
@@ -62,9 +62,9 @@ function checkBeamResolution(recipe, jitterLoFrac = null) {
   const strutVoxels = effR * N;
   const d = SWEEP_FAMILIES.beam.baseDims(recipe);
   const baseR = Math.min(...d.radius).toFixed(3), cell = d.cell.toFixed(3);
-  const ctx = jitterLoFrac != null
+  const ctx = label || (jitterLoFrac != null
     ? `at jitter low (${(jitterLoFrac*100).toFixed(0)}% of base)`
-    : 'at base radius';
+    : 'at base radius');
 
   if (strutVoxels < 1.5) {
     log('warn', `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Sub-voxel — solver will see broken/missing struts. Sweep results will not be physically meaningful.`);
@@ -73,7 +73,9 @@ function checkBeamResolution(recipe, jitterLoFrac = null) {
              message: 'Strut too thin for solver resolution' };
   }
   if (strutVoxels < 2.5) {
-    log('warn', `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Borderline — many designs will fail percolation and stiffness will be noise-dominated.`);
+    log('warn', strutVoxels < 2
+      ? `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Borderline — the thinnest designs may break up on this grid and their stiffness is noise-dominated.`
+      : `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Borderline — the thinnest designs' stiffness is approximate; a finer grid resolves them.`);
     return { ok: false, blocking: false, voxels: strutVoxels,
              message: 'Strut diameter borderline' };
   }
@@ -106,6 +108,49 @@ function updateScalePreview() {
     `<span style="color:#5fb5b5">X</span> ${xlo} → ${xhi} &nbsp;` +
     `<span style="color:#c794d4">Y</span> ${ylo} → ${yhi} &nbsp;` +
     `<span style="color:#d4b04a">Z</span> ${zlo} → ${zhi}`;
+}
+
+// ─── v0.26.0 — variation and the density window ─────────────────────────────
+// Read by runSweep. The window is a volume fraction range; Auto keeps it at
+// the recipe's own density ± spread, inside the solver's bounds for the
+// design's mode (44-solver-config.js RHO_MIN_* / resolveRhoMax).
+function getVariation() {
+  const mode = document.getElementById('variationMode').value === 'explore' ? 'explore' : 'neighbourhood';
+  let sp = parseFloat(document.getElementById('spreadPct').value);
+  if (!isFinite(sp)) sp = 25;
+  return { mode, spread: Math.max(0.01, Math.min(0.9, sp / 100)) };
+}
+function densityBounds() {
+  if (!baseRecipe) return { lo: 0.03, hi: 0.75 };
+  const mode = designGeometry(baseRecipe).sweepMode;
+  const lo = mode === 'pi-tpms' ? RHO_MIN_PI : mode.startsWith('noise') ? RHO_MIN_NOISE : mode.startsWith('grain') ? RHO_MIN_GRAIN
+           : mode === 'beam-solid' ? RHO_MIN_BEAM : RHO_MIN_STD;
+  return { lo, hi: resolveRhoMax(mode) };
+}
+function densityAutoWindow() {
+  const b = densityBounds(), sp = getVariation().spread;
+  if (baseDensity == null) return b;
+  let lo = Math.max(b.lo, baseDensity * (1 - sp)), hi = Math.min(b.hi, baseDensity * (1 + sp));
+  if (hi - lo < 0.01) {   /* the recipe sits at (or past) a bound: a window that still has width */
+    const c = Math.max(b.lo, Math.min(b.hi, baseDensity)), w = Math.max(0.01, c * sp);
+    lo = Math.max(b.lo, c - w); hi = Math.min(b.hi, c + w);
+  }
+  return { lo, hi };
+}
+/* Refresh the window when it follows the recipe (Auto). */
+function updateDensityAuto() {
+  if (document.getElementById('vfAuto').value !== '1') return;
+  const w = densityAutoWindow();
+  document.getElementById('vfLo').value = (w.lo * 100).toFixed(1);
+  document.getElementById('vfHi').value = (w.hi * 100).toFixed(1);
+}
+function getDensityWindow() {
+  const b = densityBounds();
+  let lo = parseFloat(document.getElementById('vfLo').value) / 100, hi = parseFloat(document.getElementById('vfHi').value) / 100;
+  const auto = document.getElementById('vfAuto').value === '1';
+  if (!(isFinite(lo) && isFinite(hi) && hi >= lo)) { const w = densityAutoWindow(); lo = w.lo; hi = w.hi; }
+  lo = Math.max(b.lo, Math.min(b.hi, lo)); hi = Math.max(lo, Math.min(b.hi, hi));
+  return { lo, hi, auto };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

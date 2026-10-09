@@ -3,18 +3,23 @@
    TPMS: how a design is varied around the loaded recipe.
 
    The design recipe is F13LD.tpms's export shape with a terms surface:
-     · a raw preset is expanded through the shared preset table, its
-       additive constant kept as a zero-factor term (so solid / shell /
-       PI-TPMS all keep the preset's level, as F13LD.mesh does)
-     · terms: trig swap, integer frequencies, term mask, sign flip,
-       per-term phase (solid / shell); PI-TPMS keeps frequency 1, all
-       terms on, no flip, no per-term phase. Coefficients are normalised
-       to max |c| = 1 (the constant term scales with them)
-     · solid: offset ± 0.2 · shell: wall × [0.7, 1.3] (target-aware) and
-       normal_weights · PI-TPMS: pipe radius and a phase shift in eighths
-     · per-axis cell scale → cell_scale_x/y/z
-     · field-pair PI-TPMS: field B and its frequency multiple are kept;
-       field_b_scale is recomputed for the new field A
+   a raw preset is expanded through the shared preset table, its additive
+   constant kept as a zero-factor term (so solid / shell / PI-TPMS all
+   keep the preset's level, as F13LD.mesh does). Coefficients are
+   normalised to max |c| = 1 (the constant term scales with them).
+
+   v0.26.0 — Neighbourhood (default): the surface keeps its identity —
+     every term, trig function, frequency, sign and phase as the recipe
+     has them; each term's coefficient × (1 ± spread); shell normal-weights
+     × (1 ± spread) around the recipe's own (target-aware axis bias);
+     PI-TPMS keeps its phase shift and field pair.
+   Explore: the v0.25 redraw — trig swap, integer frequencies 1–3, term
+     mask, sign flip, a random phase per term (solid / shell), PI-TPMS
+     phase shift in eighths, normal-weights drawn afresh.
+   Either way the density knob (solid offset, shell wall, PI pipe radius)
+   is set by 41-density.js, and the per-axis cell scale → cell_scale_x/y/z.
+   Field-pair PI-TPMS: field B and its frequency multiple are kept;
+   field_b_scale is recomputed for the new field A.
    ============================================================ */
 
 SWEEP_FAMILIES.tpms = {
@@ -58,65 +63,75 @@ SWEEP_FAMILIES.tpms = {
     const g0 = base.geometry || {};
     const mode = g0.mode || 'shell';
     const isPI = mode === 'pi-tpms';
-    const hints = ctx.targetHints || null;
     const [ax, ay, az] = ctx.axialShift || [0, 0, 0];
+    const M = J.spreadMult(ctx);
+    const TWO_PI = 2 * Math.PI;
 
     /* ── terms ── */
-    const TRIG_SWAP = 0.20, FREQS = isPI ? [1] : [1, 2, 3];
-    const TERM_ON = isPI ? 1.0 : 0.85, SIGN_FLIP = isPI ? 0.0 : 0.20, PER_TERM_PHASE = !isPI;
-    const TWO_PI = 2 * Math.PI, dimOff = 4;
-    const pickFreq = () => FREQS[Math.floor(R() * FREQS.length)];
-    let ti = 0;
-    const terms = this.baseTerms(base).map(t => {
-      if (!t.factors.length) return { on: true, coef: t.coef, factors: [] };   /* additive constant */
-      const i = ti++;
-      const on = R() < TERM_ON;
-      let coef = +(0.05 + (i < 4 ? draw.u(dimOff + i) : R()) * 4.95).toFixed(3);
-      if (R() < SIGN_FLIP) coef = -coef;
-      const out = {
-        on, coef,
-        factors: t.factors.map(f => {
-          let trig = f.trig;
-          if (R() < TRIG_SWAP) trig = trig.startsWith('sin') ? trig.replace('sin', 'cos') : trig.replace('cos', 'sin');
-          return { trig, fx: pickFreq(), fy: pickFreq(), fz: pickFreq() };
-        })
-      };
-      if (PER_TERM_PHASE) out.phase_shift = { x: +(R() * TWO_PI).toFixed(4), y: +(R() * TWO_PI).toFixed(4), z: +(R() * TWO_PI).toFixed(4) };
-      return out;
-    });
-    const varied = terms.filter(t => t.factors.length);
+    let terms;
+    if (!ctx.explore) {
+      terms = this.baseTerms(base).map(t => {
+        if (!t.factors.length) return t;                               /* additive constant */
+        const out = J.clone(t);
+        out.coef = +(t.coef * (M[0] + ctx.u() * (M[1] - M[0]))).toFixed(4);
+        return out;
+      });
+    } else {
+      const TRIG_SWAP = 0.20, FREQS = isPI ? [1] : [1, 2, 3];
+      const TERM_ON = isPI ? 1.0 : 0.85, SIGN_FLIP = isPI ? 0.0 : 0.20, PER_TERM_PHASE = !isPI;
+      const pickFreq = () => FREQS[Math.floor(R() * FREQS.length)];
+      terms = this.baseTerms(base).map(t => {
+        if (!t.factors.length) return { on: true, coef: t.coef, factors: [] };
+        const on = R() < TERM_ON;
+        let coef = +(0.05 + ctx.u() * 4.95).toFixed(3);
+        if (R() < SIGN_FLIP) coef = -coef;
+        const out = {
+          on, coef,
+          factors: t.factors.map(f => {
+            let trig = f.trig;
+            if (R() < TRIG_SWAP) trig = trig.startsWith('sin') ? trig.replace('sin', 'cos') : trig.replace('cos', 'sin');
+            return { trig, fx: pickFreq(), fy: pickFreq(), fz: pickFreq() };
+          })
+        };
+        if (PER_TERM_PHASE) out.phase_shift = { x: +(R() * TWO_PI).toFixed(4), y: +(R() * TWO_PI).toFixed(4), z: +(R() * TWO_PI).toFixed(4) };
+        return out;
+      });
+    }
+    const varied = terms.filter(t => t.factors.length && t.on !== false);
     const maxAbs = Math.max(0, ...varied.map(t => Math.abs(t.coef)));
-    if (maxAbs > 0) terms.forEach(t => { t.coef = +(t.coef / maxAbs).toFixed(3); });
+    if (maxAbs > 0) terms.forEach(t => { t.coef = +(t.coef / maxAbs).toFixed(4); });
 
     const g = J.clone(g0);
     g.mode = mode;
 
-    /* ── mode geometry ── */
+    /* ── mode geometry (the density knob itself is set by 41-density.js) ── */
     if (isPI) {
-      const basePipe = g0.pipe_radius != null ? g0.pipe_radius : 0.18;
-      const pm = hints && hints.pipe_radius_mult;
-      const lo = pm ? pm[0] * 0.857 : 0.6;                       /* [0.75,1.25] → [0.6,1.4] */
-      g.pipe_radius = +J.clamp(basePipe * (lo + draw.u(3) * 0.8), 0.02, 0.35).toFixed(3);
-      const E = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0];
-      let px, py, pz;
-      do { px = E[Math.floor(R() * E.length)]; py = E[Math.floor(R() * E.length)]; pz = E[Math.floor(R() * E.length)]; }
-      while (px === 0 && py === 0 && pz === 0);
-      g.phase_shift = { x: px, y: py, z: pz };
+      if (g.pipe_radius == null) g.pipe_radius = 0.18;
+      if (ctx.explore) {
+        const E = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0];
+        let px, py, pz;
+        do { px = E[Math.floor(R() * E.length)]; py = E[Math.floor(R() * E.length)]; pz = E[Math.floor(R() * E.length)]; }
+        while (px === 0 && py === 0 && pz === 0);
+        g.phase_shift = { x: px, y: py, z: pz };
+      }
       g.offset = null;
     } else if (mode === 'shell') {
-      const W = 1.20;
-      const rx = (0.40 + ax * 1.20) + draw.u(3) * W;
-      const ry = (0.40 + ay * 1.20) + R() * W;
-      const rz = (0.40 + az * 1.20) + R() * W;
-      const mean = (rx + ry + rz) / 3;
-      g.normal_weights = { wx: +(rx / mean).toFixed(4), wy: +(ry / mean).toFixed(4), wz: +(rz / mean).toFixed(4) };
-      const wm = hints && hints.wt_mult;
-      const wLo = wm ? wm[0] - 0.05 : 0.70;                      /* [0.75,1.25] → [0.70,1.30] */
-      const baseWall = g0.wall_thickness != null ? g0.wall_thickness : 0.3;
-      g.wall_thickness = +(baseWall * (wLo + R() * 0.60)).toFixed(3);
-      g.offset = g0.offset != null ? g0.offset : 0;
+      if (g.wall_thickness == null) g.wall_thickness = 0.3;
+      if (g.offset == null) g.offset = 0;
+      /* normal weights: around the recipe's own (neighbourhood) or drawn
+         afresh (explore); an axial target pressure thickens that axis */
+      const nw0 = g0.normal_weights || { wx: 1, wy: 1, wz: 1 };
+      let w;
+      if (ctx.explore) {
+        const W = 1.20;
+        w = [(0.40 + ax * 1.20) + ctx.u() * W, (0.40 + ay * 1.20) + R() * W, (0.40 + az * 1.20) + R() * W];
+      } else {
+        w = [[nw0.wx, ax], [nw0.wy, ay], [nw0.wz, az]].map(([b, a]) => Math.max(0.05, b * (M[0] + ctx.u() * (M[1] - M[0])) * (1 + 2 * a)));
+      }
+      const mean = (w[0] + w[1] + w[2]) / 3;
+      g.normal_weights = { wx: +(w[0] / mean).toFixed(4), wy: +(w[1] / mean).toFixed(4), wz: +(w[2] / mean).toFixed(4) };
     } else {
-      g.offset = +((g0.offset != null ? g0.offset : 0) + (draw.u(3) - 0.5) * 0.4).toFixed(3);
+      if (g.offset == null) g.offset = 0;
     }
 
     /* ── cell scale ── */

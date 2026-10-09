@@ -538,6 +538,7 @@ td.td-group-end, th.td-group-end {
 .rank-badge.r1 { color: var(--rank1); border-color: var(--rank1); background: rgba(200,245,66,0.08); }
 .rank-badge.r2 { color: var(--rank2); border-color: var(--rank2); background: rgba(29,158,117,0.08); }
 .rank-badge.r3 { color: var(--rank3); border-color: var(--rank3); background: rgba(181,152,212,0.08); }
+.ref-badge { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 9px; border: 1px dashed var(--neon-ring, #c8f542); color: var(--neon, #c8f542); font: 600 9.5px var(--mono); letter-spacing: 0.06em; }
 
 /* Mode toggle buttons */
 .mode-toggle-group {
@@ -995,6 +996,13 @@ input.num:disabled { color: var(--t3); }
 .dr-f > label, .rk-grid > label { font: 600 9.5px var(--mono); color: var(--sec); text-transform: uppercase; letter-spacing: 0.14em; }
 .dr-f.na, .dr-f .na { opacity: 0.38; pointer-events: none; }
 .f-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* v0.26.0 — a field label with a chip on its right (Density · Auto) */
+.lbl-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.lbl-row > label { font: 600 9.5px var(--mono); color: var(--sec); text-transform: uppercase; letter-spacing: 0.14em; }
+.lbl-row .seg { margin-left: auto; align-self: center; }
+.lbl-row .seg button { height: 18px; padding: 0 7px; font-size: 10.5px; }
+.dens-row .num-u { flex: 1; min-width: 0; }
+.dens-to { font-size: 11px; color: var(--t3); }
 .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .pair .num-u { width: 100%; }
 .pair .dd { min-width: 0; }

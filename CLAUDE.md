@@ -16,5 +16,6 @@
 
 ## Testing
 - Before merging, run `node tests/harness.js <old build> <new build>` (see `tests/README.md`). It runs the CPU solver path (`window.SWEEP_GPU = false`). Changes that are not meant to move numbers must come out identical.
-- Latest session recap: `docs/SESSION_RECAP_2026-10-08_gpu.md` (before it: `docs/SESSION_RECAP_2026-10-08.md`); what's next: `docs/NEXT_STEPS.md`. Refactor plan, decisions and phase status: `docs/REFACTOR.md`. v0.19.0 findings: `docs/AUDIT_v0.19.0.md`.
+- Latest plan: `docs/FAMILIES_AND_JITTER_PLAN.md` (v0.26.0 jitter overhaul, then Foam / Wave / Bundle, Ingest / Vault). Session recaps: `docs/SESSION_RECAP_2026-10-08_gpu.md`, `docs/SESSION_RECAP_2026-10-08.md`; what's next: `docs/NEXT_STEPS.md`. Refactor plan, decisions and phase status: `docs/REFACTOR.md`. v0.19.0 findings: `docs/AUDIT_v0.19.0.md`.
 - Cross-tool geometry check: `node tests/parity/parity.js --quick` (needs the other F13LD repos as siblings).
+- Density solve and jitter without a browser (v0.26.0): `node tests/density.js`, `node tests/smoke-jitter.js` (both slow on grain / noise — filter to a case). No Chromium in the cloud VM, so `harness.js` and `bench.html` run on Matt's machine.

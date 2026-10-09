@@ -8,6 +8,9 @@
 // of a sweep is varied from it. baseFamily: tpms | noise | grain | beam.
 let baseRecipe = null;
 let baseFamily = null;
+/* v0.26.0 — the recipe's solid fraction on the density samples (41-density.js),
+   the centre of the automatic density window; null before a recipe loads */
+let baseDensity = null;
 let results = [];
 let directions = { 1: 'max', 2: 'max', 3: 'max' };
 // v0.18.0: target profile snapshot from last sweep — populated by runSweep,

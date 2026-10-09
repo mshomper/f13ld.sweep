@@ -244,13 +244,15 @@ function gpuSolverStatus() {
 }
 
 // One design through the pipeline. CPU: the worker does everything.
-// GPU: worker prepares → GPU solves → page finishes. Resolves { attemptIdx, hom }.
+// GPU: worker prepares → GPU solves → page finishes.
+// Resolves { attemptIdx, hom, recipe, density } — recipe is the design with
+// its density solved by the worker (v0.26.0), density what the solve did.
 async function computeDesign(pool, gpu, spec, gpuPrec) {
   if (!gpu || !gpu.usable) return pool.dispatch(spec);
   const opts = gpuPrec.metricsN ? Object.assign({}, spec.opts, { metricsN: gpuPrec.metricsN }) : spec.opts;
   const msg = await pool.dispatch(Object.assign({}, spec, { type: 'prepare_design', opts }));
   const prep = msg.prep;
-  if (prep.reject) return { attemptIdx: spec.attemptIdx, hom: prep.reject };
+  if (prep.reject) return { attemptIdx: spec.attemptIdx, hom: prep.reject, recipe: msg.recipe, density: msg.density };
   const o = spec.opts, P = prep.P;
   const anyAxis = P.connectGate.x || P.connectGate.y || P.connectGate.z;
   const sol = await gpu.solve({
@@ -258,5 +260,5 @@ async function computeDesign(pool, gpu, spec, gpuPrec) {
     elastic: anyAxis ? { Es: o.Es, nu: o.nu, voidRatio: gpuPrec.voidRatio, tol: gpuPrec.tol, maxiter: gpuPrec.maxiter } : null,
     thermal: { kS: o.ks || 1.0, kF: (o.ks || 1.0) * 0.0003, tol: gpuPrec.thTol, maxiter: gpuPrec.thMaxiter }
   });
-  return { attemptIdx: spec.attemptIdx, hom: finishDesignGpu(prep, sol, o, gpuPrec) };
+  return { attemptIdx: spec.attemptIdx, hom: finishDesignGpu(prep, sol, o, gpuPrec), recipe: msg.recipe, density: msg.density };
 }

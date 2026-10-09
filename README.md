@@ -14,6 +14,12 @@ Companion to the [F13LD Suite](https://f13ld.app)
 
 f13ld.sweep takes an implicit recipe (exported from other [f13ld](f13ld.app) tools) and explores the surrounding design space — varying multiple parameters depending on the type and surface modes. Each candidate design is evaluated using a browser-based FFT-CG homogenization solver that computes effective elastic stiffness, anisotropy, connectivity, pore geometry, and optional thermal conductivity. Results are ranked, visualized in a 3D design space explorer, and exportable as JSON for downstream GPU validation.
 
+### How designs are drawn (v0.26.0)
+
+- **Density is an axis.** Each design is drawn a volume fraction from the density window (Auto: the recipe's own density ± Spread) and its thickness setting — wall, offset, pipe radius, half-width or iso, strut radius — is set to hit it. Designs cover the window evenly instead of being thrown away when they land outside it, and designs can be compared at matched density.
+- **Neighbourhood (default)** keeps the design's identity — surface terms and phases, field type and seed, topology, node treatment — and moves its other settings ± Spread around the recipe's own values. **Explore** redraws more widely (TPMS terms and frequencies, fresh random seeds, noise octaves, beam nodes); designs can stop resembling the recipe.
+- **Design #0 is the recipe itself**, solved as it is and marked "ref", so every design can be read against it.
+
 ---
 
 ## Workflow
@@ -122,7 +128,7 @@ Sweeps run on a Web Worker pool sized to `min(8, navigator.hardwareConcurrency �
 
 Each worker loads `worker/sweep-worker.js`, which pulls in the same family, solver and metrics files the page uses (`importScripts`), so every worker has its own copy of the solver, workspace and Gamma cache. (Before v0.20.0 the worker source was assembled at runtime from `Function.prototype.toString()`.)
 
-Sample generation (Sobol low-discrepancy + uniform random for high-dimensional jitter) stays on the main thread — workers receive fully-realized design specs and dispatch results back via `attemptIdx`. Final result IDs are assigned by sorting on `attemptIdx` after the sweep completes, so results are deterministic across runs with the same Sobol seed regardless of worker completion order.
+Sample generation (Sobol low-discrepancy: dimension 0 the density, 1–3 the cell scale, then each family's most influential settings; a seeded random stream for the rest) stays on the main thread; the worker solves each design's density knob first (`41-density.js`) and sends the solved recipe back — workers receive fully-realized design specs and dispatch results back via `attemptIdx`. Final result IDs are assigned by sorting on `attemptIdx` after the sweep completes, so results are deterministic across runs with the same Sobol seed regardless of worker completion order.
 
 ### Connectivity
 
@@ -164,8 +170,9 @@ Since v0.20.0 the tool is split into numbered classic scripts, like F13LD.lab an
 | `05-log.js` · `10-state.js` | Run log · global sweep state |
 | `11-rank.js` · `12-target-profile.js` | Rank filters, KNN outliers, k-means colouring, final ranking · target-aware sampling |
 | `20-recipe-load.js` · `21-materials-domain.js` · `22-controls.js` · `23-dock.js` · `24-drawer.js` | Recipe loading, presets · materials, domains, pickers · sweep controls · icons, dock + drawer shell, inspector, results funnel, column tooltips · the drawer's Settings panel (drives the hidden legacy controls) (v0.25.0) |
-| `families/fam-tpms.js` · `fam-noise.js` · `fam-grain.js` · `fam-beam.js` | One field kernel per family: evaluate, jitter, GLSL emit |
-| `40-mode.js` · `41-rasterize.js` | Family registry + mode thresholds · voxel mask |
+| `families/fam-index.js` · `fam-tpms.js` · `fam-noise.js` · `fam-grain.js` · `fam-beam.js` | How each family's recipe is varied (Neighbourhood / Explore, Spread) and summarized |
+| `geom/` | Recipe → field → voxels, byte-identical with F13LD.lab (`tests/parity/geomsync.js`) |
+| `40-design.js` · `41-density.js` | Designs are recipes: geometry, voxels, margin field · the density solve (each design's thickness knob set to its drawn volume fraction) |
 | `42-fft.js` · `43-elastic-solver.js` · `44-solver-config.js` · `45-homogenize.js` | FFT · Green operator + CG · solver constants and caches · elastic / thermal homogenization |
 | `50-hires-field.js` · `51-transport.js` · `52-geometry-metrics.js` · `53-pores.js` | Hi-res field · throat / percolation / tortuosity · curvature / topology · pore analysis |
 | `54-estimate.js` | Per-design pipeline: `prepareDesign` → solve → `finishDesign`; `estimateHomogenization` = the CPU path |
@@ -176,7 +183,7 @@ Since v0.20.0 the tool is split into numbered classic scripts, like F13LD.lab an
 | `99-init.js` | Page init |
 | `worker/sweep-worker.js` | CPU worker (loads `families/`, `40`–`55`): whole designs on the CPU path, design preparation on the GPU path |
 | `solver/` | **PolyForm Noncommercial** (`solver/LICENSE.md`, `solver/NOTICE`). `lab/` = F13LD.lab's solver files, unchanged · `gpu-worker.js` = the GPU worker · `sweep-gpu-kernels.js` = Sweep's additions (stretched-cell Green operator and thermal scaling) |
-| `tests/` | Dev: old-vs-new regression (`harness.js`, CPU path), load-order check (`loadorder.js`), GPU bench (`bench.html`), stretched-cell CPU check (`gpu/stretch-check.js`), Lab sync checks (`parity/geomsync.js`, `parity/solversync.js`) |
+| `tests/` | Dev: old-vs-new regression (`harness.js`, CPU path), load-order check (`loadorder.js`), GPU bench (`bench.html`), stretched-cell CPU check (`gpu/stretch-check.js`), Lab sync checks (`parity/geomsync.js`, `parity/solversync.js`), density landing (`density.js`), jitter → density → solve without a browser (`smoke-jitter.js`) |
 | `docs/` | `REFACTOR.md` (plan, decisions, phases) · `AUDIT_v0.19.0.md` (findings) |
 
 ---

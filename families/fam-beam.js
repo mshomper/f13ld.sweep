@@ -6,13 +6,18 @@
    in the per-axis schema F13LD.mesh reads:
      cell        nominal cell edge, mm (geometric mean of scale_xyz)
      scale_xyz   per-axis cell edge, mm — the drawn cell scale
-     radius_x/y/z   strut radius per axis, mm — the recipe's radius ×
-                 the per-axis radius range (beam reuses the cell-scale %
-                 range for it, as before)
-     node_smoothing_k / node_ball_radius   mm, 0 … 1.5× / 2× the radius
+     radius_x/y/z   strut radius per axis, mm
+     node_smoothing_k / node_ball_radius   mm
    F13LD.beam's own radius is cell-local (a fraction of the half-cell),
-   so a 1.5 mm cell with radius 0.10 has 0.075 mm struts; Sweep v0.20
-   read it as mm. The solver samples one periodic cell (40-design.js).
+   so a 1.5 mm cell with radius 0.10 has 0.075 mm struts. The solver
+   samples one periodic cell (40-design.js).
+
+   v0.26.0 — the strut radii keep their per-axis proportions × (1 ± spread)
+   and 41-density.js scales all of them (and the node smoothing / node
+   ball with them) to the drawn density; the radius no longer reuses the
+   cell-scale ranges. Neighbourhood keeps the recipe's node treatment ×
+   (1 ± spread) — none stays none; Explore draws node smoothing 0–1.5× and
+   node ball 0–2× the mean radius (v0.25 behaviour).
    ============================================================ */
 
 SWEEP_FAMILIES.beam = {
@@ -59,14 +64,15 @@ SWEEP_FAMILIES.beam = {
   },
 
   jitter(base, draw, ctx) {
-    const J = jitterUtil;
+    const J = jitterUtil, R = ctx.rand || Math.random;
+    const M = J.spreadMult(ctx);
     const d = this.baseDims(base);
     const [sx, sy, sz] = ctx.scale;
-    const rf = ctx.radiusFrac || { x: [0.5, 2.0], y: [0.5, 2.0], z: [0.5, 2.0] };
-    const rx = d.radius[0] * (rf.x[0] + draw.u(3) * (rf.x[1] - rf.x[0]));
-    const ry = d.radius[1] * (rf.y[0] + draw.u(4) * (rf.y[1] - rf.y[0]));
-    const rz = d.radius[2] * (rf.z[0] + draw.u(5) * (rf.z[1] - rf.z[0]));
-    const r0 = (d.radius[0] + d.radius[1] + d.radius[2]) / 3;
+    /* radii: the recipe's per-axis proportions, each × (1 ± spread), at the
+       recipe's mean (the density solve sets the overall size) */
+    const rr = d.radius.map(v => v * (M[0] + ctx.u() * (M[1] - M[0])));
+    const r0 = (d.radius[0] + d.radius[1] + d.radius[2]) / 3, rm = (rr[0] + rr[1] + rr[2]) / 3;
+    const rx = rr[0] * r0 / rm, ry = rr[1] * r0 / rm, rz = rr[2] * r0 / rm;
     const g = J.clone(base.geometry || {});
     delete g.cell_scale; delete g.cell_scale_x; delete g.cell_scale_y; delete g.cell_scale_z;
     const s = [+sx.toFixed(4), +sy.toFixed(4), +sz.toFixed(4)];
@@ -75,8 +81,14 @@ SWEEP_FAMILIES.beam = {
     g.radius_x = +rx.toFixed(4); g.radius_y = +ry.toFixed(4); g.radius_z = +rz.toFixed(4);
     /* scalar radius kept for readers of the plain F13LD.beam field: cell-local, mean */
     g.radius = +((2 * g.radius_x / s[0] + 2 * g.radius_y / s[1] + 2 * g.radius_z / s[2]) / 3).toFixed(4);
-    g.node_smoothing_k = +(draw.u(6) * r0 * 1.5).toFixed(4);
-    g.node_ball_radius = +(draw.u(7) * r0 * 2.0).toFixed(4);
+    if (ctx.explore) {
+      g.node_smoothing_k = +(ctx.u() * r0 * 1.5).toFixed(4);
+      g.node_ball_radius = +(ctx.u() * r0 * 2.0).toFixed(4);
+    } else {
+      const k0 = (base.geometry || {}).node_smoothing_k || 0, b0 = (base.geometry || {}).node_ball_radius || 0;
+      g.node_smoothing_k = +(k0 * (M[0] + R() * (M[1] - M[0]))).toFixed(4);
+      g.node_ball_radius = +(b0 * (M[0] + R() * (M[1] - M[0]))).toFixed(4);
+    }
     /* topology is always written (F13LD.ingest needs it to rebuild the lattice) */
     const topology = base.topology ? J.clone(base.topology)
       : { name: (base.meta && base.meta.preset) || 'custom', beam_count: base.beams.length };

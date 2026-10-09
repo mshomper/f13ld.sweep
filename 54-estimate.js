@@ -26,7 +26,7 @@ function estimateHomogenization(recipe, opts) {
   if (P.reject) return P.reject;
   const { solverGridSolid, N, mode, connectGate, _contrast, _maxiter, _hiRes, rejectFn: reject } = P;
   const Es = o.Es, nu = o.nu, ks = o.ks;
-  const fft = fftHomogenize(solverGridSolid, N, mode, Es, nu, connectGate, _contrast, _maxiter, _hiRes);
+  const fft = fftHomogenize(solverGridSolid, N, mode, Es, nu, connectGate, _contrast, _maxiter, _hiRes || o.solvedVF != null);
   if (!fft || fft.rejected) return reject((fft && fft.reject_reason) || 'unknown', (fft && fft.rho != null) ? fft.rho : 0);
 
   // Run thermal FFT-CG — reuses solid voxel grid from elastic solve
@@ -76,7 +76,7 @@ function prepareDesign(recipe, opts) {
 
   /* ── Solver-grid voxels + volume-fraction pre-gate. For PI / noise / grain
      the finer metrics grid is canonical for VF, so the solver grid gets
-     relaxed bounds here (×0.7 / ×1.15) and target-aware tightening. ── */
+     relaxed bounds here (×0.7 / ×1.15). ── */
   const solverGridSolid = designVoxels(geo, N);
   let _in = 0;
   for (let i = 0; i < solverGridSolid.length; i++) _in += solverGridSolid[i];
@@ -84,10 +84,15 @@ function prepareDesign(recipe, opts) {
   const _rhoMin = isPi ? RHO_MIN_PI : isNoise ? RHO_MIN_NOISE : isGrain ? RHO_MIN_GRAIN : isBeam ? RHO_MIN_BEAM : RHO_MIN_STD;
   const _rhoMax = resolveRhoMax(mode);
   const _hiRes = (isPi || isNoise || isGrain);
-  const _f = (targetHints && targetHints.pregate_rho_factors) || { lo: 1.0, hi: 1.0 };
-  const _lo = (_hiRes ? _rhoMin * 0.7 : _rhoMin) * _f.lo;
-  const _hi = (_hiRes ? _rhoMax * 1.15 : _rhoMax) * _f.hi;
-  if (rho_pregate < _lo || rho_pregate > _hi) return { reject: reject(rho_pregate < _lo ? 'vf_low' : 'vf_high', rho_pregate) };
+  /* (v0.26.0 — no target-aware tightening: the density is drawn, 41-density.js)
+     v0.26.0 — a design whose density the worker solved (o.solvedVF, the
+     solid fraction on 4,096 sample points) is gated on that: binary voxels
+     at 32³ read thin struts and walls several points low, which threw out
+     designs drawn inside the window (Matt's beam BCC run, 2026-10-09). */
+  const _lo = _hiRes ? _rhoMin * 0.7 : _rhoMin;
+  const _hi = _hiRes ? _rhoMax * 1.15 : _rhoMax;
+  const rho_gate = o.solvedVF != null ? o.solvedVF : rho_pregate;
+  if (rho_gate < _lo || rho_gate > _hi) return { reject: reject(rho_gate < _lo ? 'vf_low' : 'vf_high', rho_gate) };
 
   /* ── Geometry metrics grid: 96 for PI-TPMS, 64 for noise / grain (thin
      pipes and sheets), else the solver grid itself (pores at 16 as before). */
@@ -108,7 +113,8 @@ function prepareDesign(recipe, opts) {
   const hiResData = _hiRes ? { rawField: field.rawField, voidMask: field.voidMask, solidMask: field.solidMask, N: N_GEO } : null;
 
   /* ── FFT-CG solve on the solver-grid voxels, gated by connectivity ── */
-  const connectGate = { x: !!solidPerc.connect_x, y: !!solidPerc.connect_y, z: !!solidPerc.connect_z };
+  const connectGate = { x: !!solidPerc.connect_x, y: !!solidPerc.connect_y, z: !!solidPerc.connect_z,
+                        yz: !!solidPerc.shear_yz, xz: !!solidPerc.shear_xz, xy: !!solidPerc.shear_xy };
   /* PI / noise / grain: the metrics grid is canonical for VF — gate on it
      here with the strict bounds, and let the solver skip its coarse check. */
   if (_hiRes && (rho_hi < _rhoMin || rho_hi > _rhoMax)) return { reject: reject(rho_hi < _rhoMin ? 'vf_low' : 'vf_high', rho_hi) };

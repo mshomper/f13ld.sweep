@@ -1,6 +1,13 @@
 # F13LD.sweep — next steps
 
-**As of 2026-10-08 (evening).** `main` = v0.24.0 (GPU solver; branch `v0.24.0-gpu` merged after Matt's GPU checks and speed bench). What happened so far: [`SESSION_RECAP_2026-10-08.md`](SESSION_RECAP_2026-10-08.md). Design decisions and per-version notes: [`REFACTOR.md`](REFACTOR.md). Original findings: [`AUDIT_v0.19.0.md`](AUDIT_v0.19.0.md).
+**As of 2026-10-09.** `main` = v0.26.0 (merged after Matt's GPU runs: gyroid sheet, spinodoid, beam BCC, gyroid Explore). v0.26.0 = how designs are varied — density as a sampled axis, Neighbourhood / Explore, one Spread, reference design #0, shear gating (`REFACTOR.md` → v0.26.0). Plan for what follows (Foam → Wave → Bundle, then Ingest / Vault with flags and shear, Vault wipe + re-seed): [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md).
+
+## 0. v0.26.0 — checked by Matt 2026-10-09 (merged); next: Foam (v0.27.0)
+1. Open the branch over http(s), load a gyroid sheet, a spinodoid and a beam: the Sweep column shows Variation / Spread / Density; a sweep logs the density landing ("designs landed a median … points from their drawn density"); row #0 is marked "ref".
+2. Explore on a TPMS recipe should look like v0.25's sweeps; Neighbourhood should keep the surface type.
+3. `node tests/harness.js <v0.25.0> <branch>` will differ everywhere (new draws) — check it runs without page errors rather than for identical numbers.
+
+Earlier (2026-10-08, evening): v0.24.0 (GPU solver; branch `v0.24.0-gpu` merged after Matt's GPU checks and speed bench). What happened so far: [`SESSION_RECAP_2026-10-08.md`](SESSION_RECAP_2026-10-08.md). Design decisions and per-version notes: [`REFACTOR.md`](REFACTOR.md). Original findings: [`AUDIT_v0.19.0.md`](AUDIT_v0.19.0.md).
 
 ## 1. Merge v0.22.0 + v0.23.0 — done
 
@@ -35,7 +42,7 @@ Built 2026-10-08, Configure drawer rebuilt the same day as one Settings panel wi
 | Item | Notes |
 |---|---|
 | Full parity run | `--quick` passed (2 designs per family). Run the full set once on your machine before reseeding Vault. |
-| TPMS jitter (audit G13) | Frequencies and coefficients are redrawn from scratch; PI forces frequency 1, so double-frequency presets lose their identity. Needs a decision on how far a sweep should stray from the loaded design. |
+| ~~TPMS jitter (audit G13)~~ | Done in v0.26.0: Neighbourhood keeps frequencies / terms / phases; Explore keeps the old redraw. |
 | Grain seed 0 (audit G14) | The grain tool's generator sticks at 0 for seed 0. Fix must go into grain, Lab, Mesh and Sweep together (shared code). |
 | Rank filter ties / nulls (audit R10) | Ties go to the earlier attempt; nulls kept when too few numeric values. |
 | README roadmap | "Path E" (grain, noise) is done; the "smaller items" list is partly done (throats are now distance-transform based). Solver section rewritten for v0.24.0; the roadmap still needs a pass. |
