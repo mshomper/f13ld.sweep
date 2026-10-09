@@ -79,6 +79,9 @@ function loadRecipe(json, name) {
   baseRecipe = completed;
   baseFamily = family;
   const fam = SWEEP_FAMILIES[family];
+  /* v0.26.0 — the recipe's density, the centre of the automatic window */
+  try { baseDensity = densityOf(completed); } catch (e) { baseDensity = null; }
+  if (typeof updateDensityAuto === 'function') updateDensityAuto();
 
   document.getElementById('fileName').textContent = name;
   const summary = fam.describe(completed);
@@ -95,6 +98,7 @@ function loadRecipe(json, name) {
 
   log('info', `Loaded: ${escapeLog(name)}`);
   log('accent', escapeLog(summary));
+  if (baseDensity != null) log('info', `Recipe density ${(baseDensity * 100).toFixed(1)} % — every design is drawn a density and its ${(densityKnob(completed) || { name: 'shape' }).name.replace(' ×', '')} is set to hit it`);
   /* Say what was filled in, so a recipe without explicit flags isn't read
      differently without notice (F13LD.mesh's defaults; Lab's import differs). */
   const g0 = json.geometry || {}, g1 = completed.geometry || {};

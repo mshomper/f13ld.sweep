@@ -194,9 +194,20 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     method: methodLabel || 'FFT-CG',
     ...stiffnessFlagFields(d),
     ...gpuDesignFields(d),
+    ...densityDesignFields(d),
     solver_version: d.solver_version || SOLVER_VERSION,
     geometry_version: GEOMETRY_VERSION
   };
+}
+
+/* v0.26.0 — the reference design (the recipe itself, #0) and the density
+   each drawn design was solved to (additive fields). */
+function densityDesignFields(d) {
+  if (!d) return {};
+  const out = {};
+  if (d.reference) out.reference = true;
+  if (d.density) Object.assign(out, { target_vf: d.density.target_vf, density_knob: d.density.knob, density_knob_value: d.density.knob_value });
+  return out;
 }
 
 /* v0.24.0 — "stiffness may be inflated" flags (stiffnessFlags, 54-estimate.js) */
@@ -329,6 +340,11 @@ function exportResults() {
         // design.homogenization.grid (may be higher due to family floor).
         resolution_picker:  lastSweepSettings ? lastSweepSettings.resolution_picker : getSolverN(),
         sweep_seed:         lastSweepSettings ? lastSweepSettings.seed : null,
+        // v0.26.0: how the designs were varied (families/fam-index.js) and the
+        // density window each design's density was drawn from (41-density.js).
+        variation:          lastSweepSettings ? (lastSweepSettings.variation || null) : null,
+        spread:             lastSweepSettings ? (lastSweepSettings.spread != null ? lastSweepSettings.spread : null) : null,
+        density_window:     lastSweepSettings ? (lastSweepSettings.density_window || null) : null,
         // v0.17.0: VF bounds provenance. Lower floors relaxed for
         // noise/grain/beam to admit purposefully sparse recipes; upper
         // bound split by mode topology so sheet/half/solid/pi/beam each
@@ -486,7 +502,8 @@ function exportResults() {
         pore_size_p90:        d.pore_size_p90,
         pore_size_cv:         d.pore_size_cv,
         ...stiffnessFlagFields(d),
-        ...gpuDesignFields(d)
+        ...gpuDesignFields(d),
+        ...densityDesignFields(d)
       },
       // The exact recipe this design was solved with (design-tool format).
       design: designRecipeOut(d, 'results-export')

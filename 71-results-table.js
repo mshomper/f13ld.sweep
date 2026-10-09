@@ -188,7 +188,10 @@ function renderTable(data) {
 
   const rows = sorted.map((d) => {
     const fr = d.filterRank || 999;
-    const badge = fr <= 3
+    /* v0.26.0 — the recipe itself (design #0) */
+    const badge = d.reference
+      ? `<span class="ref-badge" title="The loaded recipe itself, solved as it is — the designs vary around it">ref</span>`
+      : fr <= 3
       ? `<div class="rank-badge r${fr}">${fr}</div>`
       : `<span style="color:var(--muted);font-family:var(--mono);font-size:11px">${fr}</span>`;
 

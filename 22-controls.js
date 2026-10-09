@@ -108,4 +108,47 @@ function updateScalePreview() {
     `<span style="color:#d4b04a">Z</span> ${zlo} → ${zhi}`;
 }
 
+// ─── v0.26.0 — variation and the density window ─────────────────────────────
+// Read by runSweep. The window is a volume fraction range; Auto keeps it at
+// the recipe's own density ± spread, inside the solver's bounds for the
+// design's mode (44-solver-config.js RHO_MIN_* / resolveRhoMax).
+function getVariation() {
+  const mode = document.getElementById('variationMode').value === 'explore' ? 'explore' : 'neighbourhood';
+  let sp = parseFloat(document.getElementById('spreadPct').value);
+  if (!isFinite(sp)) sp = 25;
+  return { mode, spread: Math.max(0.01, Math.min(0.9, sp / 100)) };
+}
+function densityBounds() {
+  if (!baseRecipe) return { lo: 0.03, hi: 0.75 };
+  const mode = designGeometry(baseRecipe).sweepMode;
+  const lo = mode === 'pi-tpms' ? RHO_MIN_PI : mode.startsWith('noise') ? RHO_MIN_NOISE : mode.startsWith('grain') ? RHO_MIN_GRAIN
+           : mode === 'beam-solid' ? RHO_MIN_BEAM : RHO_MIN_STD;
+  return { lo, hi: resolveRhoMax(mode) };
+}
+function densityAutoWindow() {
+  const b = densityBounds(), sp = getVariation().spread;
+  if (baseDensity == null) return b;
+  let lo = Math.max(b.lo, baseDensity * (1 - sp)), hi = Math.min(b.hi, baseDensity * (1 + sp));
+  if (hi - lo < 0.01) {   /* the recipe sits at (or past) a bound: a window that still has width */
+    const c = Math.max(b.lo, Math.min(b.hi, baseDensity)), w = Math.max(0.01, c * sp);
+    lo = Math.max(b.lo, c - w); hi = Math.min(b.hi, c + w);
+  }
+  return { lo, hi };
+}
+/* Refresh the window when it follows the recipe (Auto). */
+function updateDensityAuto() {
+  if (document.getElementById('vfAuto').value !== '1') return;
+  const w = densityAutoWindow();
+  document.getElementById('vfLo').value = (w.lo * 100).toFixed(1);
+  document.getElementById('vfHi').value = (w.hi * 100).toFixed(1);
+}
+function getDensityWindow() {
+  const b = densityBounds();
+  let lo = parseFloat(document.getElementById('vfLo').value) / 100, hi = parseFloat(document.getElementById('vfHi').value) / 100;
+  const auto = document.getElementById('vfAuto').value === '1';
+  if (!(isFinite(lo) && isFinite(hi) && hi >= lo)) { const w = densityAutoWindow(); lo = w.lo; hi = w.hi; }
+  lo = Math.max(b.lo, Math.min(b.hi, lo)); hi = Math.max(lo, Math.min(b.hi, hi));
+  return { lo, hi, auto };
+}
+
 // ═════════════════════════════════════════════════════════════════════════════

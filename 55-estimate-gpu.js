@@ -112,10 +112,13 @@ function finishDesignGpu(prep, sol, o, g) {
     /* Disconnected axes (Sweep's connectivity gate, as before) report 0;
        anything non-finite, negative or stiffer than the solid is a solve
        that did not settle — 0 too. Small values are kept as solved (with
-       Fast's void stiffness 1e-3 a sparse lattice can sit near it). */
+       Fast's void stiffness 1e-3 a sparse lattice can sit near it).
+       v0.26.0 — a shear modulus needs one piece spanning both axes of its
+       plane (54 connectGate.yz / xz / xy); otherwise it is the void's, 0. */
     const ok = v => isFinite(v) && v > 0 && v <= Es * 1.05;
+    const sconn = [P.connectGate.yz, P.connectGate.xz, P.connectGate.xy].map(v => v !== false);
     E = [1 / S[0], 1 / S[7], 1 / S[14]].map((v, i) => conn[i] && ok(v) ? v : 0);
-    G = [1 / S[21], 1 / S[28], 1 / S[35]].map(v => ok(v) ? v : 0);   /* yz, xz, xy */
+    G = [1 / S[21], 1 / S[28], 1 / S[35]].map((v, i) => sconn[i] && ok(v) ? v : 0);   /* yz, xz, xy */
     if (E[0] && E[1]) nus[0] = -S[1] / S[0];   /* ν_xy */
     if (E[0] && E[2]) nus[1] = -S[2] / S[0];   /* ν_xz */
     if (E[1] && E[2]) nus[2] = -S[8] / S[7];   /* ν_yz */

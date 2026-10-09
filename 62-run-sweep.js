@@ -71,17 +71,19 @@ async function runSweep() {
   const zLo = nom * get('scaleZlo') / 100;
   const zHi = nom * get('scaleZhi') / 100;
 
-  // Beam: per-axis strut radius variation reuses the cell-scale % ranges,
-  // applied to the recipe's radius (independently per axis).
-  const rXloFrac = get('scaleXlo') / 100;
-  const rXhiFrac = get('scaleXhi') / 100;
-  const rYloFrac = get('scaleYlo') / 100;
-  const rYhiFrac = get('scaleYhi') / 100;
-  const rZloFrac = get('scaleZlo') / 100;
-  const rZhiFrac = get('scaleZhi') / 100;
+  /* v0.26.0 — how designs are varied (41-density.js, families/fam-index.js):
+     a density drawn from the window and solved for, Neighbourhood or
+     Explore, one Spread for every family */
+  const variation = getVariation();
+  const dens = getDensityWindow();
+  sweepSettings.variation = variation.mode;
+  sweepSettings.spread = variation.spread;
+  sweepSettings.density_window = [+dens.lo.toFixed(4), +dens.hi.toFixed(4)];
+  sweepSettings.reference_design = true;
 
-  log('accent', `Starting sweep: ${nSamples} samples`);
-  if (fam.usesCellScale) log('info', `Cell scale X: ${xLo.toFixed(2)}→${xHi.toFixed(2)} · Y: ${yLo.toFixed(2)}→${yHi.toFixed(2)} · Z: ${zLo.toFixed(2)}→${zHi.toFixed(2)}${family === 'beam' ? ' mm (strut radius uses the same % range)' : ''}`);
+  log('accent', `Starting sweep: ${nSamples} samples + the recipe itself as the reference design`);
+  log('info', `Variation: ${variation.mode === 'explore' ? 'Explore (wider redraw, fresh seeds)' : 'Neighbourhood (the recipe keeps its identity)'} · spread ±${Math.round(variation.spread * 100)} % · density ${(dens.lo * 100).toFixed(1)}–${(dens.hi * 100).toFixed(1)} %${dens.auto ? ' (recipe ± spread)' : ''}`);
+  if (fam.usesCellScale) log('info', `Cell scale X: ${xLo.toFixed(2)}→${xHi.toFixed(2)} · Y: ${yLo.toFixed(2)}→${yHi.toFixed(2)} · Z: ${zLo.toFixed(2)}→${zHi.toFixed(2)}${family === 'beam' ? ' mm' : ''}`);
   else log('info', `Cell scale: not part of ${fam.label} recipes — the field's own settings are swept instead`);
 
   // v0.18.0: target-aware sampling. Snapshot the active rank metrics at
@@ -119,14 +121,14 @@ async function runSweep() {
   progressWrap.classList.add('visible');
   document.getElementById('logBadge').textContent = 'running';
 
-  // "CAD vision" check at sweep time — uses the actual jitter-low fraction
-  // since that's the worst-case strut diameter the solver will see. If the
-  // user picked lo=50%, a 0.03mm base radius becomes 0.015mm — less than
-  // half a voxel at N=32. This check blocks the sweep entirely in that
-  // regime; in the borderline 1.5-2.5 voxel regime it warns but proceeds.
+  // "CAD vision" check at sweep time — the thinnest strut the solver will
+  // see: the recipe solved to the bottom of the density window, then the
+  // low end of the spread on one axis. Blocks the sweep below 1.5 voxels;
+  // warns in the 1.5-2.5 voxel regime.
   if (family === 'beam') {
-    const loFrac = Math.min(rXloFrac, rYloFrac, rZloFrac);
-    const check = checkBeamResolution(baseRecipe, loFrac);
+    let thin = baseRecipe;
+    try { thin = solveDensity(baseRecipe, dens.lo).recipe; } catch (e) {}
+    const check = checkBeamResolution(thin, Math.max(0.01, 1 - variation.spread));
     if (check.blocking) {
       log('warn', 'Sweep aborted — strut radius below solver resolution. Adjust recipe or jitter range and try again.');
       document.getElementById('runBtn').disabled = false;
@@ -165,47 +167,61 @@ async function runSweep() {
   // diagnose high discard rates (e.g. VF caps tripping for thin-wall sweeps).
   // v0.18.0: aniso_insufficient added — target-aware pre-gate rejects
   // near-isotropic scale draws when anisotropy is an explicit MAX target.
-  const rejectCounts = { vf_low: 0, vf_high: 0, aniso_insufficient: 0, singular: 0, error: 0, unknown: 0 };
+  const rejectCounts = { vf_low: 0, vf_high: 0, density_unreachable: 0, aniso_insufficient: 0, singular: 0, error: 0, unknown: 0 };
+
+  // Build a single design spec for one attempt — main-thread Sobol+random consumed here.
+  // Returns the dispatch payload that the worker will compute on.
+  /* The reference design: the recipe itself, solved once before the drawn
+     designs (attempt 0, id 0) — no density target, nothing varied. */
+  function referenceSpec() {
+    const sc = fam.usesCellScale ? recipeCellScale(baseRecipe, family) : null;
+    const recipe = JSON.parse(JSON.stringify(baseRecipe));
+    recipe.meta = Object.assign({}, recipe.meta || {}, {
+      tool: 'f13ld.sweep', tool_version: F13LD_SWEEP_VERSION, source_preset: (baseRecipe.meta && baseRecipe.meta.preset) || null, reference: true
+    });
+    return {
+      type: 'compute_design', attemptIdx: 0, family, recipe, reference: true,
+      opts: {
+        Es, nu, ks, sigma_ref, voxelToUm, eps_yield_um, linear_cap_kind,
+        contrast: precision.contrast, maxiter: precision.maxiter, gridN,
+        targetHints: null, scale: sc, targetVF: null
+      }
+    };
+  }
 
   // Build a single design spec for one attempt — main-thread Sobol+random consumed here.
   // Returns the dispatch payload that the worker will compute on.
   function buildDesignSpec(attemptIdx) {
     const draw = sampler.next();
 
+    /* bias moves the draw window inside the range, linearly (no pile-up at an edge) */
+    const _biasDraw = (u, shift) => { const lo = Math.max(0, shift), hi = Math.min(1, 1 + shift); return lo + u * (hi - lo); };
+
+    /* Sobol dimension 0: the density. A ρ target pressure moves the draw
+       inside the window (as the axial shifts move the scale draws). */
+    const targetVF = dens.lo + _biasDraw(draw.u(0), currentTargetHints?.density_shift || 0) * (dens.hi - dens.lo);
+
     // v0.18.0: target-aware sampling. axial_*_shift biases the scale draw
-    // center by a fraction of the user-configured range. tier-0 (no axial
-    // pressure) gives shift=0 and behavior identical to v0.17.0. The shift
-    // is clamped within [0, 1] for the draw so we don't sample outside the
-    // user's range — biasing moves the distribution within the range, not
-    // beyond it. Bias amount: ±0.10 / ±0.20 / ±0.25 by pressure tier.
+    // center by a fraction of the user-configured range (±0.10 / ±0.20 /
+    // ±0.25 by pressure tier); tier 0 → no shift. Dimensions 1–3.
     const _ax = currentTargetHints?.axial_x_shift || 0;
     const _ay = currentTargetHints?.axial_y_shift || 0;
     const _az = currentTargetHints?.axial_z_shift || 0;
-    /* bias moves the draw window inside the range, linearly (no pile-up at an edge) */
-    const _biasDraw = (u, shift) => { const lo = Math.max(0, shift), hi = Math.min(1, 1 + shift); return lo + u * (hi - lo); };
-    const scaleX = xLo + _biasDraw(draw.u(0), _ax) * (xHi - xLo);
-    const scaleY = yLo + _biasDraw(draw.u(1), _ay) * (yHi - yLo);
-    const scaleZ = zLo + _biasDraw(draw.u(2), _az) * (zHi - zLo);
+    const scaleX = xLo + _biasDraw(draw.u(1), _ax) * (xHi - xLo);
+    const scaleY = yLo + _biasDraw(draw.u(2), _ay) * (yHi - yLo);
+    const scaleZ = zLo + _biasDraw(draw.u(3), _az) * (zHi - zLo);
 
-    // Beam strut radius range: under ρ-pressure (target-aware sampling) the
-    // configured range is shifted inward — ρ-up biases toward thicker struts,
-    // ρ-down toward thinner. Tier 0 → no shift.
-    const _bShift = currentTargetHints?.beam_radius_bound_shift;
-    const _applyBeamShift = (lo, hi) => {
-      if (!_bShift || (_bShift.loShift === 0 && _bShift.hiShift === 0)) return [lo, hi];
-      const w = hi - lo;
-      return [lo + _bShift.loShift * w, hi - _bShift.hiShift * w];
-    };
-    const [_rXlo, _rXhi] = _applyBeamShift(rXloFrac, rXhiFrac);
-    const [_rYlo, _rYhi] = _applyBeamShift(rYloFrac, rYhiFrac);
-    const [_rZlo, _rZhi] = _applyBeamShift(rZloFrac, rZhiFrac);
+    /* the family's own settings take the next Sobol dimensions in its order */
+    let dimNext = fam.usesCellScale ? 4 : 1;
 
     /* The design: a recipe in the design tool's own format (families/). */
     const recipe = fam.jitter(baseRecipe, draw, {
       mode: baseGeo.mode,
       scale: fam.usesCellScale ? [scaleX, scaleY, scaleZ] : null,
       axialShift: [_ax, _ay, _az],
-      radiusFrac: { x: [_rXlo, _rXhi], y: [_rYlo, _rYhi], z: [_rZlo, _rZhi] },
+      spread: variation.spread,
+      explore: variation.mode === 'explore',
+      u: () => draw.u(dimNext++),
       targetHints: currentTargetHints,
       rand
     });
@@ -221,7 +237,8 @@ async function runSweep() {
         Es, nu, ks, sigma_ref, voxelToUm, eps_yield_um, linear_cap_kind,
         contrast: precision.contrast, maxiter: precision.maxiter, gridN,
         targetHints: currentTargetHints,
-        scale: fam.usesCellScale ? [scaleX, scaleY, scaleZ] : null
+        scale: fam.usesCellScale ? [scaleX, scaleY, scaleZ] : null,
+        targetVF
       }
     };
   }
@@ -240,20 +257,28 @@ async function runSweep() {
   // Continuous-dispatch chain: each result triggers the next dispatch from the same worker.
   // Returns a promise that resolves when this worker's chain hits a stop condition
   // (target reached / cancelled / attempt budget exhausted).
+  let refPending = true;
   function dispatchChain() {
-    if (validCount >= nSamples) return Promise.resolve();
-    if (attempts >= MAX_ATTEMPTS) return Promise.resolve();
     if (window._sweepCancelled) return Promise.resolve();
-
-    attempts++;
-    const spec = buildDesignSpec(attempts);
+    let spec;
+    if (refPending) { refPending = false; spec = referenceSpec(); }
+    else {
+      if (validCount >= nSamples) return Promise.resolve();
+      if (attempts >= MAX_ATTEMPTS) return Promise.resolve();
+      attempts++;
+      spec = buildDesignSpec(attempts);
+    }
 
     return computeDesign(pool, gpu, spec, gpuPrec).then(msg => {
       const hom = msg.hom;
+      if (spec.reference && !(hom && !hom.degenerate)) {
+        log('warn', `The recipe itself didn't pass the gates (${(hom && hom.reject_reason) || 'error'}) — no reference design in this sweep`);
+      }
       if (hom && !hom.degenerate) {
         // Valid design — keep it (we'll assign sequential IDs after sweep ends)
-        validCount++;
-        const r = spec.recipe, g = r.geometry || {};
+        if (!spec.reference) validCount++;
+        /* v0.26.0 — the worker returns the recipe with its density solved */
+        const r = msg.recipe || spec.recipe, g = r.geometry || {};
         const sc = recipeCellScale(r, family);
         results.push({
           attemptIdx: spec.attemptIdx,
@@ -268,9 +293,12 @@ async function runSweep() {
           nWeights: g.normal_weights || null,
           nTerms: family === 'tpms' ? r.surface.terms.filter(t => t.factors.length).length : 0,
           ...hom,
+          reference: !!spec.reference,
+          density: msg.density || null,
+          target_vf: msg.density ? msg.density.target_vf : null,
           terms: fam.summary(r)
         });
-      } else {
+      } else if (!spec.reference) {
         discarded++;
         // v0.16.0: bucket by reason for end-of-sweep diagnostic
         const reason = (hom && hom.reject_reason) || 'unknown';
@@ -284,9 +312,8 @@ async function runSweep() {
         gpuLostLogged = true;
         log('warn', `GPU solver lost (${err.message}) — the rest of this sweep runs on the CPU solver (normal stiffness only). Re-run for consistent results.`);
       }
-      log('warn', `Worker error on attempt ${spec.attemptIdx}: ${err.message}`);
-      discarded++;
-      rejectCounts.error++;
+      log('warn', `Worker error on ${spec.reference ? 'the reference design' : 'attempt ' + spec.attemptIdx}: ${err.message}`);
+      if (!spec.reference) { discarded++; rejectCounts.error++; }
       return dispatchChain();
     });
   }
@@ -305,12 +332,13 @@ async function runSweep() {
   }
 
   // Sort by attemptIdx and assign sequential IDs — preserves Sobol determinism
-  // regardless of worker completion order.
+  // regardless of worker completion order. The reference design is #0.
   results.sort((a, b) => a.attemptIdx - b.attemptIdx);
   /* designs still in flight when the target was reached also finish —
      keep the first nSamples (by draw order), so the count is exact */
-  if (results.length > nSamples) results.length = nSamples;
-  results.forEach((r, i) => { r.id = i + 1; });
+  const nRef = results.length && results[0].reference ? 1 : 0;
+  if (results.length > nSamples + nRef) results.length = nSamples + nRef;
+  results.forEach((r, i) => { r.id = i + 1 - nRef; });
   if (attempts >= MAX_ATTEMPTS && results.length < nSamples)
     log('warn', `Stopped at the attempt limit (${MAX_ATTEMPTS}): ${results.length} of ${nSamples} designs were valid. Widen the ranges or relax the filters.`);
 
@@ -318,7 +346,12 @@ async function runSweep() {
   progressFill.style.width = '100%';
   progressPct.textContent = '100%';
 
-  log('success', `${results.length} valid designs collected · ${discarded} degenerate discarded (${attempts} attempts)`);
+  log('success', `${results.length - nRef} valid designs collected${nRef ? ' + the reference (#0)' : ''} · ${discarded} degenerate discarded (${attempts} attempts)`);
+  const dsolve = results.filter(r => r.density && r.target_vf != null && Number.isFinite(r.volume_fraction));
+  if (dsolve.length) {
+    const errs = dsolve.map(r => Math.abs(r.volume_fraction / 100 - r.target_vf)).sort((a, b) => a - b);
+    log('info', `  Density: designs landed a median ${(errs[Math.floor(errs.length / 2)] * 100).toFixed(1)} points from their drawn density (worst ${(errs[errs.length - 1] * 100).toFixed(1)}) · knob: ${dsolve[0].density.knob}`);
+  }
   if (gpu) {
     const secs = (performance.now() - t0Sweep) / 1000;
     const solveMs = results.map(r => r.solve_ms).filter(v => v > 0);
@@ -336,12 +369,13 @@ async function runSweep() {
     const labels = {
       vf_low:   'vf-lo',
       vf_high:  'vf-hi',
+      density_unreachable: 'density out of reach',
       aniso_insufficient: 'near-isotropic scale',
       singular: 'singular',
       error:    'errors',
       unknown:  'unknown'
     };
-    const parts = ['vf_low','vf_high','aniso_insufficient','singular','error','unknown']
+    const parts = ['vf_low','vf_high','density_unreachable','aniso_insufficient','singular','error','unknown']
       .filter(k => rejectCounts[k] > 0)
       .map(k => `${labels[k]}: ${rejectCounts[k]}`);
     if (parts.length) log('info', `  Discard breakdown — ${parts.join(' · ')}`);
@@ -359,10 +393,12 @@ async function runSweep() {
   }
 
   /* v0.25.0 — the stat cards became a one-line funnel above the table */
-  const funnel = { attempts, valid: totalSampled, r: [] };
+  const funnel = { attempts, valid: totalSampled - nRef, r: [] };
 
-  // Apply filters — capture count after each rank
-  let filtered = [...results];
+  // Apply filters — capture count after each rank. The reference design
+  // isn't ranked out: it rejoins the final list wherever it falls.
+  const refDesign = results.find(r => r.reference) || null;
+  let filtered = results.filter(r => !r.reference);
 
   const r1Active = (document.getElementById('r1metric')?.value || 'none') !== 'none';
   const r2Active = (document.getElementById('r2metric')?.value || 'none') !== 'none';
@@ -387,6 +423,7 @@ async function runSweep() {
   funnel.r.push(r3Active ? filtered.length : null);
   funnel.flagged = filtered.filter(d => d.stiffness_flag).length;
   renderFunnel(funnel);
+  if (refDesign) filtered.push(refDesign);
 
   // Store reference for rank mode switching, then apply final ranking
   currentFiltered = filtered;

@@ -6,6 +6,8 @@
      prepare_design  { recipe, opts }  → prepareDesignGpu result (the GPU
                                          solver, solver/gpu-worker.js, does
                                          the solve; the page finishes it)
+   v0.26.0 — both first set the design's density knob for opts.targetVF
+   (41-density.js) and send the solved recipe back with the result.
      bake            { recipe, N }     → preview field (bakePreviewField)
    Each worker keeps its own solver workspace and Gamma caches
    (44-solver-config.js), reused across designs.
@@ -21,6 +23,7 @@ importScripts(
   '../geom/voxels.js',
   '../geom/recipe.js',
   '../40-design.js',
+  '../41-density.js',
   '../42-fft.js',
   '../43-elastic-solver.js',
   '../44-solver-config.js',
@@ -34,19 +37,27 @@ importScripts(
   '../55-estimate-gpu.js'
 );
 
+/* A design whose density the knob can't reach (41-density.js). */
+function densityReject(dn) {
+  return { volume_fraction: dn.sampled_vf != null ? +(dn.sampled_vf * 100).toFixed(2) : 0, Ex_GPa: 0, Ey_GPa: 0, Ez_GPa: 0,
+           solver_validity: 'invalid', degenerate: true, reject_reason: 'density_unreachable' };
+}
+
 self.addEventListener('message', e => {
   const msg = e.data;
   if (msg.type === 'compute_design') {
     try {
-      const hom = estimateHomogenization(msg.recipe, msg.opts);
-      self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, hom });
+      const d = applyDensityTarget(msg.recipe, msg.opts);
+      const hom = (d.density && !d.density.ok) ? densityReject(d.density) : estimateHomogenization(d.recipe, msg.opts);
+      self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, hom, recipe: d.recipe, density: d.density });
     } catch (err) {
       self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
     }
   } else if (msg.type === 'prepare_design') {
     try {
-      const prep = prepareDesignGpu(msg.recipe, msg.opts);
-      self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, prep }, prep.phi ? [prep.phi.buffer] : []);
+      const d = applyDensityTarget(msg.recipe, msg.opts);
+      const prep = (d.density && !d.density.ok) ? { reject: densityReject(d.density) } : prepareDesignGpu(d.recipe, msg.opts);
+      self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, prep, recipe: d.recipe, density: d.density }, prep.phi ? [prep.phi.buffer] : []);
     } catch (err) {
       self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
     }

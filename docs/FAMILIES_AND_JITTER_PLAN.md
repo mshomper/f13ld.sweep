@@ -1,7 +1,16 @@
 # F13LD.sweep — new families (Foam, Wave, Bundle) and the jitter review
 
-**2026-10-09 · proposal for approval — no code written yet.**
+**2026-10-09 · approved with changes (below); v0.26.0 built on branch `v0.26.0-jitter`.**
 Based on `main` of sweep (v0.25.0), ingest (2026-05-18), vault (2026-05-25), lab (v0.24+), mesh (v0.9.7), foam (v0.8.1), wave (v0.5), bundle (v0.4.0).
+
+## Matt's decisions (2026-10-09)
+
+- **Neighbourhood is the default** — a user can always load a new recipe (or seed) for disparate designs.
+- **Density as a sampled axis** — fits what Sweep is for.
+- **Seeds:** more seeds fundamentally change the space, so fresh seeds are part of **Explore**, not a separate Realisations setting (section 1 C is replaced by this).
+- **One shared Spread control** for every family.
+- **Ingest / Vault pass** also maps the inflated-stiffness flags and the shear moduli; Matt wants help wiping and re-seeding Vault.
+- **Lab:** he thought Lab already warned on non-periodic designs — it does for STL imports (face match) and refuses non-periodic foam, but not for recipes from the other tools. Also raised: a fully disconnected axis still gets an elastic solve in Lab and reports roughly the void's stiffness — Lab has per-piece percolation (used by thermal) but the elastic cards don't use it. Proposed Lab fix (normal moduli need a piece spanning that axis, shear moduli one piece spanning both axes; "no load path" instead of the void number; face-match check for every recipe) waits for his OK. Sweep already gated normal moduli; v0.26.0 adds the shear gate.
 
 ---
 
@@ -45,7 +54,7 @@ Smooth blends (beam node smoothing, bundle blend) make the quantile approximate;
 - Beam: node smoothing / ball perturbed around the recipe's values (0 stays 0 unless Explore).
 - Noise: cellular metric kept; one overall frequency draw instead of frequency + 3 scales (scales keep their ratios, perturbed separately only when the recipe is anisotropic).
 
-**C. Seed policy: hold the seed by default (common random numbers).** Grain and Foam keep the recipe's seed for every design, so differences between designs come only from the settings. A **Realisations** option (1 by default; 2–4 cycles a small fixed set of seeds) gives you the realisation scatter when you want it, as a separate, labelled source of variance.
+**C. Seed policy: hold the seed by default (common random numbers).** Grain and Foam keep the recipe's seed for every design, so differences between designs come only from the settings. ~~A Realisations option~~ — decided: fresh seeds are part of Explore.
 
 **D. Sobol dimension plan.** Dim 0 = density; dims 1–7 = each family's most influential settings in order (declared by the family module, not by fixed slot numbers); everything else on the seeded random stream.
 

@@ -154,7 +154,10 @@ function updateDock() {
   var lo = [dockVal('scaleXlo'), dockVal('scaleYlo'), dockVal('scaleZlo')], hi = [dockVal('scaleXhi'), dockVal('scaleYhi'), dockVal('scaleZhi')];
   var range = (lo[0] === lo[1] && lo[1] === lo[2] && hi[0] === hi[1] && hi[1] === hi[2]) ? lo[0] + '–' + hi[0] + ' %' : 'per-axis ranges';
   if (fam && !fam.usesCellScale) range = 'field settings';
-  tags.push(dockTag('sweep', swIcon('sweep'), '', '<b>' + dockEsc(n) + '</b>designs · ' + samp + '<span class="rg"> · ' + dockEsc(range) + '</span>', 'Designs, sampling and cell-scale ranges'));
+  /* v0.26.0 — the density window */
+  var vl = dockVal('vfLo'), vh = dockVal('vfHi');
+  if (fam && vl !== '' && vh !== '') range += ' · ρ ' + (+vl).toFixed(0) + '–' + (+vh).toFixed(0) + ' %';
+  tags.push(dockTag('sweep', swIcon('sweep'), '', '<b>' + dockEsc(n) + '</b>designs · ' + samp + '<span class="rg"> · ' + dockEsc(range) + '</span>', 'Designs, sampling, cell-scale ranges and density window'));
   /* material */
   var matVisible = document.getElementById('materialGroup') && document.getElementById('materialGroup').style.display !== 'none';
   var dom = dockSelText('domainSel').split('/')[0].trim();

@@ -243,12 +243,16 @@ function computeThroatAndPerc(voidMask, cellSizeMm, N) {
 // Cost: one periodic labelling pass, O(N³).
 function computeSolidPercolation(solidMask, N) {
   const N3 = N * N * N;
-  const bits = trPeriodicComponents(trBinaryMask(solidMask, N3), N).bits;
+  const pc = trPeriodicComponents(trBinaryMask(solidMask, N3), N), bits = pc.bits;
   const cx = bits & 1 ? 1 : 0;
   const cy = bits & 2 ? 1 : 0;
   const cz = bits & 4 ? 1 : 0;
   const connect_idx = +((cx + cy + cz) / 3).toFixed(2);
-  return { connect_idx, connect_x: cx, connect_y: cy, connect_z: cz };
+  /* v0.26.0 — shear in a plane needs ONE piece that runs through the cell
+     along both of its axes: loose X fibres woven past loose Z fibres carry
+     no XZ shear; a plate in the XZ plane does. */
+  const both = m => { for (let c = 1; c <= pc.count; c++) if ((pc.wraps[c] & m) === m) return 1; return 0; };
+  return { connect_idx, connect_x: cx, connect_y: cy, connect_z: cz, shear_yz: both(6), shear_xz: both(5), shear_xy: both(3) };
 }
 
 // ─── Geometric tortuosity (periodic) ─────────────────────────────────────────
