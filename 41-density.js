@@ -18,6 +18,7 @@
      beam                   one factor on every strut radius (and the node
                             smoothing / node ball, so the node shape keeps
                             its proportion to the strut)
+     foam                   geometry.thickness (wet: geometry.border)
 
    How: every knob enters the design's margin field (solid ⟺ margin > 0,
    geom/voxels.js buildVoxelMargin — the same test the voxels use) as
@@ -83,6 +84,16 @@ function densityKnob(recipe) {
     return { name: 'half_width', lo: 0.002, hi: 1.5, rel: true,
       get: r => r[blk].half_width != null ? r[blk].half_width : 0.15,
       set: (r, k) => { r[blk].half_width = +k.toFixed(4); } };
+  }
+  if (fam === 'foam') {
+    /* v0.27.0 — wall / strut thickness; wet foam: the border radius (the
+       bubbles are the cells shrunk by it, so a larger border is more solid) */
+    if (g.mode === 'wet') return { name: 'border', lo: 0.005, hi: 3, rel: true,
+      get: r => r.geometry.border > 0 ? r.geometry.border : 0.3,
+      set: (r, k) => { r.geometry.border = +k.toFixed(4); } };
+    return { name: 'thickness', lo: 0.004, hi: 4, rel: true,
+      get: r => r.geometry.thickness > 0 ? r.geometry.thickness : 0.08,
+      set: (r, k) => { r.geometry.thickness = +k.toFixed(4); } };
   }
   if (fam === 'beam') {
     const r0 = { x: g.radius_x, y: g.radius_y, z: g.radius_z, k: g.node_smoothing_k || 0, b: g.node_ball_radius || 0 };

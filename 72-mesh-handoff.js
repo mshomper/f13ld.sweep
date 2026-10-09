@@ -25,7 +25,9 @@ function buildLabRecipe(d) {
   const fam = d.family || baseFamily;
   const ctx = r.meta && r.meta.context;
   r.geometry = r.geometry || {};
-  if (fam !== 'beam' && r.geometry.cell_size_mm == null && r.geometry.cellSizeMm == null &&
+  /* (foam: Lab sizes the tile from geometry.tile_mm, the foam tool's own) */
+  if (fam !== 'beam' && !(fam === 'foam' && r.geometry.tile_mm > 0) &&
+      r.geometry.cell_size_mm == null && r.geometry.cellSizeMm == null &&
       ctx && ctx.cellSize_mm > 0) r.geometry.cell_size_mm = ctx.cellSize_mm;
   r.title = `Sweep #${d.id}` + (d.filterRank ? ` · rank ${d.filterRank}` : '') +
             ` · ${(baseRecipe && baseRecipe.meta && baseRecipe.meta.preset) || fam}`;

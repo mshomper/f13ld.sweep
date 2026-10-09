@@ -11,11 +11,13 @@ const wsrc = fs.readFileSync(path.join(OUT, 'worker/sweep-worker.js'), 'utf8');
 const wk = [...wsrc.matchAll(/'\.\.\/([^']+\.js)'/g)].map(m => m[1]);
 
 function loadRefs(stmt) {
-  const refs = [];
+  const refs = [], guarded = new Set();
   (function visit(n, parentIsCall) {
     if (!n || typeof n.type !== 'string') return;
     if (/Function/.test(n.type) && !parentIsCall) return;   // deferred bodies (IIFEs still run)
     if (n.type === 'Identifier') refs.push(n.name);
+    /* typeof X guards X (e.g. a Lab file's  if (typeof KERNELS !== 'undefined') KERNELS.foam = …) */
+    if (n.type === 'UnaryExpression' && n.operator === 'typeof' && n.argument.type === 'Identifier') guarded.add(n.argument.name);
     for (const k of Object.keys(n)) {
       if (k === 'type' || k === 'loc') continue;
       if (n.type === 'MemberExpression' && k === 'property' && !n.computed) continue;
@@ -24,7 +26,7 @@ function loadRefs(stmt) {
       if (Array.isArray(v)) v.forEach(c => visit(c, false)); else if (v && typeof v.type === 'string') visit(v, pc);
     }
   })(stmt, false);
-  return new Set(refs);
+  return new Set(refs.filter(r => !guarded.has(r)));
 }
 
 function check(group, label, domFree) {

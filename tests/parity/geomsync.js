@@ -27,6 +27,12 @@ const BLOCKS = [
   { name: 'BUILDARGS',    lab: '14-rasterizer.js',   sweep: 'geom/voxels.js' },
   { name: 'RECIPE',       lab: '60-add-design.js',   sweep: 'geom/recipe.js' },
 ];
+// Whole Lab files copied verbatim (v0.27.0): the foam kernel carries FoamSeeds,
+// which must stay identical in F13LD.foam, F13LD.mesh and F13LD.lab — copying
+// the whole file keeps Sweep a fourth exact copy without touching Lab.
+const WHOLE = [
+  { lab: '13d-foam-kernel.js', sweep: 'geom/foam.js' },
+];
 const HEADER = {
   'geom/tpms.js':   'TPMS field: raw-preset expansion table, terms evaluation, field-pair PI-TPMS.',
   'geom/noise.js':  'Noise field: the ten F13LD.noise types, seed, stored normalization range.',
@@ -73,7 +79,18 @@ if (WRITE) {
   }
 }
 
+if (WRITE) for (const w of WHOLE) {
+  fs.writeFileSync(path.join(SWEEP, w.sweep), read(LAB, w.lab));
+  console.log('wrote ' + w.sweep + ' (whole file, ' + w.lab + ')');
+}
+
 let bad = 0;
+for (const w of WHOLE) {
+  const p = path.join(SWEEP, w.sweep);
+  const same = fs.existsSync(p) && fs.readFileSync(p, 'utf8') === read(LAB, w.lab);
+  if (!same) bad++;
+  console.log(`${same ? 'same    ' : 'DIFFERS '} ${'(file)'.padEnd(13)} ${w.sweep} ${same ? '=' : 'vs'} lab ${w.lab}`);
+}
 for (const b of BLOCKS) {
   const p = path.join(SWEEP, b.sweep);
   const sw = fs.existsSync(p) ? blocks(fs.readFileSync(p, 'utf8'))[b.name] : null;
@@ -85,5 +102,5 @@ for (const b of BLOCKS) {
     console.log(`DIFFERS  ${b.name.padEnd(13)} ${b.sweep} vs lab ${b.lab} — first difference at block line ${i + 1}`);
   } else console.log(`same     ${b.name.padEnd(13)} ${b.sweep} = lab ${b.lab}`);
 }
-console.log(bad ? `FAIL: ${bad} block(s) out of sync (lab: ${LAB})` : `OK: ${BLOCKS.length} shared blocks identical (lab: ${LAB})`);
+console.log(bad ? `FAIL: ${bad} block(s) / file(s) out of sync (lab: ${LAB})` : `OK: ${BLOCKS.length} shared blocks and ${WHOLE.length} whole file(s) identical (lab: ${LAB})`);
 process.exit(bad ? 1 : 0);
