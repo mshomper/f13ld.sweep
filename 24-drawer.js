@@ -454,10 +454,13 @@ function paintSettings() {
   pxEl('hGrid').textContent = (N === 16 ? 'Fastest.' : N === 32 ? 'Resolves thin walls; several times slower.' : 'Fine walls and struts; GPU only.') +
     ' PI-TPMS and beams use 32³ or finer.';
   /* ranks */
+  var pane0 = pxEl('setPane');
   for (var r = 1; r <= 3; r++) {
     renderDd('rk' + r);
     var off = (dockVal('r' + r + 'metric') || 'none') === 'none';
     paintSeg('dir' + r, (typeof directions !== 'undefined' && directions[r]) || 'max', function () { return off; });
+    var rc = pane0.querySelector('.rk-clear[data-rank="' + r + '"]');
+    if (rc) rc.disabled = off;
     if (r > 1) {
       var kp = pxEl('pxKeep' + r);
       kp.disabled = off;
@@ -474,6 +477,9 @@ function initSettings() {
   pane.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('.seg button');
     if (b && !b.disabled && pane.contains(b)) onSeg(b);
+    /* v0.27.1 — the clear button at the end of a rank row turns that rank off */
+    var c = e.target.closest && e.target.closest('.rk-clear');
+    if (c && !c.disabled && pane.contains(c)) { closeDropdowns(); pxSet('r' + c.dataset.rank + 'metric', 'none', 'change'); pxAfter(); }
   });
   /* v0.26.0 — only a real keystroke in a density field switches the window to Set */
   var numEv = function (e, commit) {
