@@ -158,8 +158,19 @@ function solveDensity(recipe, target) {
   for (let i = 1; i < n && exact; i++) if (Math.abs(A[i] - A[0]) > 1e-7 * (1 + Math.abs(A[0]))) exact = false;
 
   /* the fraction moves one way with the knob (sign of the typical a) */
-  let up = 0; for (let i = 0; i < n; i++) up += A[i] > 0 ? 1 : A[i] < 0 ? -1 : 0;
-  const rising = up >= 0;
+  /* Which way the fraction moves: from the two evaluated fractions. (Not
+     from the typical slope a — where the margin is clipped far from the
+     surface, as for PI-TPMS pipes and wet foam, most points slope the
+     wrong way though the fraction rises.) Tie → only the points that
+     flip between the two knob values decide. */
+  const f0 = densityFraction(m0), f1 = densityFraction(m1);
+  let rising;
+  if (f1 !== f0) rising = (f1 - f0) * (k1 - k0) > 0;
+  else {
+    let up = 0;
+    for (let i = 0; i < n; i++) if ((m0[i] > 0) !== (m1[i] > 0)) up += ((m1[i] > 0) ? 1 : -1) * (k1 > k0 ? 1 : -1);
+    rising = up >= 0;
+  }
   let lo = knob.lo, hi = knob.hi;
   for (let it = 0; it < 48; it++) {
     const mid = knob.rel ? Math.sqrt(lo * hi) : 0.5 * (lo + hi);
@@ -174,18 +185,44 @@ function solveDensity(recipe, target) {
     const f = linFrac(k);
     return { recipe: at(k), vf: f, k, evals, ok: Math.abs(f - target) <= DENSITY_UNREACHABLE, knob: knob.name };
   }
-  const pts = [[k0, densityFraction(m0)], [k1, densityFraction(m1)]];
-  for (let it = 0; it < 4; it++) {
+  /* Bracketed regula falsi (Illinois) on real evaluations, started from the
+     affine model's knob. A multiplicative knob works in log k against
+     log fraction — the fraction goes roughly as a power of a thickness or
+     radius, so that is close to a straight line (wet-foam border ≈ k²:
+     v0.27.0, Matt's wet foam run threw out a third of its designs when
+     this was a plain secant from the two model points). */
+  const X = knob.rel ? (v => Math.log(v)) : (v => v), Xi = knob.rel ? (v => Math.exp(v)) : (v => v);
+  const Y = f => Math.log(Math.max(f, 1e-4)), yT = Y(target);
+  const sgn = rising ? 1 : -1;                     /* along x the fraction rises with sgn·x */
+  const pts = [[k0, f0], [k1, f1]];
+  let below = null, above = null, side = 0;       /* evaluated points either side of the target */
+  const note = (kk, f) => {
+    if (!best || Math.abs(f - target) < Math.abs(best.vf - target)) best = { k: kk, vf: f };
+    if (f < target) { if (!below || f > below[1]) below = [kk, f]; }
+    else { if (!above || f < above[1]) above = [kk, f]; }
+  };
+  pts.forEach(p => note(p[0], p[1]));
+  for (let it = 0; it < 10; it++) {
     const f = densityFraction(marg(k));
-    if (!best || Math.abs(f - target) < Math.abs(best.vf - target)) best = { k, vf: f };
+    note(k, f);
     if (Math.abs(f - target) <= DENSITY_TOL) break;
-    pts.push([k, f]);
-    /* secant through the two evaluated points closest to the target */
-    pts.sort((a, b) => Math.abs(a[1] - target) - Math.abs(b[1] - target));
-    const [p, q] = pts;
-    if (Math.abs(q[1] - p[1]) < 1e-9) break;
-    const kn = clampK(p[0] + (target - p[1]) * (q[0] - p[0]) / (q[1] - p[1]));
-    if (Math.abs(kn - k) < 1e-6) break;
+    let kn;
+    if (below && above) {
+      /* interpolate in (x, log f); Illinois: halve the weight of an end that stays put */
+      const xa = X(below[0]), xb = X(above[0]);
+      let ya = Y(below[1]) - yT, yb = Y(above[1]) - yT;
+      const s2 = f < target ? -1 : 1;
+      if (s2 === side) { if (s2 < 0) yb *= 0.5; else ya *= 0.5; }
+      side = s2;
+      kn = Xi(xa - ya * (xb - xa) / (yb - ya));
+      if (!(kn > Math.min(below[0], above[0]) && kn < Math.max(below[0], above[0]))) kn = Xi(0.5 * (xa + xb));
+    } else {
+      /* not bracketed yet: step out from the nearest point (×2 or ±step) */
+      const p = below || above, up = (below ? 1 : -1) * sgn;
+      kn = knob.rel ? p[0] * (up > 0 ? 2 : 0.5) : p[0] + up * 2 * (knob.step || 0.25);
+    }
+    kn = clampK(kn);
+    if (Math.abs(kn - k) < 1e-7 * (1 + Math.abs(k))) break;
     k = kn;
   }
   return { recipe: at(best.k), vf: best.vf, k: best.k, evals, ok: Math.abs(best.vf - target) <= DENSITY_UNREACHABLE, knob: knob.name };
