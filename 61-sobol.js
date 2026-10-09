@@ -111,10 +111,19 @@ function makeSampler(method, dims, rand) {
   if (method === 'sobol') {
     const sobol = new SobolSeq(dims);
     const buf = new Float64Array(sobol.d);
+    /* v0.27.0 — a random digital shift per dimension (XOR with a seeded
+       30-bit word; keeps the low-discrepancy net). Unshifted, the early
+       Sobol points share their value across dimensions ≥ 1 (0.5, 0.25,
+       0.75 …): the first designs of a sweep drew the same cell scale on
+       X, Y and Z — the three "near-isotropic scale" discards in every run,
+       and foam stretches of [1, 1, 1]. */
+    const shift = new Uint32Array(sobol.d);
+    for (let j = 0; j < sobol.d; j++) shift[j] = Math.floor(rand() * (1 << sobol.nbits)) >>> 0;
     return {
       method: 'sobol',
       next: () => {
         sobol.next(buf);
+        for (let j = 0; j < sobol.d; j++) buf[j] = ((sobol.X[j] ^ shift[j]) >>> 0) * sobol.scale;
         return {
           // Sobol samples for first 8 dims; rest fall through to Math.random()
           u: (i) => i < sobol.d ? buf[i] : rand()

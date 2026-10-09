@@ -170,7 +170,7 @@ Since v0.20.0 the tool is split into numbered classic scripts, like F13LD.lab an
 | `05-log.js` · `10-state.js` | Run log · global sweep state |
 | `11-rank.js` · `12-target-profile.js` | Rank filters, KNN outliers, k-means colouring, final ranking · target-aware sampling |
 | `20-recipe-load.js` · `21-materials-domain.js` · `22-controls.js` · `23-dock.js` · `24-drawer.js` | Recipe loading, presets · materials, domains, pickers · sweep controls · icons, dock + drawer shell, inspector, results funnel, column tooltips · the drawer's Settings panel (drives the hidden legacy controls) (v0.25.0) |
-| `families/fam-index.js` · `fam-tpms.js` · `fam-noise.js` · `fam-grain.js` · `fam-beam.js` | How each family's recipe is varied (Neighbourhood / Explore, Spread) and summarized |
+| `families/fam-index.js` · `fam-tpms.js` · `fam-noise.js` · `fam-grain.js` · `fam-beam.js` · `fam-foam.js` | How each family's recipe is varied (Neighbourhood / Explore, Spread) and summarized |
 | `geom/` | Recipe → field → voxels, byte-identical with F13LD.lab (`tests/parity/geomsync.js`) |
 | `40-design.js` · `41-density.js` | Designs are recipes: geometry, voxels, margin field · the density solve (each design's thickness knob set to its drawn volume fraction) |
 | `42-fft.js` · `43-elastic-solver.js` · `44-solver-config.js` · `45-homogenize.js` | FFT · Green operator + CG · solver constants and caches · elastic / thermal homogenization |

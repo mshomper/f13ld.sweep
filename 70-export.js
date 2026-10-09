@@ -391,6 +391,19 @@ function exportResults() {
         E_solid_GPa: baseRecipe.homogenization?.E_solid_GPa || 100,
         poisson:     baseRecipe.homogenization?.poisson     || 0.3
       };
+      if (baseFamily === 'foam') {   /* v0.27.0 */
+        const s = baseRecipe.seeds || {}, a = baseRecipe.anisotropy || {};
+        return {
+          ...baseCommon,
+          mode:        g.mode || 'plateau',
+          seed_mode:   s.mode || null,
+          cell_count:  s.count_actual || s.count || (Array.isArray(s.positions) ? s.positions.length / 3 : null),
+          thickness:   g.mode === 'wet' ? null : (g.thickness != null ? g.thickness : null),
+          border:      g.mode === 'wet' ? (g.border != null ? g.border : null) : null,
+          stretch:     a.enabled && Array.isArray(a.stretch) ? a.stretch.slice() : [1, 1, 1],
+          tile_mm:     g.tile_mm != null ? g.tile_mm : null
+        };
+      }
       if (baseFamily === 'beam') {
         const dims = SWEEP_FAMILIES.beam.baseDims(baseRecipe);
         return {

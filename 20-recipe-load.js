@@ -112,6 +112,10 @@ function loadRecipe(json, name) {
   if (family === 'noise' && (json.surface || {}).norm_min == null) filled.push('normalization range (F13LD.noise 32³ scan)');
   if (filled.length) log('info', `Not in the recipe, set as F13LD.mesh reads it: ${filled.join(' · ')}`);
   if (family === 'beam') checkBeamResolution(baseRecipe);
+  if (family === 'foam') {   /* v0.27.0 */
+    const tile = (completed.geometry || {}).tile_mm, cell = parseFloat((document.getElementById('cellSize') || {}).value);
+    log('info', `Foam: the tile is one solver cell and stays a cube; the Cell scale ranges stretch the foam's cells inside it (anisotropy).${tile > 0 && Math.abs(tile - cell) > 1e-6 ? ` The recipe's tile is ${tile} mm — set Cell size to ${tile} mm in Configure for pore sizes in µm at that scale.` : ''}`);
+  }
 
   updateScalePreview();
   const sc = recipeCellScale(completed, family);

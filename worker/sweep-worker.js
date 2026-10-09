@@ -20,6 +20,7 @@ importScripts(
   '../geom/noise.js',
   '../geom/grain.js',
   '../geom/beam.js',
+  '../geom/foam.js',
   '../geom/voxels.js',
   '../geom/recipe.js',
   '../40-design.js',

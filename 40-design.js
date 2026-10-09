@@ -3,7 +3,7 @@
    Designs are recipes.
 
    Every design the sweep explores is a recipe in the design tools' own
-   export format (F13LD.tpms / .noise / .grain / .beam, plus the keys
+   export format (F13LD.tpms / .noise / .grain / .beam / .foam, plus the keys
    F13LD.mesh reads: per-axis cell scale, normal_weights, beam radius_x/y/z
    …). The solver worker builds its geometry from that recipe, and the
    results / Export Design / F13LD.mesh handoff write that same recipe —
@@ -19,8 +19,8 @@
    ============================================================ */
 
 /* Families the sweep explores, each a shared geom/ kernel. */
-var KERNELS = { tpms: TpmsKernel, noise: NoiseKernel, grain: GrainKernel, beam: BeamKernel };
-const SWEEP_FAMILY_LIST = ['tpms', 'noise', 'grain', 'beam'];
+var KERNELS = { tpms: TpmsKernel, noise: NoiseKernel, grain: GrainKernel, beam: BeamKernel, foam: FoamKernel };
+const SWEEP_FAMILY_LIST = ['tpms', 'noise', 'grain', 'beam', 'foam'];
 
 function designGeometry(recipe) {
   const info = labRecipeInfo(recipe);
