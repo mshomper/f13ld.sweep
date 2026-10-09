@@ -63,7 +63,7 @@
       <button id="exportDesignBtn" class="pill-btn ghost" onclick="exportSelectedDesign()" disabled title="The selected design's recipe" data-g="down" data-label="Export design"></button>
     </div>
     <div class="fh-right">
-      <span class="fh-ver">v0.27.0</span>
+      <span class="fh-ver">v0.27.1</span>
       <!-- Sweep tool icon — fan of lines emanating from a pivot, per brand guidelines -->
       <div class="fh-ico" title="F13LD.Sweep — parameter-space exploration">
         <svg width="18" height="18" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
@@ -261,17 +261,17 @@
 
           <section class="dr-col" data-col="ranks">
             <div class="dr-ph"><span class="ico ico-lg" data-ico="ranks"></span><div class="dr-pt-wrap"><div class="dr-pt">Ranks</div><div class="dr-ps">Sort, then keep the top share</div></div></div>
-            <div class="rk-head"><span></span><label>Metric</label><label>Direction</label><label>Keep top</label></div>
+            <div class="rk-head"><span></span><label>Metric</label><label>Direction</label><label>Keep top</label><span></span></div>
             <div class="rk-rows">
               <div class="rk-row"><span class="rk-n r1">1</span><div class="dd dd-r" id="rk1Dd"></div>
                 <div class="seg" data-seg="dir1"><button type="button" data-v="max" data-g="up" data-label="max" title="Higher is better"></button><button type="button" data-v="min" data-g="dn" data-label="min" title="Lower is better"></button></div>
-                <span class="rk-sorts">sorts all</span></div>
+                <span class="rk-sorts">sorts all</span><button class="rk-clear" type="button" data-rank="1" data-g="x" title="Turn rank 1 off" aria-label="Turn rank 1 off"></button></div>
               <div class="rk-row"><span class="rk-n r2">2</span><div class="dd dd-r" id="rk2Dd"></div>
                 <div class="seg" data-seg="dir2"><button type="button" data-v="max" data-g="up" data-label="max" title="Higher is better"></button><button type="button" data-v="min" data-g="dn" data-label="min" title="Lower is better"></button></div>
-                <span class="num-u"><i class="pre">top</i><input class="num" id="pxKeep2" data-px="keep2" type="number" min="1" max="100" step="1" placeholder="100" aria-label="Rank 2: keep top percent"><i>%</i></span></div>
+                <span class="num-u"><i class="pre">top</i><input class="num" id="pxKeep2" data-px="keep2" type="number" min="1" max="100" step="1" placeholder="100" aria-label="Rank 2: keep top percent"><i>%</i></span><button class="rk-clear" type="button" data-rank="2" data-g="x" title="Turn rank 2 off" aria-label="Turn rank 2 off"></button></div>
               <div class="rk-row"><span class="rk-n r3">3</span><div class="dd dd-r" id="rk3Dd"></div>
                 <div class="seg" data-seg="dir3"><button type="button" data-v="max" data-g="up" data-label="max" title="Higher is better"></button><button type="button" data-v="min" data-g="dn" data-label="min" title="Lower is better"></button></div>
-                <span class="num-u"><i class="pre">top</i><input class="num" id="pxKeep3" data-px="keep3" type="number" min="1" max="100" step="1" placeholder="100" aria-label="Rank 3: keep top percent"><i>%</i></span></div>
+                <span class="num-u"><i class="pre">top</i><input class="num" id="pxKeep3" data-px="keep3" type="number" min="1" max="100" step="1" placeholder="100" aria-label="Rank 3: keep top percent"><i>%</i></span><button class="rk-clear" type="button" data-rank="3" data-g="x" title="Turn rank 3 off" aria-label="Turn rank 3 off"></button></div>
             </div>
             <div class="hint">Rank 1 sorts every valid design; ranks 2 and 3 each keep the top share of what is left. The table still sorts by any column; a new domain resets the ranks.</div>
           </section>
@@ -427,7 +427,8 @@
       <div class="rank-body">
         <div class="rank-row">
           <select id="r1metric">
-            <option value="anisotropy">Anisotropy ratio</option>
+            <option value="none">— disabled —</option>
+            <option value="anisotropy" selected>Anisotropy ratio</option>
             <option value="Ex_GPa">Stiffness — Ex</option>
             <option value="Ey_GPa">Stiffness — Ey</option>
             <option value="Ez_GPa">Stiffness — Ez</option>

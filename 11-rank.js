@@ -171,7 +171,7 @@ function applyFinalRanking(filtered) {
       });
       filtered.sort((a, b) => a._idealDist - b._idealDist);
       log('info', `Ranked by distance from ideal corner across ${activeAxes.length} metrics`);
-    }
+    } else log('info', 'No ranks — designs in draw order (sort any column in the table)');
   }
 
   filtered.forEach((d, i) => { d.filterRank = i + 1; });

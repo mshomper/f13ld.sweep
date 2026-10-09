@@ -24,7 +24,7 @@ const METRIC_LABELS = {
 
 function getPlotAxes() {
   return {
-    x: document.getElementById('r1metric')?.value || 'anisotropy',
+    x: document.getElementById('r1metric')?.value === 'none' ? 'anisotropy' : (document.getElementById('r1metric')?.value || 'anisotropy'),   /* v0.27.1: rank 1 can be off */
     y: document.getElementById('r2metric')?.value === 'none' ? 'Ex_GPa' : (document.getElementById('r2metric')?.value || 'Ex_GPa'),
     z: document.getElementById('r3metric')?.value === 'none' ? 'volume_fraction' : (document.getElementById('r3metric')?.value || 'volume_fraction'),
   };
