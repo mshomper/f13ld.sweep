@@ -82,7 +82,13 @@ async function runSweep() {
   sweepSettings.reference_design = true;
 
   log('accent', `Starting sweep: ${nSamples} samples + the recipe itself as the reference design`);
-  log('info', `Variation: ${variation.mode === 'explore' ? 'Explore (wider redraw, fresh seeds)' : 'Neighbourhood (the recipe keeps its identity)'} · spread ±${Math.round(variation.spread * 100)} % · density ${(dens.lo * 100).toFixed(1)}–${(dens.hi * 100).toFixed(1)} %${dens.auto ? ' (recipe ± spread)' : ''}`);
+  log('info', `Variation: ${variation.mode === 'explore' ? 'Explore (wider redraw, fresh seeds)' : 'Neighbourhood (the recipe keeps its identity)'} · spread ±${Math.round(variation.spread * 100)} % · density ${(dens.lo * 100).toFixed(1)}–${(dens.hi * 100).toFixed(1)} % (${dens.auto ? 'Auto: recipe ± spread' : 'set by hand'})`);
+  /* a window far from the recipe's own density is worth a look before 100 solves */
+  if (baseDensity != null && baseDensity > 0) {
+    const mid = (dens.lo + dens.hi) / 2, r = mid / baseDensity;
+    if (r > 2 || r < 0.5)
+      log('warn', `The density window (${(dens.lo * 100).toFixed(1)}–${(dens.hi * 100).toFixed(1)} %) is ${r > 2 ? 'over twice' : 'under half'} the recipe's own density (${(baseDensity * 100).toFixed(1)} %) — designs will be much ${r > 2 ? 'denser' : 'sparser'} than the recipe. Set the window back to Auto in Configure if that isn't intended.`);
+  }
   if (fam.usesCellScale) log('info', `Cell scale X: ${xLo.toFixed(2)}→${xHi.toFixed(2)} · Y: ${yLo.toFixed(2)}→${yHi.toFixed(2)} · Z: ${zLo.toFixed(2)}→${zHi.toFixed(2)}${family === 'beam' ? ' mm' : ''}`);
   else log('info', `Cell scale: not part of ${fam.label} recipes — the field's own settings are swept instead`);
 

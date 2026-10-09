@@ -204,9 +204,9 @@
               <div class="lbl-row"><label for="pxVfLo">Density</label>
                 <button class="chip" type="button" id="pxDensAuto" onclick="pxToggleDensAuto()" title="Follow the recipe's density ± spread, or set the window yourself"></button></div>
               <div class="f-row dens-row">
-                <span class="num-u"><input class="num" id="pxVfLo" data-px="vflo" type="number" min="0.5" max="95" step="0.5" aria-label="Density minimum, percent solid"><i>%</i></span>
+                <span class="num-u"><input class="num" id="pxVfLo" autocomplete="off" data-px="vflo" type="number" min="0.5" max="95" step="0.5" aria-label="Density minimum, percent solid"><i>%</i></span>
                 <span class="dens-to">to</span>
-                <span class="num-u"><input class="num" id="pxVfHi" data-px="vfhi" type="number" min="0.5" max="95" step="0.5" aria-label="Density maximum, percent solid"><i>%</i></span>
+                <span class="num-u"><input class="num" id="pxVfHi" autocomplete="off" data-px="vfhi" type="number" min="0.5" max="95" step="0.5" aria-label="Density maximum, percent solid"><i>%</i></span>
               </div>
               <div class="hint" id="hDens"></div>
             </div>
@@ -300,11 +300,12 @@
        harness read these ids; the Settings panel above drives them. -->
   <div id="nativeCtl" hidden>
     <!-- v0.26.0 — variation and density window (24-drawer.js drives these) -->
-    <select id="variationMode"><option value="neighbourhood">Neighbourhood</option><option value="explore">Explore</option></select>
-    <input type="number" id="spreadPct" value="25" min="1" max="90">
-    <input type="number" id="vfLo" value="" step="0.5">
-    <input type="number" id="vfHi" value="" step="0.5">
-    <input type="hidden" id="vfAuto" value="1">
+    <!-- autocomplete off: the browser must not restore these on a reload -->
+    <select id="variationMode" autocomplete="off"><option value="neighbourhood">Neighbourhood</option><option value="explore">Explore</option></select>
+    <input type="number" id="spreadPct" value="25" min="1" max="90" autocomplete="off">
+    <input type="number" id="vfLo" value="" step="0.5" autocomplete="off">
+    <input type="number" id="vfHi" value="" step="0.5" autocomplete="off">
+    <input type="hidden" id="vfAuto" value="1" autocomplete="off">
     <div class="control-group">
       <div class="control-label">
         Periodicity variation

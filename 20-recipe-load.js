@@ -81,6 +81,9 @@ function loadRecipe(json, name) {
   const fam = SWEEP_FAMILIES[family];
   /* v0.26.0 — the recipe's density, the centre of the automatic window */
   try { baseDensity = densityOf(completed); } catch (e) { baseDensity = null; }
+  /* a window set by hand belongs to the recipe it was set for: a new recipe
+     starts on Auto (Matt, 2026-10-09 — three recipes ran on the first one's window) */
+  document.getElementById('vfAuto').value = '1';
   if (typeof updateDensityAuto === 'function') updateDensityAuto();
 
   document.getElementById('fileName').textContent = name;
