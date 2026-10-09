@@ -1,8 +1,8 @@
 # F13LD.sweep — next steps
 
-**As of 2026-10-09.** `main` = v0.25.0 (UI layout A). Branch `v0.26.0-jitter` = how designs are varied — density as a sampled axis, Neighbourhood / Explore, one Spread, reference design #0, shear gating (`REFACTOR.md` → v0.26.0). Plan for what follows (Foam → Wave → Bundle, then Ingest / Vault with flags and shear, Vault wipe + re-seed): [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md).
+**As of 2026-10-09.** `main` = v0.26.0 (merged after Matt's GPU runs: gyroid sheet, spinodoid, beam BCC, gyroid Explore). v0.26.0 = how designs are varied — density as a sampled axis, Neighbourhood / Explore, one Spread, reference design #0, shear gating (`REFACTOR.md` → v0.26.0). Plan for what follows (Foam → Wave → Bundle, then Ingest / Vault with flags and shear, Vault wipe + re-seed): [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md).
 
-## 0. v0.26.0 — Matt, on your machine before merging
+## 0. v0.26.0 — checked by Matt 2026-10-09 (merged); next: Foam (v0.27.0)
 1. Open the branch over http(s), load a gyroid sheet, a spinodoid and a beam: the Sweep column shows Variation / Spread / Density; a sweep logs the density landing ("designs landed a median … points from their drawn density"); row #0 is marked "ref".
 2. Explore on a TPMS recipe should look like v0.25's sweeps; Neighbourhood should keep the surface type.
 3. `node tests/harness.js <v0.25.0> <branch>` will differ everywhere (new draws) — check it runs without page errors rather than for identical numbers.

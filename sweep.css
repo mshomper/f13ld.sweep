@@ -999,7 +999,8 @@ input.num:disabled { color: var(--t3); }
 /* v0.26.0 — a field label with a chip on its right (Density · Auto) */
 .lbl-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .lbl-row > label { font: 600 9.5px var(--mono); color: var(--sec); text-transform: uppercase; letter-spacing: 0.14em; }
-.lbl-row .chip { margin-left: auto; height: 20px; padding: 0 8px; font-size: 10.5px; }
+.lbl-row .seg { margin-left: auto; align-self: center; }
+.lbl-row .seg button { height: 18px; padding: 0 7px; font-size: 10.5px; }
 .dens-row .num-u { flex: 1; min-width: 0; }
 .dens-to { font-size: 11px; color: var(--t3); }
 .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }

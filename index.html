@@ -202,7 +202,7 @@
             </div>
             <div class="dr-f" id="fDens">
               <div class="lbl-row"><label for="pxVfLo">Density</label>
-                <button class="chip" type="button" id="pxDensAuto" onclick="pxToggleDensAuto()" title="Follow the recipe's density ± spread, or set the window yourself"></button></div>
+                <div class="seg" data-seg="dens" title="Auto follows the recipe's density ± spread; Set keeps the window you type"><button type="button" data-v="auto">Auto</button><button type="button" data-v="set">Set</button></div></div>
               <div class="f-row dens-row">
                 <span class="num-u"><input class="num" id="pxVfLo" autocomplete="off" data-px="vflo" type="number" min="0.5" max="95" step="0.5" aria-label="Density minimum, percent solid"><i>%</i></span>
                 <span class="dens-to">to</span>

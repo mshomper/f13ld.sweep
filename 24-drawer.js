@@ -338,17 +338,10 @@ function onSeg(btn) {
   else if (group === 'samp') pxSet('samplingMethod', v, 'change');
   else if (group === 'vary') pxSet('variationMode', v, 'change');
   else if (group === 'spread') { pxSet('spreadPct', v, 'input'); updateDensityAuto(); }
+  else if (group === 'dens') { pxSet('vfAuto', v === 'auto' ? '1' : '0', 'input'); if (v === 'auto') updateDensityAuto(); }
   else if (group === 'prec') setPrecisionUI(v);
   else if (group === 'grid') setResolutionUI(+v);
   else if (/^dir\d$/.test(group)) setDirBtn(+group.slice(3), v);
-  pxAfter();
-}
-
-/* Density window: follow the recipe (± spread) or keep the values set here. */
-function pxToggleDensAuto() {
-  var on = dockVal('vfAuto') !== '1';
-  pxSet('vfAuto', on ? '1' : '0', 'input');
-  if (on) updateDensityAuto();
   pxAfter();
 }
 
@@ -415,10 +408,7 @@ function paintSettings() {
   var dAuto = dockVal('vfAuto') === '1';
   pxVal('pxVfLo', dockVal('vfLo'));
   pxVal('pxVfHi', dockVal('vfHi'));
-  var da = pxEl('pxDensAuto');
-  pxHtml(da, '<span>' + (dAuto ? 'Auto' : 'Set') + '</span>');
-  da.classList.toggle('on', dAuto);
-  da.setAttribute('aria-pressed', dAuto ? 'true' : 'false');
+  paintSeg('dens', dAuto ? 'auto' : 'set');
   var db = (typeof baseRecipe !== 'undefined' && baseRecipe) ? densityBounds() : null;
   pxEl('fDens').classList.toggle('na', !db);
   pxEl('hDens').textContent = !db ? 'Load a recipe to set the density window.'
@@ -484,8 +474,14 @@ function initSettings() {
     var b = e.target.closest && e.target.closest('.seg button');
     if (b && !b.disabled && pane.contains(b)) onSeg(b);
   });
-  pane.addEventListener('input', function (e) { if (e.target.matches && e.target.matches('input.num[data-px]')) onNum(e.target, false); });
-  pane.addEventListener('change', function (e) { if (e.target.matches && e.target.matches('input.num[data-px]')) onNum(e.target, true); });
+  /* v0.26.0 — only a real keystroke in a density field switches the window to Set */
+  var numEv = function (e, commit) {
+    if (!(e.target.matches && e.target.matches('input.num[data-px]'))) return;
+    if (!e.isTrusted && (e.target.dataset.px === 'vflo' || e.target.dataset.px === 'vfhi')) return;
+    onNum(e.target, commit);
+  };
+  pane.addEventListener('input', function (e) { numEv(e, false); });
+  pane.addEventListener('change', function (e) { numEv(e, true); });
   pane.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.matches && e.target.matches('input.num[data-px]')) e.target.blur(); });
   pane.addEventListener('pointerdown', scDrag);
   document.addEventListener('click', function (e) { if (DD_OPEN && !(e.target.closest && e.target.closest('.dd'))) closeDropdowns(); });
