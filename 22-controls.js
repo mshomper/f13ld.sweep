@@ -47,7 +47,7 @@ samplesSlider.addEventListener('input', () => {
 //
 // Returns { ok, blocking, voxels, message } so callers can also gate
 // downstream behavior (e.g. disable Run Sweep when blocking=true).
-function checkBeamResolution(recipe, jitterLoFrac = null) {
+function checkBeamResolution(recipe, jitterLoFrac = null, label = null) {
   if (!recipe || !recipe.geometry) return { ok: true, voxels: Infinity };
   /* Thinnest strut in one cell, as the solver samples it (cell-local radius;
      the cell spans N voxels over 2 cell-local units). */
@@ -62,9 +62,9 @@ function checkBeamResolution(recipe, jitterLoFrac = null) {
   const strutVoxels = effR * N;
   const d = SWEEP_FAMILIES.beam.baseDims(recipe);
   const baseR = Math.min(...d.radius).toFixed(3), cell = d.cell.toFixed(3);
-  const ctx = jitterLoFrac != null
+  const ctx = label || (jitterLoFrac != null
     ? `at jitter low (${(jitterLoFrac*100).toFixed(0)}% of base)`
-    : 'at base radius';
+    : 'at base radius');
 
   if (strutVoxels < 1.5) {
     log('warn', `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Sub-voxel — solver will see broken/missing struts. Sweep results will not be physically meaningful.`);
@@ -73,7 +73,9 @@ function checkBeamResolution(recipe, jitterLoFrac = null) {
              message: 'Strut too thin for solver resolution' };
   }
   if (strutVoxels < 2.5) {
-    log('warn', `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Borderline — many designs will fail percolation and stiffness will be noise-dominated.`);
+    log('warn', strutVoxels < 2
+      ? `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Borderline — the thinnest designs may break up on this grid and their stiffness is noise-dominated.`
+      : `Strut diameter ${ctx}: ${strutVoxels.toFixed(2)} voxels (N=${N}). Borderline — the thinnest designs' stiffness is approximate; a finer grid resolves them.`);
     return { ok: false, blocking: false, voxels: strutVoxels,
              message: 'Strut diameter borderline' };
   }

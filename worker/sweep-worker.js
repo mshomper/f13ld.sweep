@@ -37,6 +37,11 @@ importScripts(
   '../55-estimate-gpu.js'
 );
 
+/* The solved density rides along so the VF gate uses it (54 prepareDesign). */
+function solvedOpts(opts, dn) {
+  return (dn && dn.ok && dn.sampled_vf != null) ? Object.assign({}, opts, { solvedVF: dn.sampled_vf }) : opts;
+}
+
 /* A design whose density the knob can't reach (41-density.js). */
 function densityReject(dn) {
   return { volume_fraction: dn.sampled_vf != null ? +(dn.sampled_vf * 100).toFixed(2) : 0, Ex_GPa: 0, Ey_GPa: 0, Ez_GPa: 0,
@@ -48,7 +53,7 @@ self.addEventListener('message', e => {
   if (msg.type === 'compute_design') {
     try {
       const d = applyDensityTarget(msg.recipe, msg.opts);
-      const hom = (d.density && !d.density.ok) ? densityReject(d.density) : estimateHomogenization(d.recipe, msg.opts);
+      const hom = (d.density && !d.density.ok) ? densityReject(d.density) : estimateHomogenization(d.recipe, solvedOpts(msg.opts, d.density));
       self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, hom, recipe: d.recipe, density: d.density });
     } catch (err) {
       self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
@@ -56,7 +61,7 @@ self.addEventListener('message', e => {
   } else if (msg.type === 'prepare_design') {
     try {
       const d = applyDensityTarget(msg.recipe, msg.opts);
-      const prep = (d.density && !d.density.ok) ? { reject: densityReject(d.density) } : prepareDesignGpu(d.recipe, msg.opts);
+      const prep = (d.density && !d.density.ok) ? { reject: densityReject(d.density) } : prepareDesignGpu(d.recipe, solvedOpts(msg.opts, d.density));
       self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, prep, recipe: d.recipe, density: d.density }, prep.phi ? [prep.phi.buffer] : []);
     } catch (err) {
       self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });

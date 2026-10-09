@@ -78,8 +78,9 @@ function prepareDesignGpu(recipe, opts) {
   const P = prepareDesign(recipe, opts);
   if (P.reject) return { reject: P.reject };
   const { N, mode, geo, solverGridSolid: raw } = P;
-  /* fftHomogenize's own VF check (non-hi-res families), kept on this path */
-  if (!P._hiRes) {
+  /* fftHomogenize's own VF check (non-hi-res families), kept on this path —
+     not for a design whose density was solved (prepareDesign gated it) */
+  if (!P._hiRes && opts.solvedVF == null) {
     const rhoMin = mode === 'pi-tpms' ? RHO_MIN_PI : P.isNoise ? RHO_MIN_NOISE : P.isGrain ? RHO_MIN_GRAIN : P.isBeam ? RHO_MIN_BEAM : RHO_MIN_STD;
     const rhoMax = resolveRhoMax(mode);
     if (P.rho_pregate < rhoMin) return { reject: P.rejectFn('vf_low', P.rho_pregate) };
@@ -93,6 +94,16 @@ function prepareDesignGpu(recipe, opts) {
   const edges = designCellEdges(recipe, geo.family);
   /* what crosses back to the page: no functions, no big arrays */
   const lite = Object.assign({}, P);
+  /* v0.26.0 — TPMS solid / shell and beams: the volume fraction is the
+     partial-volume voxels' (what the GPU solves), not the binary count,
+     which reads thin struts and walls low. PI / noise / grain keep their
+     metrics-grid fraction. */
+  if (!P._hiRes) {
+    let s = 0;
+    for (let i = 0; i < phi.length; i++) s += phi[i];
+    lite.rho_binary = P.rho;
+    lite.rho = s / phi.length;
+  }
   delete lite.geo; delete lite.solverGridSolid; delete lite.rejectFn;
   return { P: lite, phi, edges, trim: nRaw > 0 ? t.removed / nRaw : 0, trimSkipped: nRaw > 0 ? t.skipped / nRaw : 0 };
 }

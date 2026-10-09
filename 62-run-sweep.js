@@ -134,7 +134,8 @@ async function runSweep() {
   if (family === 'beam') {
     let thin = baseRecipe;
     try { thin = solveDensity(baseRecipe, dens.lo).recipe; } catch (e) {}
-    const check = checkBeamResolution(thin, Math.max(0.01, 1 - variation.spread));
+    const check = checkBeamResolution(thin, Math.max(0.01, 1 - variation.spread),
+      `thinnest strut in this sweep (window's low density ${(dens.lo * 100).toFixed(1)} %, −${Math.round(variation.spread * 100)} % spread)`);
     if (check.blocking) {
       log('warn', 'Sweep aborted — strut radius below solver resolution. Adjust recipe or jitter range and try again.');
       document.getElementById('runBtn').disabled = false;
