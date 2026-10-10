@@ -22,6 +22,19 @@
               contrast, maxiter, gridN, targetHints, scale:[sx,sy,sz] | null } */
 /* v0.27.2 — round to 4 significant figures (0 stays 0). Fixed decimals
    erased soft designs: E/Es of 3e-5 became 0.0000. */
+/* v0.29.1 — metrics grid floor for the families measured on the solver
+   grid, and the cell's edges per axis for the metrics (geometric mean 1, so
+   a cube is [1, 1, 1] and the cell size keeps its meaning). Foam stretches
+   its cells inside a cubic tile and noise its field inside a cube, so both
+   are cubes here (designCellEdges, 55-estimate-gpu.js). */
+const METRICS_N_MIN = 32;
+function metricWeights(recipe, family) {
+  const e = (typeof designCellEdges === 'function') ? designCellEdges(recipe, family) : [1, 1, 1];
+  if (!e.every(v => isFinite(v) && v > 0)) return [1, 1, 1];
+  if (e[0] === e[1] && e[1] === e[2]) return [1, 1, 1];
+  const g = Math.cbrt(e[0] * e[1] * e[2]);
+  return e.map(v => v / g);
+}
 function sig4(v) { return v === 0 || !isFinite(v) ? v : +v.toPrecision(4); }
 
 function estimateHomogenization(recipe, opts) {
@@ -112,9 +125,18 @@ function prepareDesign(recipe, opts) {
      flag (finishDesign): a thin design the solver grid can't hold */
   const solverPerc = _hiRes ? computeSolidPercolation(solverGridSolid, N) : null;
   const connect_idx = solidPerc.connect_idx;
-  const poreField = _hiRes ? field : buildGeomField(geo, 16);
-  const pores = analyzePoresFromField(poreField.rawField, poreField.voidMask, cellSizeMm, poreField.N);
-  const hiResData = _hiRes ? { rawField: field.rawField, voidMask: field.voidMask, solidMask: field.solidMask, N: N_GEO } : null;
+  /* v0.29.1 — every family is measured (Matt, 2026-10-10): pores,
+     curvature, topology and tortuosity. PI-TPMS / noise / grain on their
+     finer grid as before; the others on the solver grid's own voxels,
+     floored at 32 (the pores used to come from a 16³ grid, curvature and
+     topology were skipped and exported as 0). Volume fraction and solid
+     connectivity keep their sources. Each axis is measured with the cell's
+     real edge (metricWeights): a stretched cell is not a cube. */
+  const N_MET = Math.max(N, METRICS_N_MIN);
+  const mField = _hiRes ? field : (N_MET === N ? buildGeomFieldOn(geo, N, solverGridSolid) : buildGeomField(geo, N_MET));
+  const wAx = metricWeights(recipe, geo.family);
+  const pores = analyzePoresFromField(mField.rawField, mField.voidMask, cellSizeMm, mField.N, wAx);
+  const hiResData = { rawField: mField.rawField, voidMask: mField.voidMask, solidMask: mField.solidMask, N: mField.N, w: wAx };
 
   /* ── FFT-CG solve on the solver-grid voxels, gated by connectivity ── */
   const connectGate = { x: !!solidPerc.connect_x, y: !!solidPerc.connect_y, z: !!solidPerc.connect_z,
@@ -127,13 +149,15 @@ function prepareDesign(recipe, opts) {
   if (rho_hi !== null) rho = rho_hi;
 
   /* Surface complexity: voxel faces between solid and void on the solver
-     grid, per cell face area (faces / 3N²). */
+     grid, per cell face area (faces / 3N²). v0.29.1 — on a stretched cell
+     each face counts its own area (a face normal to x is w_y·w_z). */
   let faces = 0;
+  const fwx = wAx[1] * wAx[2], fwy = wAx[0] * wAx[2], fwz = wAx[0] * wAx[1];
   for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) for (let k = 0; k < N; k++) {
     const v = solverGridSolid[i*N*N+j*N+k] > 0.5;
-    if (i+1<N && (solverGridSolid[(i+1)*N*N+j*N+k] > 0.5) !== v) faces++;
-    if (j+1<N && (solverGridSolid[i*N*N+(j+1)*N+k] > 0.5) !== v) faces++;
-    if (k+1<N && (solverGridSolid[i*N*N+j*N+k+1] > 0.5) !== v) faces++;
+    if (i+1<N && (solverGridSolid[(i+1)*N*N+j*N+k] > 0.5) !== v) faces += fwx;
+    if (j+1<N && (solverGridSolid[i*N*N+(j+1)*N+k] > 0.5) !== v) faces += fwy;
+    if (k+1<N && (solverGridSolid[i*N*N+j*N+k+1] > 0.5) !== v) faces += fwz;
   }
   const complexity = faces / (N*N*3);
 
@@ -147,10 +171,10 @@ function prepareDesign(recipe, opts) {
   };
 
   if (hiResData) {
-    // Hi-res path (PI-TPMS / noise / grain) — full curvature + topology + tortuosity
-    const cm = computeCurvatureMetrics(hiResData.rawField, hiResData.voidMask, hiResData.solidMask, cellSizeMm, hiResData.N);
+    // Every family (v0.29.1) — full curvature + topology + tortuosity on the metrics grid
+    const cm = computeCurvatureMetrics(hiResData.rawField, hiResData.voidMask, hiResData.solidMask, cellSizeMm, hiResData.N, hiResData.w);
     const tm = computeTopology(hiResData.solidMask, cellSizeMm, hiResData.N);
-    const tort = computeTortuosity(hiResData.voidMask, hiResData.N);
+    const tort = computeTortuosity(hiResData.voidMask, hiResData.N, hiResData.w);
 
     // Bruggeman diffusivity estimate: D_eff/D_bulk = ε / τ²
     // ε = void fraction (1 - rho), τ = tortuosity per axis. Bounded [0,1] by
@@ -167,35 +191,13 @@ function prepareDesign(recipe, opts) {
       D_eff_y_norm: dEff(tort.tortuosity_y),
       D_eff_z_norm: dEff(tort.tortuosity_z)
     };
-  } else {
-    // Solid/shell path — tortuosity-only via N=16 voxel mask.
-    // Build void mask from solverGridSolid: solverGridSolid is the solver's binary occupancy;
-    // void = !solid. (solverGridSolid is Uint8Array per the elastic solve.)
-    const N3 = N * N * N;
-    const voidMask = new Uint8Array(N3);
-    for (let i = 0; i < N3; i++) voidMask[i] = solverGridSolid[i] ? 0 : 1;
-
-    const tort = computeTortuosity(voidMask, N);
-    const eps_void = 1.0 - rho;
-    const dEff = (tau) => {
-      if (tau >= 9.99) return 0;
-      return +Math.min(1.0, eps_void / (tau * tau)).toFixed(4);
-    };
-
-    geom = {
-      ...geom,  // keep zero curvature/topology
-      ...tort,
-      D_eff_x_norm: dEff(tort.tortuosity_x),
-      D_eff_y_norm: dEff(tort.tortuosity_y),
-      D_eff_z_norm: dEff(tort.tortuosity_z)
-    };
   }
 
 
   return {
     reject: null, rejectFn: reject, geo, N, mode, isPi, isBeam, isNoise, isGrain, _contrast, _maxiter, _hiRes,
     solverGridSolid, rho_pregate, rho_hi, rho, solidPerc, solverPerc, connect_idx, connectGate, pores, complexity, geom,
-    cellSizeMm, N_GEO
+    cellSizeMm, N_GEO, N_MET: mField.N
   };
 }
 
@@ -392,6 +394,7 @@ function finishDesign(P, S, opts) {
     // Per-design rather than per-sweep because mixed-family sweeps can
     // legitimately run different N per design.
     grid_N:             N,
+    metrics_N:          P.N_MET,    // v0.29.1 — the grid pores / curvature / topology / tortuosity were measured on
     keff_x:             sig4(kx),
     keff_y:             sig4(ky),
     keff_z:             sig4(kz),

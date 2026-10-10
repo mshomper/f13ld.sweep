@@ -50,9 +50,13 @@ function computePorePercentiles(dVals_sorted, gradNorm, umPerUnit) {
 // |∇rawField| over the near-surface void (periodic central differences of
 // the grid): |∇φ| for the raw modes, ≈ 1 where rawField already is a
 // distance (normalized TPMS) — so pores are no longer divided twice there.
-function analyzePoresFromField(rawField, voidMask, cellSizeMm, N) {
+/* v0.29.1 — w: a stretched cell's voxel edges (geometric mean 1); the
+   gradient is taken per physical length so distances are real distances. */
+function analyzePoresFromField(rawField, voidMask, cellSizeMm, N, w) {
   const N3 = N * N * N, NN = N * N;
   const step = (2 * Math.PI) / N;
+  const W = w || [1, 1, 1];
+  const sx = 2 * step * W[0], sy = 2 * step * W[1], sz = 2 * step * W[2];
   const umPerUnit = (cellSizeMm * 1000) / (2 * Math.PI);
 
   let gradSum = 0, gradCount = 0;
@@ -64,9 +68,9 @@ function analyzePoresFromField(rawField, voidMask, cellSizeMm, N) {
         const id = ii + jj + k;
         if (!voidMask[id] || rawField[id] >= 0.3) continue;
         const kp = (k + 1) % N, km = (k + N - 1) % N;
-        const gx = (rawField[ip + jj + k] - rawField[im + jj + k]) / (2 * step);
-        const gy = (rawField[ii + jp + k] - rawField[ii + jm + k]) / (2 * step);
-        const gz = (rawField[ii + jj + kp] - rawField[ii + jj + km]) / (2 * step);
+        const gx = (rawField[ip + jj + k] - rawField[im + jj + k]) / sx;
+        const gy = (rawField[ii + jp + k] - rawField[ii + jm + k]) / sy;
+        const gz = (rawField[ii + jj + kp] - rawField[ii + jj + km]) / sz;
         gradSum += Math.sqrt(gx * gx + gy * gy + gz * gz);
         gradCount++;
       }
@@ -83,7 +87,7 @@ function analyzePoresFromField(rawField, voidMask, cellSizeMm, N) {
   const meanTop = topVals.reduce((s, v) => s + v, 0) / topVals.length;
   const pore_size = Math.round(meanTop * 2 * umPerUnit);
 
-  const tp = computeThroatAndPerc(voidMask, cellSizeMm, N);
+  const tp = computeThroatAndPerc(voidMask, cellSizeMm, N, w && !(w[0] === 1 && w[1] === 1 && w[2] === 1) ? w : null);
   const pct = computePorePercentiles(dVals, gradNorm, umPerUnit);
   return { pore_size,
            throat_size: tp.throat_size,

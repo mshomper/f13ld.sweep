@@ -242,6 +242,7 @@ function gpuDesignFields(d) {
     zener_A: d.zener_A,
     C_GPa: d.C_GPa,                 // full 6×6 Voigt stiffness [xx yy zz yz xz xy], GPa
     cell_aspect: d.cell_aspect,     // physical cell edges, max = 1 (stretched cells)
+    metrics_N: d.metrics_N,         // v0.29.1 — grid the geometry metrics were measured on
     island_trim_pct: d.island_trim_pct,
     island_trim_skipped_pct: d.island_trim_skipped_pct,
     thermal_converged: d.thermal_converged,

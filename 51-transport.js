@@ -70,26 +70,32 @@ function trPeriodicComponents(m, N) {
    along one axis never exceeds N/2.  Voxel-centre distances, so a voxel
    face-adjacent to a feature gets 1. */
 const TR_EDT_INF = 1e20;
-function trPeriodicEdt2(A, N) {
+/* v0.29.1 — w = [wx, wy, wz]: voxel edge per axis (a stretched cell), in
+   units of the mean edge; omitted = a cube (the original, unchanged). The
+   1-D pass measures (w·Δq)² — Felzenszwalb–Huttenlocher with a scaled axis. */
+function trPeriodicEdt2(A, N, w) {
   const h = N >> 1, E = 2 * N, NN = N * N;
   const f = new Float64Array(E), d = new Float64Array(E), v = new Int32Array(E), z = new Float64Array(E + 1);
   const wrap = new Int32Array(E), off = new Int32Array(E);
   for (let t = 0; t < E; t++) wrap[t] = ((t - h) % N + N) % N;
+  let a2 = 1;   /* the current pass's squared edge */
   const edt1d = () => {
     let k = 0; v[0] = 0; z[0] = -Infinity; z[1] = Infinity;
     for (let q = 1; q < E; q++) {
-      let s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
-      while (s <= z[k]) { k--; s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]); }
+      let s = ((f[q] + a2 * q * q) - (f[v[k]] + a2 * v[k] * v[k])) / (a2 * (2 * q - 2 * v[k]));
+      while (s <= z[k]) { k--; s = ((f[q] + a2 * q * q) - (f[v[k]] + a2 * v[k] * v[k])) / (a2 * (2 * q - 2 * v[k])); }
       k++; v[k] = q; z[k] = s; z[k + 1] = Infinity;
     }
     k = 0;
     for (let q = 0; q < E; q++) {
       while (z[k + 1] < q) k++;
       const dq = q - v[k];
-      d[q] = dq * dq + f[v[k]];
+      d[q] = a2 * dq * dq + f[v[k]];
     }
   };
-  const pass = (stride, baseOf) => {
+  const W = w || [1, 1, 1];
+  const pass = (stride, baseOf, wa) => {
+    a2 = wa * wa;
     for (let t = 0; t < E; t++) off[t] = wrap[t] * stride;
     for (let p = 0; p < NN; p++) {
       const base = baseOf(p);
@@ -100,9 +106,9 @@ function trPeriodicEdt2(A, N) {
       for (let q = 0; q < N; q++) A[base + q * stride] = Math.min(d[q + h], TR_EDT_INF);
     }
   };
-  pass(1,  (p) => ((p / N) | 0) * NN + (p % N) * N);   // along k
-  pass(N,  (p) => ((p / N) | 0) * NN + (p % N));       // along j
-  pass(NN, (p) => p);                                  // along i
+  pass(1,  (p) => ((p / N) | 0) * NN + (p % N) * N, W[2]);   // along k (z)
+  pass(N,  (p) => ((p / N) | 0) * NN + (p % N), W[1]);       // along j (y)
+  pass(NN, (p) => p, W[0]);                                  // along i (x)
   return A;
 }
 
@@ -129,20 +135,24 @@ function trPeriodicEdt2(A, N) {
 //
 // Cost: EDT ~3·2N per line × 3N² lines (O(N³)); counting sort + union-find
 // ~6·N³·α.  ~0.1–0.2 s at N=96.
-function computeThroatAndPerc(voidMask, cellSizeMm, N) {
+function computeThroatAndPerc(voidMask, cellSizeMm, N, w) {
   const NN = N * N, N3 = NN * N, Nm1 = N - 1;
   const m = trBinaryMask(voidMask, N3);
+  /* v0.29.1 — a stretched cell (w) measures distance per axis; its squared
+     distances are no longer whole numbers, so the sort keys keep 1/16 voxel² */
+  const cube = !w || (w[0] === 1 && w[1] === 1 && w[2] === 1);
+  const KS = cube ? 1 : 16, wMax = cube ? 1 : Math.max(w[0], w[1], w[2]);
 
   // ── 1. Squared periodic EDT (features = solid voxels) ────────────────────
   const A = new Float64Array(N3);
   let nVoid = 0;
   for (let i = 0; i < N3; i++) { if (m[i]) { A[i] = TR_EDT_INF; nVoid++; } else A[i] = 0; }
-  trPeriodicEdt2(A, N);
+  trPeriodicEdt2(A, N, cube ? null : w);
   // No solid at all → every line stays at INF; cap at the largest periodic
   // distance a cell can hold.
-  const maxKey = 3 * (N >> 1) * (N >> 1) + 3;
+  const maxKey = Math.ceil(KS * (3 * (N >> 1) * (N >> 1) * wMax * wMax + 3));
   const key = new Int32Array(N3);
-  for (let i = 0; i < N3; i++) key[i] = m[i] ? Math.min(Math.round(A[i]), maxKey) : 0;
+  for (let i = 0; i < N3; i++) key[i] = m[i] ? Math.min(Math.max(1, Math.round(A[i] * KS)), maxKey) : 0;
 
   // ── 2. Kruskal widest-path with periodic image offsets ───────────────────
   // Counting sort of void voxels by dt², descending.
@@ -215,7 +225,7 @@ function computeThroatAndPerc(voidMask, cellSizeMm, N) {
   }
 
   const voxelSize_um = (cellSizeMm * 1000) / N;
-  const diam = (sq) => sq > 0 ? Math.round(2 * Math.sqrt(sq) * voxelSize_um) : 0;
+  const diam = (sq) => sq > 0 ? Math.round(2 * Math.sqrt(sq / KS) * voxelSize_um) : 0;
   const throat_x = diam(wrapSq[0]), throat_y = diam(wrapSq[1]), throat_z = diam(wrapSq[2]);
   // Widest bottleneck over the percolating axes (see header).
   const throat_size = Math.max(throat_x, throat_y, throat_z);
@@ -281,8 +291,13 @@ function computeSolidPercolation(solidMask, N) {
 // Non-percolating axis: τ reported as the cap value 10 and its bit set in
 // tortuosity_nonperc (1 = x, 2 = y, 4 = z).  τ > 10 on a percolating axis is
 // also capped at 10 but its bit is NOT set.
-function computeTortuosity(voidMask, N) {
+/* v0.29.1 — w = [wx, wy, wz] (a stretched cell): each move costs its real
+   length √Σ(d_a·w_a)², and τ = path ÷ the straight route N·w_axis. Moves of
+   equal length share a FIFO (each FIFO adds one constant, so it stays
+   sorted); a cube keeps the original three (1, √2, √3). */
+function computeTortuosity(voidMask, N, w) {
   const NN = N * N, N3 = NN * N;
+  const W = w || [1, 1, 1];
   const TAU_CAP = 10.0;
   const m = trBinaryMask(voidMask, N3);
   const prevT = new Int32Array(N), nextT = new Int32Array(N);
@@ -297,7 +312,8 @@ function computeTortuosity(voidMask, N) {
   for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
     const d = [dx, dy, dz], n = (dx !== 0) + (dy !== 0) + (dz !== 0);
     if (n === 0) continue;
-    MT.push(slotOf(dx, dy, dz)); MN.push(n); MW.push(n === 1 ? 1 : n === 2 ? Math.SQRT2 : Math.sqrt(3));
+    MT.push(slotOf(dx, dy, dz)); MN.push(n);
+    MW.push(w ? Math.sqrt((dx * W[0]) ** 2 + (dy * W[1]) ** 2 + (dz * W[2]) ** 2) : (n === 1 ? 1 : n === 2 ? Math.SQRT2 : Math.sqrt(3)));
     for (let a = 0; a < 3; a++) MD[a].push(d[a]);
     const face = (a) => { const q = [0, 0, 0]; q[a] = d[a]; return slotOf(q[0], q[1], q[2]); };
     const edge = (drop) => { const q = d.slice(); q[drop] = 0; return slotOf(q[0], q[1], q[2]); };
@@ -306,6 +322,10 @@ function computeTortuosity(voidMask, N) {
     else { MF.push([13, 13, 13]); ME.push([13, 13, 13]); }
   }
   const mT = Int32Array.from(MT), mN = Int32Array.from(MN), mW = Float64Array.from(MW);
+  /* one FIFO per distinct move length, shortest first; seeds in the last */
+  const lens = Array.from(new Set(MW.map(v => +v.toPrecision(12)))).sort((a, b) => a - b);
+  const mQ = Int32Array.from(MW.map(v => lens.indexOf(+v.toPrecision(12))));
+  const NQ = lens.length;
   const mD = MD.map((x) => Int32Array.from(x));
   const mF0 = Int32Array.from(MF.map((x) => x[0])), mF1 = Int32Array.from(MF.map((x) => x[1])), mF2 = Int32Array.from(MF.map((x) => x[2]));
   const mE01 = Int32Array.from(ME.map((x) => x[0])), mE02 = Int32Array.from(ME.map((x) => x[1])), mE12 = Int32Array.from(ME.map((x) => x[2]));
@@ -366,7 +386,8 @@ function computeTortuosity(voidMask, N) {
   // arrive[slice-0 id] and return the minimum.
   function shortest(axis, seed, arrive) {
     dist.fill(Infinity);
-    const Q = [mkQ(), mkQ(), mkQ(), mkQ()];   // step 1, √2, √3, seeds (sorted)
+    const Q = [];   // one FIFO per move length (cube: 1, √2, √3), then the seeds (sorted)
+    for (let qi = 0; qi <= NQ; qi++) Q.push(mkQ());
     const seeds = [];
     for (let p = 0; p < NN; p++) {
       const u = (p / N) | 0, v = p % N;     // slice coord[axis] = 0
@@ -376,22 +397,20 @@ function computeTortuosity(voidMask, N) {
       if (k0 < Infinity) { dist[id] = k0; seeds.push(id); }
     }
     if (seed) seeds.sort((a, b) => seed[a] - seed[b]);
-    for (const id of seeds) qPush(Q[3], id, dist[id]);
-    const mDa = mD[axis], Q0 = Q[0], Q1 = Q[1], Q2 = Q[2], Q3 = Q[3];
+    for (const id of seeds) qPush(Q[NQ], id, dist[id]);
+    const mDa = mD[axis];
+    const straight = N * W[axis];   /* the shortest possible route through the cell */
     let lowMask = 0;                                    // moves with no step down along axis
     for (let mi = 0; mi < 26; mi++) if (mDa[mi] >= 0) lowMask |= 1 << mi;
     let best = Infinity, bestSeen = Infinity;
     while (true) {
       // pop the smallest head among the four FIFOs
       let q = null, kmin = Infinity;
-      if (Q0.h < Q0.t && Q0.key[Q0.h] < kmin) { kmin = Q0.key[Q0.h]; q = Q0; }
-      if (Q1.h < Q1.t && Q1.key[Q1.h] < kmin) { kmin = Q1.key[Q1.h]; q = Q1; }
-      if (Q2.h < Q2.t && Q2.key[Q2.h] < kmin) { kmin = Q2.key[Q2.h]; q = Q2; }
-      if (Q3.h < Q3.t && Q3.key[Q3.h] < kmin) { kmin = Q3.key[Q3.h]; q = Q3; }
+      for (let qi = 0; qi <= NQ; qi++) { const Qi = Q[qi]; if (Qi.h < Qi.t && Qi.key[Qi.h] < kmin) { kmin = Qi.key[Qi.h]; q = Qi; } }
       if (q === null || kmin >= best) break;
       // Exhaustive (arrive) run: a straight route (L = N) already gives τ = 1,
       // the minimum possible — no need to finish or chain a second cell.
-      if (arrive && kmin >= bestSeen && bestSeen <= N + 1e-9) break;
+      if (arrive && kmin >= bestSeen && bestSeen <= straight + 1e-9) break;
       const id = q.id[q.h++];
       if (kmin > dist[id]) continue;   // stale
       const i = (id / NN) | 0, rem = id - i * NN, j = (rem / N) | 0, k = rem - j * N;
@@ -416,8 +435,7 @@ function computeTortuosity(voidMask, N) {
           else if (nd < best) best = nd;
           continue;
         }
-        const n = mN[mi];
-        if (nd < dist[nid]) { dist[nid] = nd; qPush(n === 1 ? Q0 : n === 2 ? Q1 : Q2, nid, nd); }
+        if (nd < dist[nid]) { dist[nid] = nd; qPush(Q[mQ[mi]], nid, nd); }
       }
     }
     return arrive ? bestSeen : best;
@@ -429,9 +447,10 @@ function computeTortuosity(voidMask, N) {
     arrive.fill(Infinity);
     const L1 = shortest(axis, null, arrive);          // cell 1: from slice 0
     if (!isFinite(L1)) { nonperc |= 1 << axis; return TAU_CAP; }
-    if (L1 <= N + 1e-9) return 1;                     // straight route: τ = 1 exactly
+    const Ls = N * W[axis];
+    if (L1 <= Ls + 1e-9) return 1;                    // straight route: τ = 1 exactly
     const L2 = shortest(axis, arrive, null);          // cell 2: continue from cell-1 arrivals
-    return Math.min(Math.max(1, (L2 - L1) / N), TAU_CAP);
+    return Math.min(Math.max(1, (L2 - L1) / Ls), TAU_CAP);
   };
   const tx = ax(0), ty = ax(1), tz = ax(2);
 
