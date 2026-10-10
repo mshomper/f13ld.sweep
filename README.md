@@ -31,7 +31,7 @@ f13ld.sweep takes an implicit recipe (exported from other [f13ld](f13ld.app) too
 5. Run the sweep — results populate in real time
 6. Hover rows to preview surface geometry; click a row to see every metric of that design
 7. Push a design to [F13LD.lab](https://mshomper.github.io/f13ld.lab) for a full solve, or to [F13LD.mesh](https://mshomper.github.io/f13ld.mesh) to print it — Lab / Mesh buttons on each row
-8. Export results JSON for F13LD.ingest
+8. **Push to Vault** (v0.29.2) adds the whole run to [F13LD.vault](https://mshomper.github.io/f13ld.vault): the push window checks every design with F13LD.ingest's rules, shows which are already in Vault or fail a check, and asks for the contributor, domain and the CC0 rights tick (once per browser session). Or export results JSON and drop it into F13LD.ingest — the same rows either way
 
 ---
 
@@ -190,7 +190,9 @@ Since v0.20.0 the tool is split into numbered classic scripts, like F13LD.lab an
 
 ## Export Format
 
-The exported JSON contains the full sweep metadata, base recipe parameters, and per-design records including browser FFT-CG estimates and complete term definitions for downstream ingestion into [field.vault](https://mshomper.github.io/f13ld.vault).
+The exported JSON contains the full sweep metadata, base recipe parameters, and per-design records including browser FFT-CG estimates and complete term definitions for downstream ingestion into [F13LD.vault](https://mshomper.github.io/f13ld.vault).
+
+**Push to Vault (v0.29.2)** sends this same export object (`buildResultsPayload` in `70-export.js`, through a JSON round trip so hashes match an exported file) to `f13ld-vault-push.js`, loaded from F13LD.ingest (`VAULT_PUSH_JS` in `00-config.js`; `?push=<url>` tests another copy). Rows are marked `provenance_kind = 'sweep'`. Auto-target rounds are never pushed, as they are never exported. `tests/vault-push.js` checks that the pushed rows equal what Ingest builds from the exported file.
 
 ---
 

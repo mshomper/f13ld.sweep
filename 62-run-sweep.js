@@ -504,6 +504,9 @@ async function runSweep(opts) {
     validateBtnEl.style.opacity = '';
     validateBtnEl.style.cursor = '';
   }
+  /* v0.29.2 — Push to Vault follows Export results */
+  const pushBtnEl = document.getElementById('pushVaultBtn');
+  if (pushBtnEl) pushBtnEl.disabled = isRound;
 
   if (!opts.keepBusy) {
     progressWrap.classList.remove('visible');

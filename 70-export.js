@@ -270,16 +270,20 @@ function designRecipeOut(d, purpose) {
   return r;
 }
 
-function exportResults() {
+/* v0.29.2 — the results export as an object (null, with a log line, when
+   there is nothing exportable). exportResults downloads it; Push to Vault
+   sends the same object through F13LD.ingest's shared push file. */
+function buildResultsPayload(action) {
+  action = action || 'export results';
   if (currentFiltered.length === 0) {
-    log('warn', 'Run a sweep first, then export results.');
-    return;
+    log('warn', 'Run a sweep first, then ' + action + '.');
+    return null;
   }
   /* v0.28.0 — auto-target rounds are Fast designs; only a final run is exported */
   const tr = lastSweepSettings && lastSweepSettings.target;
   if ((typeof TARGET_RUN !== 'undefined' && TARGET_RUN.running) || (tr && tr.round && tr.round !== 'final')) {
     log('warn', 'These are auto-target round designs (Fast precision) — only the final run is exported. Let the rounds finish, or set the target to One sweep and run again.');
-    return;
+    return null;
   }
 
   // v0.12.1: refuse to export when the swept results don't match the
@@ -289,7 +293,7 @@ function exportResults() {
   // contamination caught by the Grain-tagged-as-TPMS bug.
   if (sweptRecipeId !== recipeLoadId) {
     log('warn', 'Recipe was changed after the last sweep — re-run sweep before exporting.');
-    return;
+    return null;
   }
 
   const payload = {
@@ -561,6 +565,12 @@ function exportResults() {
       design: designRecipeOut(d, 'results-export')
     }))
   };
+  return payload;
+}
+
+function exportResults() {
+  const payload = buildResultsPayload('export results');
+  if (!payload) return;
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
@@ -573,4 +583,45 @@ function exportResults() {
 
   log('success', `Exported ${currentFiltered.length} designs → ${a.download}`);
   log('info', 'Drop this file into F13LD.ingest to add it to F13LD.vault; open a design in F13LD.lab for a full solve');
+}
+
+/* ── v0.29.2 · Push to Vault ─────────────────────────────────────────────
+   Sends the whole run (the same designs Export results writes) to
+   F13LD.vault through F13LD.ingest's f13ld-vault-push.js: the same checks,
+   rows and duplicate check as dropping the export into Ingest, plus the
+   push window (contributor, domain, CC0 tick once per browser session).
+   Rows are marked provenance_kind 'sweep'. */
+let _vaultPushLoad = null;
+function loadVaultPush() {
+  if (window.F13LDVault) return Promise.resolve(window.F13LDVault);
+  if (_vaultPushLoad) return _vaultPushLoad;
+  _vaultPushLoad = new Promise((resolve, reject) => {
+    const sc = document.createElement('script');
+    sc.src = VAULT_PUSH_JS;
+    sc.onload = () => window.F13LDVault ? resolve(window.F13LDVault) : reject(new Error('the push file loaded but did not start'));
+    sc.onerror = () => reject(new Error('could not load ' + VAULT_PUSH_JS));
+    document.head.appendChild(sc);
+  }).catch((e) => { _vaultPushLoad = null; throw e; });
+  return _vaultPushLoad;
+}
+
+function pushResultsToVault() {
+  const payload = buildResultsPayload('push to F13LD.vault');
+  if (!payload) return;
+  /* the file round trip, so hashes and rows match an exported file exactly */
+  const json = JSON.parse(JSON.stringify(payload));
+  const btn = document.getElementById('pushVaultBtn');
+  if (btn) btn.disabled = true;
+  loadVaultPush().then((V) => {
+    log('info', 'Push to Vault: checking ' + json.designs.length + ' designs against F13LD.vault');
+    return V.openPushDialog({ json: json, source: 'F13LD.sweep v' + F13LD_SWEEP_VERSION,
+                              provenanceKind: 'sweep', accent: '#c8f542' });
+  }).then((res) => {
+    if (!res) return;
+    const D = res.designs;
+    if (res.pushed && D) log('success', 'Pushed to F13LD.vault: ' + D.inserted + ' added' + (D.duplicates ? ' · ' + D.duplicates + ' already there' : '') + (D.failed ? ' · ' + D.failed + ' failed' : ''));
+    else if (D && D.failed) log('warn', 'Push to Vault: ' + D.failed + ' designs could not be added');
+  }).catch((e) => {
+    log('error', 'Push to Vault unavailable: ' + e.message + ' — use Export results and drop the file into F13LD.ingest');
+  }).finally(() => { if (btn) btn.disabled = false; });
 }

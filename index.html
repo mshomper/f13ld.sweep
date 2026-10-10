@@ -59,11 +59,12 @@
       </div>
     </div>
     <div class="fh-actions">
-      <button id="validateBtn" class="pill-btn" onclick="exportResults()" title="All designs, every metric (F13LD.ingest format)" data-g="down" data-label="Export results"></button>
+      <button id="pushVaultBtn" class="pill-btn" onclick="pushResultsToVault()" disabled title="Add every design in this run to F13LD.vault" data-g="vault" data-label="Push to Vault"></button>
+      <button id="validateBtn" class="pill-btn ghost" onclick="exportResults()" title="All designs, every metric (F13LD.ingest format)" data-g="down" data-label="Export results"></button>
       <button id="exportDesignBtn" class="pill-btn ghost" onclick="exportSelectedDesign()" disabled title="The selected design's recipe" data-g="down" data-label="Export design"></button>
     </div>
     <div class="fh-right">
-      <span class="fh-ver">v0.29.1</span>
+      <span class="fh-ver">v0.29.2</span>
       <!-- Sweep tool icon — fan of lines emanating from a pivot, per brand guidelines -->
       <div class="fh-ico" title="F13LD.Sweep — parameter-space exploration">
         <svg width="18" height="18" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">

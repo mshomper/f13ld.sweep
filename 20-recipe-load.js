@@ -56,7 +56,7 @@ function loadRecipe(json, name) {
   }
   const badgeEl = document.getElementById('resultsBadge');
   if (badgeEl) badgeEl.textContent = '0 designs';
-  for (const id of ['validateBtn', 'exportDesignBtn']) {
+  for (const id of ['validateBtn', 'pushVaultBtn', 'exportDesignBtn']) {
     const b = document.getElementById(id);
     if (b) b.disabled = true;            /* look comes from .pill-btn:disabled */
   }

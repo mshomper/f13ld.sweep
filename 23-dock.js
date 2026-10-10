@@ -64,7 +64,9 @@ var SWEEP_GLYPHS = {
   upload: '<path d="M8 10.5 V3 M4.8 6.2 L8 3 L11.2 6.2 M3 13.5 H13"' + SW_GS + '/>',
   target: '<circle cx="8" cy="8" r="4.6"' + SW_GS + '/><path d="M8 1.5 V4 M8 12 V14.5 M1.5 8 H4 M12 8 H14.5"' + SW_GS + '/><circle cx="8" cy="8" r="1.2" fill="currentColor"/>',
   plus:   '<path d="M8 3.5 V12.5 M3.5 8 H12.5"' + SW_GS + '/>',
-  reset:  '<path d="M3.6 8 a4.4 4.4 0 1 0 1.3 -3.1 M3.4 2.6 V5.3 H6.1"' + SW_GS + '/>'
+  reset:  '<path d="M3.6 8 a4.4 4.4 0 1 0 1.3 -3.1 M3.4 2.6 V5.3 H6.1"' + SW_GS + '/>',
+  /* v0.29.2 — a database drum (Push to Vault) */
+  vault:  '<ellipse cx="8" cy="3.8" rx="5" ry="1.9"' + SW_GS + '/><path d="M3 3.8 V8 c0 1.05 2.24 1.9 5 1.9 s5 -.85 5 -1.9 V3.8 M3 8 V12.2 c0 1.05 2.24 1.9 5 1.9 s5 -.85 5 -1.9 V8"' + SW_GS + '/>'
 };
 function swGlyph(name, cls) { return '<svg class="g' + (cls ? ' ' + cls : '') + '" viewBox="0 0 16 16" aria-hidden="true">' + (SWEEP_GLYPHS[name] || '') + '</svg>'; }
 
