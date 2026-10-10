@@ -1,5 +1,9 @@
 # F13LD.sweep — next steps
 
+**As of 2026-10-10 (late evening).** `main` = **v0.29.2** — Push to Vault (the whole run to F13LD.vault through F13LD.ingest's shared push file; exported file unchanged). Shipped with F13LD.ingest v0.10.1 (push file v1.0.1) and the 2026-10-10 database migration (contact hidden, `provenance_kind`, `f13ld_lab_results`). Recap: [`SESSION_RECAP_2026-10-10_vault-push.md`](SESSION_RECAP_2026-10-10_vault-push.md).
+
+**Next:** Matt wipes and re-seeds F13LD.vault through Push to Vault, then **Bundle (v0.30.0)**. F13LD.lab's Push to Vault (next fresh session) will call Sweep's `estimateHomogenization` — keep its signature and output shape stable. Open question: Sweep's beam reference design without a `topology` block fails Ingest's check.
+
 **As of 2026-10-10 (evening).** `main` = **v0.29.1** — Wave family + cell stretch (v0.29.0) and every family measured on its real cell (v0.29.1), merged after Matt's click-test and speed bench (no slowdown: foam +5 %, the rest unchanged). Shipped with F13LD.mesh v0.9.8, F13LD.wave v0.6, F13LD.lab v0.26.1, F13LD.ingest v0.9.1, F13LD.vault v0.8.0. Recap: [`SESSION_RECAP_2026-10-10.md`](SESSION_RECAP_2026-10-10.md); notes: [`REFACTOR.md`](REFACTOR.md) → v0.29.0, v0.29.1.
 
 **Next:** Matt wipes and re-seeds F13LD.vault from fresh exports, then **Bundle (v0.30.0)** — plan: [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md) §2. Pinned for later: density exponent and bound efficiency as Sweep target metrics (`13-target.js` + Vault's `23-reach.js`); the CPU fallback with the GPU physics (stretched cells).
