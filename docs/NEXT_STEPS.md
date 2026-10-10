@@ -1,13 +1,19 @@
 # F13LD.sweep — next steps
 
-**As of 2026-10-10 (afternoon).** Branch `v0.29.0-wave` = Wave family, with F13LD.ingest `v0.9.1-wave`, F13LD.vault `v0.8.0-wave` and F13LD.lab `wave-geom-markers` (comments only). Notes: [`REFACTOR.md`](REFACTOR.md) → v0.29.0. Waiting for Matt's click-test and GPU runs before anything goes to `main`; then the Vault wipe and re-seed, then **Bundle (v0.30.0)**.
+**As of 2026-10-10 (afternoon).** Two branches waiting for Matt:
+- `v0.29.0-wave` — Wave family + cell stretch (wave), noise stretch on the Cell scale ranges, equal-axes note. Goes with F13LD.mesh `v0.9.8-wave-stretch`, F13LD.wave `v0.6-stretch`, F13LD.lab `v0.26.1-stretch-warn` (includes the wave markers), F13LD.ingest `v0.9.1-wave`, F13LD.vault `v0.8.0-wave` (wave previews, axes / filters, smooth Pareto curve).
+- `v0.29.1-metrics` (on top of v0.29.0) — every family measured (pores, curvature, topology, tortuosity), stretched cells measured as stretched.
+Then the Vault wipe and re-seed, then **Bundle (v0.30.0)**. Notes: [`REFACTOR.md`](REFACTOR.md) → v0.29.0, v0.29.1.
 
 ## 0c. v0.29.0 Wave — checks before merging (Matt, on your machine)
 1. Sweep branch: load a multi-mode wave (e.g. Schwarz P 3-mode, or a sheet with the iso off centre) → Neighbourhood sweep, GPU, 32³, 100 designs: density landing, speed, the reference row, the 3D preview tiling.
 2. Load a single-mode wave (Gyroid, Chiral 3-2-1): the dock switches to Explore with a log line; switch back to Neighbourhood and run — only phase / iso shift / density move.
 3. A recipe with a fractional index (type 1.5 into the Wave tool): refused at load with the note.
 4. Open a design in F13LD.mesh and in F13LD.lab: same surface as in Sweep's preview.
-5. Export → drop into Ingest (branch): validates. Vault branch (`?mock` is fine): wave cards and inspector render; Aim Sweep on a wave design opens Sweep; plot density exponent / bound efficiency as axes and add them as range filters.
+5. Export → drop into Ingest (branch): validates. Vault branch (`?mock` is fine): wave cards and inspector render; Aim Sweep on a wave design opens Sweep; plot density exponent / bound efficiency as axes and add them as range filters; turn on the Pareto front (a smooth curve now).
+6. Stretch: a cubic-symmetry wave with the Cell scale ranges open — anisotropy now spreads; with them closed — the warning. In F13LD.wave (branch) move the stretch sliders; Open in Mesh (branch) prints the stretched cell; the same design in Lab (branch) shows "stretched cell".
+7. Noise: the Cell scale ranges now set its X / Y / Z stretch (default 50–150 %).
+8. v0.29.1: `tests/bench.html` speed bench on TPMS shell, beam, foam and wave (Fast and Rigorous) against v0.29.0 — the extra measuring is CPU-side; if Fast slows noticeably, the floor (`METRICS_N_MIN`, 32) or the grid can drop. Genus / curvature now read on every family.
 
 Pinned for later: density exponent and bound efficiency as Sweep target metrics (both lists, `13-target.js` and Vault's `23-reach.js` `SWEEP_TARGET_KEYS`).
 
