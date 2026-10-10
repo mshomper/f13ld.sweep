@@ -144,8 +144,8 @@ function finishDesignGpu(prep, sol, o, g) {
   const e = prep.edges, em = Math.max(e[0], e[1], e[2]);
   const r3 = v => v == null ? null : +v.toFixed(3);
   const extra = {
-    Gyz_GPa: +G[0].toFixed(3), Gxz_GPa: +G[1].toFixed(3), Gxy_GPa: +G[2].toFixed(3),
-    Gyz_norm: +(G[0] / (Es + 1e-9)).toFixed(4), Gxz_norm: +(G[1] / (Es + 1e-9)).toFixed(4), Gxy_norm: +(G[2] / (Es + 1e-9)).toFixed(4),
+    Gyz_GPa: sig4(G[0]), Gxz_GPa: sig4(G[1]), Gxy_GPa: sig4(G[2]),   /* v0.27.2: 4 significant figures */
+    Gyz_norm: sig4(G[0] / (Es + 1e-9)), Gxz_norm: sig4(G[1] / (Es + 1e-9)), Gxy_norm: sig4(G[2] / (Es + 1e-9)),
     nu_xy: r3(nus[0]), nu_xz: r3(nus[1]), nu_yz: r3(nus[2]),
     zener_A: r3(zener),
     C_GPa: C,

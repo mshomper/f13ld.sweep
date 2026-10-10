@@ -194,6 +194,7 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     method: methodLabel || 'FFT-CG',
     ...stiffnessFlagFields(d),
     ...gpuDesignFields(d),
+    ...refDesignFields(d),
     ...densityDesignFields(d),
     solver_version: d.solver_version || SOLVER_VERSION,
     geometry_version: GEOMETRY_VERSION
@@ -219,6 +220,14 @@ function stiffnessFlagFields(d) {
     under_resolved: d.under_resolved,
     stiffness_flag_reasons: d.stiffness_flag_reasons
   };
+}
+
+/* v0.27.2 — the solid modulus and reference stress behind the GPa values,
+   so Vault converts strain and stiffness without assuming 100 GPa.
+   Additive; absent on designs from older runs. */
+function refDesignFields(d) {
+  if (!d || d.Es_ref_GPa == null) return {};
+  return { Es_ref_GPa: d.Es_ref_GPa, sigma_ref_GPa: d.sigma_ref_GPa };
 }
 
 /* v0.24.0 — what only the GPU solver reports (additive; F13LD.ingest reads
@@ -516,6 +525,7 @@ function exportResults() {
         pore_size_cv:         d.pore_size_cv,
         ...stiffnessFlagFields(d),
         ...gpuDesignFields(d),
+        ...refDesignFields(d),
         ...densityDesignFields(d)
       },
       // The exact recipe this design was solved with (design-tool format).
