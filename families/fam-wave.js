@@ -4,10 +4,14 @@
 
    The design recipe is F13LD.wave's export shape — field { symmetry,
    modes [{ n, m, p, A, phi }], mode solid | sheet, iso, thickness,
-   signFlip (phase A / B), phaseTime, cellScale } — read by the shared
-   WaveKernel (geom/wave.js). One wave cell is one cubic solver cell; it
-   stays a cube (F13LD.mesh prints wave as a cube), so there is no cell
-   scale. Each mode is A·cos(phi + phaseTime) times its symmetry sum.
+   signFlip (phase A / B), phaseTime, cellScale, stretch } — read by the
+   shared WaveKernel (geom/wave.js). One wave cell is one solver cell. Each
+   mode is A·cos(phi + phaseTime) times its symmetry sum.
+   Stretch (Matt, 2026-10-10): field.stretch = the cell's relative edges
+   [x, y, z], geometric mean 1, drawn from the Cell scale ranges × the
+   recipe's own stretch — the solver solves the stretched cell, F13LD.mesh
+   and F13LD.wave draw it stretched. Cubic, Chiral and Schoen give equal
+   axes on a cube; the stretch is what lets them differ.
 
    Only whole-number mode indices load: a fractional index repeats over
    several cells (Mesh bakes a supercell), and Sweep, Lab and F13LD.wave's
@@ -44,7 +48,7 @@ function waveModeText(modes) {
 
 SWEEP_FAMILIES.wave = {
   label: 'wave',
-  usesCellScale: false,
+  usesCellScale: true,                 /* drives field.stretch (the cell's edges) */
 
   nominalScale() { return 1.0; },
 
@@ -55,7 +59,7 @@ SWEEP_FAMILIES.wave = {
 
   describe(recipe) {
     const f = recipe.field || {}, modes = f.modes || [];
-    const th = f.mode === 'sheet' ? ` · thickness ${f.thickness}` : '';
+    const th = (f.mode === 'sheet' ? ` · thickness ${f.thickness}` : '') + (Array.isArray(f.stretch) ? ` · stretch [${f.stretch.join(', ')}]` : '');
     return `family: wave · ${f.symmetry || 'pure'} · ${modes.length} mode${modes.length === 1 ? '' : 's'} ${waveModeText(modes)}` +
            ` · ${f.mode === 'sheet' ? 'sheet' : 'solid'} · phase ${f.signFlip ? 'B' : 'A'} · iso ${f.iso != null ? f.iso : 0}${th}` +
            `${f.phaseTime ? ` · phase time ${(+f.phaseTime).toFixed(2)}` : ''}`;
@@ -64,7 +68,8 @@ SWEEP_FAMILIES.wave = {
   summary(recipe) {
     const f = recipe.field || {}, modes = f.modes || [];
     const amps = modes.map(mm => (+(mm.A != null ? mm.A : 1)).toFixed(2)).join(',');
-    const th = f.mode === 'sheet' ? ` t=${(+f.thickness).toFixed(3)}` : '';
+    const th = (f.mode === 'sheet' ? ` t=${(+f.thickness).toFixed(3)}` : '') +
+      (Array.isArray(f.stretch) && f.stretch.some(v => Math.abs(v - 1) > 1e-4) ? ` [${f.stretch.map(v => (+v).toFixed(2)).join(',')}]` : '');
     return `${f.symmetry || 'pure'} ${waveModeText(modes)} A[${amps}] ${f.mode === 'sheet' ? 'sheet' : 'solid'}${f.signFlip ? ' B' : ''} iso=${(+(f.iso || 0)).toFixed(3)}${th}`;
   },
 
@@ -100,6 +105,12 @@ SWEEP_FAMILIES.wave = {
 
     const field = J.clone(f0);
     field.phaseTime = +t.toFixed(4);
+    /* the cell's stretch: Cell scale draw × the recipe's stretch, geometric mean 1 */
+    const st0 = Array.isArray(f0.stretch) && f0.stretch.length === 3 ? f0.stretch.map(v => (isFinite(v) && v > 0) ? v : 1) : [1, 1, 1];
+    const sc = ctx.scale || [1, 1, 1];
+    let st = st0.map((v, i) => J.clamp(v * sc[i], 0.2, 5));
+    const gm = Math.cbrt(st[0] * st[1] * st[2]);
+    field.stretch = st.map(v => +(v / gm).toFixed(4));
     field.modes = modes;
 
     /* Explore: nudge indices, keeping a non-zero field */

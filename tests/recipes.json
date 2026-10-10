@@ -1353,7 +1353,7 @@
    "schema": "f13ld.wave/v1",
    "tool": "F13LD.wave",
    "family": "wave",
-   "version": "0.3",
+   "version": "0.6",
    "timestamp": "2026-10-08T00:00:00.000Z",
    "field": {
     "symmetry": "pure",
@@ -1364,6 +1364,11 @@
     "thickness": null,
     "iso": 0,
     "cellScale": 1,
+    "stretch": [
+     1,
+     1,
+     1
+    ],
     "phaseTime": 0,
     "modes": [
      {
@@ -1395,6 +1400,11 @@
     "bounds": [
      -5,
      5
+    ],
+    "size_xyz": [
+     10,
+     10,
+     10
     ]
    },
    "coordinate": {
@@ -1414,7 +1424,7 @@
    "schema": "f13ld.wave/v1",
    "tool": "F13LD.wave",
    "family": "wave",
-   "version": "0.3",
+   "version": "0.6",
    "timestamp": "2026-10-08T00:00:00.000Z",
    "field": {
     "symmetry": "schoen",
@@ -1425,6 +1435,11 @@
     "thickness": 0.25,
     "iso": 0.3,
     "cellScale": 1,
+    "stretch": [
+     1,
+     1,
+     1
+    ],
     "phaseTime": 0,
     "modes": [
      {
@@ -1442,6 +1457,11 @@
     "bounds": [
      -5,
      5
+    ],
+    "size_xyz": [
+     10,
+     10,
+     10
     ]
    },
    "coordinate": {
@@ -1461,7 +1481,7 @@
    "schema": "f13ld.wave/v1",
    "tool": "F13LD.wave",
    "family": "wave",
-   "version": "0.3",
+   "version": "0.6",
    "timestamp": "2026-10-08T00:00:00.000Z",
    "field": {
     "symmetry": "chiral",
@@ -1472,6 +1492,11 @@
     "thickness": null,
     "iso": 0.4,
     "cellScale": 1,
+    "stretch": [
+     1,
+     1,
+     1
+    ],
     "phaseTime": 0,
     "modes": [
      {
@@ -1489,6 +1514,11 @@
     "bounds": [
      -5,
      5
+    ],
+    "size_xyz": [
+     10,
+     10,
+     10
     ]
    },
    "coordinate": {
@@ -1508,7 +1538,7 @@
    "schema": "f13ld.wave/v1",
    "tool": "F13LD.wave",
    "family": "wave",
-   "version": "0.3",
+   "version": "0.6",
    "timestamp": "2026-10-08T00:00:00.000Z",
    "field": {
     "symmetry": "pure",
@@ -1519,6 +1549,11 @@
     "thickness": 0.3,
     "iso": 0.2,
     "cellScale": 1,
+    "stretch": [
+     1,
+     1,
+     1
+    ],
     "phaseTime": 0.6,
     "modes": [
      {
@@ -1571,6 +1606,11 @@
     "bounds": [
      -5,
      5
+    ],
+    "size_xyz": [
+     10,
+     10,
+     10
     ]
    },
    "coordinate": {
@@ -1581,6 +1621,63 @@
    },
    "metrics": {
     "modeCount": 6
+   }
+  },
+  "samples": 3
+ },
+ "wave-gyroid-stretched": {
+  "recipe": {
+   "schema": "f13ld.wave/v1",
+   "tool": "F13LD.wave",
+   "family": "wave",
+   "version": "0.6",
+   "timestamp": "2026-10-08T00:00:00.000Z",
+   "field": {
+    "symmetry": "schoen",
+    "symmetryId": 4,
+    "phase": "A",
+    "signFlip": false,
+    "mode": "solid",
+    "thickness": null,
+    "iso": 0.2,
+    "cellScale": 1,
+    "stretch": [
+     1.6,
+     1,
+     0.7
+    ],
+    "phaseTime": 0,
+    "modes": [
+     {
+      "n": 1,
+      "m": 1,
+      "p": 0,
+      "A": 1,
+      "phi": 0
+     }
+    ]
+   },
+   "domain": {
+    "unit": "mm",
+    "size": 10,
+    "bounds": [
+     -5,
+     5
+    ],
+    "size_xyz": [
+     16,
+     10,
+     7
+    ]
+   },
+   "coordinate": {
+    "convention": "f13ld",
+    "worldScale": 0.6283185307179586,
+    "periodicityRadians": 6.283185307179586,
+    "signConvention": "negative-inside"
+   },
+   "metrics": {
+    "modeCount": 1
    }
   },
   "samples": 3

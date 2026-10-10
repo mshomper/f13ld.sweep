@@ -265,7 +265,9 @@ function paintScale() {
     ? 'One range for X, Y and Z — each axis still draws its own scale, so cells stretch.'
     : 'Each axis draws its scale from its own range.') +
     (baseFamily === 'beam' ? ' Beams: the strut radius follows the density.' : '') +
-    (baseFamily === 'foam' ? ' Foam: the tile stays a cube — these ranges stretch the cells inside it.' : '');
+    (baseFamily === 'foam' ? ' Foam: the tile stays a cube — these ranges stretch the cells inside it.' : '') +
+    (baseFamily === 'noise' ? ' Noise: these ranges stretch the field (its X / Y / Z scales); the cube stays a cube.' : '') +
+    (baseFamily === 'wave' ? ' Wave: these ranges stretch the cell itself, solved as stretched.' : '');
 }
 
 /* The most stretched cell the sweep can draw, as a small isometric wireframe

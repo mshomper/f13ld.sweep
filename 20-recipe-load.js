@@ -129,6 +129,11 @@ function loadRecipe(json, name) {
     log('info', `Single-mode wave: Variation set to Explore so the mode indices can move — in Neighbourhood ${(completed.field || {}).mode === 'sheet' ? 'only the iso shift, phase and density move' : 'only the density moves (the iso level is the density knob)'}. You can switch back in the dock.`);
   }
 
+  if (family === 'wave' && waveEqualAxes(completed)) {   /* v0.29.0 */
+    const sym = (completed.field || {}).symmetry || 'cubic';
+    log('info', `Wave, ${sym} symmetry: every mode is summed over the axis swaps, so on a cube Ex = Ey = Ez whatever the modes, phases or amplitudes. Only the cell stretch (the Cell scale ranges) makes the axes differ — keep the ranges open to rank on anisotropy or directionality.`);
+  }
+
   updateScalePreview();
   const sc = recipeCellScale(completed, family);
   showPreview({ id: 'base', family, recipe: completed, scaleX: sc[0], scaleY: sc[1], scaleZ: sc[2],

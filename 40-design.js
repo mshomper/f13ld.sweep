@@ -88,6 +88,14 @@ function waveRecipeProblem(recipe) {
   return null;
 }
 
+/* Cubic, Chiral and Schoen sum each mode over axis swaps (all six, or the
+   three cyclic ones = a 3-fold turn about [111]): Ex = Ey = Ez for any
+   modes, phases or amplitudes. Only a stretched cell makes the axes differ. */
+function waveEqualAxes(recipe) {
+  const p = WaveKernel.parseRecipe({ field: (recipe.field || {}) });
+  return p.sym === 2 || p.sym === 3 || p.sym === 4;
+}
+
 /* Largest |field| the modes can reach: Σ |A·cos(phi + t)| × the symmetry's term count. */
 const WAVE_SYM_TERMS = [1, 6, 6, 3, 3];
 function waveFieldBound(recipe) {
@@ -142,13 +150,18 @@ function completeRecipe(recipe) {
 
 /* Per-axis cell scale of a design recipe, for the results table and the
    aspect of the preview box: TPMS cell_scale_x/y/z (cells per unit — a
-   bigger number is a shorter cell), beam scale_xyz (cell edge in mm).
+   bigger number is a shorter cell), beam scale_xyz (cell edge in mm),
+   wave field.stretch (relative cell edges, v0.29.0).
    Noise and grain have no cell scale (their own scale settings sweep). */
 function recipeCellScale(recipe, family) {
   const g = recipe.geometry || {};
   if (family === 'tpms') {
     const d = g.cell_scale != null ? g.cell_scale : 1;
     return [g.cell_scale_x != null ? g.cell_scale_x : d, g.cell_scale_y != null ? g.cell_scale_y : d, g.cell_scale_z != null ? g.cell_scale_z : d];
+  }
+  if (family === 'wave') {   /* v0.29.0 — relative cell edges (geometric mean 1), F13LD.wave field.stretch */
+    const st = (recipe.field || {}).stretch;
+    return Array.isArray(st) && st.length === 3 && st.every(v => isFinite(v) && v > 0) ? st.slice() : [1, 1, 1];
   }
   if (family === 'beam') {
     if (Array.isArray(g.scale_xyz)) return g.scale_xyz.slice();

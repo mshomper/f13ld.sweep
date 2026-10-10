@@ -77,9 +77,10 @@ function voxels(family, json, N, variant) {
     const k = cs.map(c => 5 / (Math.PI * c));
     return { mask: grid(N, (x, y, z) => sdf([x * k[0], y * k[1], z * k[2]]) < 0), note };
   }
-  if (family === 'wave') {   /* v0.29.0 — one cell = world [-5,5]³ (q = p·π/5) */
+  if (family === 'wave') {   /* v0.29.0 — one cell = world [-5,5]³ × stretch (q = p·π/5 ÷ stretch) */
     const sdf = ctx.__sdf('wave', s);
-    return { mask: grid(N, (x, y, z) => sdf([x * P5, y * P5, z * P5]) < 0), note };
+    const st = (j.field && Array.isArray(j.field.stretch)) ? j.field.stretch : [1, 1, 1];
+    return { mask: grid(N, (x, y, z) => sdf([x * P5 * st[0], y * P5 * st[1], z * P5 * st[2]]) < 0), note };
   }
   throw new Error('mesh: family ' + family);
 }

@@ -172,7 +172,8 @@ const wave = (() => {
     /* st: { sym, modes [{n,m,p,A,phi}], sheet, thickness, iso, cellScale, time, signFlip } */
     exportRecipe(st) {
       ctx.State = { symmetry: st.sym || 0, modes: clone(st.modes), sheetMode: !!st.sheet, thickness: st.thickness != null ? st.thickness : 0.2,
-        iso: st.iso || 0, cellScale: st.cellScale || 1, time: st.time || 0, signFlip: st.signFlip ? 1 : 0 };
+        iso: st.iso || 0, cellScale: st.cellScale || 1, time: st.time || 0, signFlip: st.signFlip ? 1 : 0,
+        stretchX: (st.stretch || [1, 1, 1])[0], stretchY: (st.stretch || [1, 1, 1])[1], stretchZ: (st.stretch || [1, 1, 1])[2] };
       return JSON.parse(JSON.stringify(run(ctx, 'buildExportJSON()')));
     },
   };
