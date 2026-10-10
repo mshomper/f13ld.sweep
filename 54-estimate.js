@@ -20,6 +20,10 @@
 /* recipe — the design recipe (design-tool format, 40-design.js).
    opts   — { Es, nu, ks, sigma_ref, voxelToUm, eps_yield_um, linear_cap_kind,
               contrast, maxiter, gridN, targetHints, scale:[sx,sy,sz] | null } */
+/* v0.27.2 — round to 4 significant figures (0 stays 0). Fixed decimals
+   erased soft designs: E/Es of 3e-5 became 0.0000. */
+function sig4(v) { return v === 0 || !isFinite(v) ? v : +v.toPrecision(4); }
+
 function estimateHomogenization(recipe, opts) {
   const o = opts || {};
   const P = prepareDesign(recipe, o);
@@ -340,22 +344,22 @@ function finishDesign(P, S, opts) {
   // for arbitrary σ without re-solving.
   // v0.14.1: averaged over percolating axes only; null when none percolate.
   const U_compliance = ms_perGPa_perc.length > 0
-    ? +(ms_perGPa_perc.reduce((a, b) => a + b, 0) / (2 * ms_perGPa_perc.length * 1e6)).toFixed(6)
+    ? sig4(ms_perGPa_perc.reduce((a, b) => a + b, 0) / (2 * ms_perGPa_perc.length * 1e6))
     : null;
 
   // Stiffness normalised by solid stiffness — dimensionless, geometry-only
-  const Ex_norm = +(Ex / (Es_ref + 1e-9)).toFixed(4);
-  const Ey_norm = +(Ey / (Es_ref + 1e-9)).toFixed(4);
-  const Ez_norm = +(Ez / (Es_ref + 1e-9)).toFixed(4);
-  const stiffness_density_norm = +(
-    (Ex + Ey + Ez) / (3 * rho * Es_ref + 1e-9)
-  ).toFixed(4);
+  // v0.27.2: 4 significant figures, not 4 decimals — soft designs (low-VF
+  // PI-TPMS sits at E/Es ~ 1e-5) used to round to 0 here.
+  const Ex_norm = sig4(Ex / (Es_ref + 1e-9));
+  const Ey_norm = sig4(Ey / (Es_ref + 1e-9));
+  const Ez_norm = sig4(Ez / (Es_ref + 1e-9));
+  const stiffness_density_norm = sig4((Ex + Ey + Ez) / (3 * rho * Es_ref + 1e-9));
 
   // Thermal conductivity normalised by solid conductivity — dimensionless
   const ks_for_norm = ks_val || 1.0;
-  const keff_x_norm = +(kx / (ks_for_norm + 1e-9)).toFixed(4);
-  const keff_y_norm = +(ky / (ks_for_norm + 1e-9)).toFixed(4);
-  const keff_z_norm = +(kz / (ks_for_norm + 1e-9)).toFixed(4);
+  const keff_x_norm = sig4(kx / (ks_for_norm + 1e-9));
+  const keff_y_norm = sig4(ky / (ks_for_norm + 1e-9));
+  const keff_z_norm = sig4(kz / (ks_for_norm + 1e-9));
 
   // Pore size and throat as fraction of cell — geometry-only, cell-invariant
   const cellSize_um = cellSizeMm * 1000;
@@ -364,13 +368,13 @@ function finishDesign(P, S, opts) {
 
   const out = {
     volume_fraction:    +(rho*100).toFixed(2),
-    Ex_GPa:             +Ex.toFixed(2),
-    Ey_GPa:             +Ey.toFixed(2),
-    Ez_GPa:             +Ez.toFixed(2),
+    Ex_GPa:             sig4(Ex),
+    Ey_GPa:             sig4(Ey),
+    Ez_GPa:             sig4(Ez),
     // v0.14.0: anisotropy null-propagates when <2 axes percolate
     anisotropy:         aniso !== null ? +Math.min(aniso,99).toFixed(3) : null,
     directionality:     +directionality.toFixed(3),       // v0.14.0: NEW
-    stiffness_density:  +((Ex+Ey+Ez)/3/rho).toFixed(2),
+    stiffness_density:  sig4((Ex+Ey+Ez)/3/rho),
     aniso_efficiency:   aniso_efficiency !== null
                           ? +Math.min(aniso_efficiency,999).toFixed(2)
                           : null,
@@ -388,11 +392,11 @@ function finishDesign(P, S, opts) {
     // Per-design rather than per-sweep because mixed-family sweeps can
     // legitimately run different N per design.
     grid_N:             N,
-    keff_x:             +kx.toFixed(3),
-    keff_y:             +ky.toFixed(3),
-    keff_z:             +kz.toFixed(3),
+    keff_x:             sig4(kx),
+    keff_y:             sig4(ky),
+    keff_z:             sig4(kz),
     thermal_anisotropy: +Math.min(thermal_anisotropy,99).toFixed(2),
-    k_density:          +k_density.toFixed(3),
+    k_density:          sig4(k_density),
     U_strain,
     microstrain_x,
     microstrain_y,
@@ -417,6 +421,10 @@ function finishDesign(P, S, opts) {
     surface_complexity: +complexity.toFixed(3),
 
     // ── v0.11: Linear-regime cap diagnostics ────────────────────────────────
+    // v0.27.2: the solid modulus and reference stress behind every GPa value
+    // above, so downstream tools (Vault) never have to assume 100 GPa.
+    Es_ref_GPa:         Es_ref,
+    sigma_ref_GPa:      sig,
     eps_yield_um_used:  eps_cap,
     linear_cap_kind:    cap_kind,
     linear_cap_active,
