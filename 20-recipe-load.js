@@ -73,6 +73,9 @@ function loadRecipe(json, name) {
     }
     completed = completeRecipe(json);
     designGeometry(completed);                 /* throws if the recipe can't be built */
+    /* v0.29.0 — a family can refuse a recipe it can't sweep (wave: fractional indices, a zero field) */
+    const why = SWEEP_FAMILIES[family].loadProblem ? SWEEP_FAMILIES[family].loadProblem(completed) : null;
+    if (why) throw new Error(why);
   } catch (err) {
     log('warn', `${escapeLog(name)}: ${escapeLog(err.message)} — sweep disabled`);
     return false;
@@ -118,6 +121,17 @@ function loadRecipe(json, name) {
   if (family === 'foam') {   /* v0.27.0 */
     const tile = (completed.geometry || {}).tile_mm, cell = parseFloat((document.getElementById('cellSize') || {}).value);
     log('info', `Foam: the tile is one solver cell and stays a cube; the Cell scale ranges stretch the foam's cells inside it (anisotropy).${tile > 0 && Math.abs(tile - cell) > 1e-6 ? ` The recipe's tile is ${tile} mm — set Cell size to ${tile} mm in Configure for pore sizes in µm at that scale.` : ''}`);
+  }
+
+  if (fam.prefersExplore && fam.prefersExplore(completed) && typeof pxSet === 'function' &&
+      document.getElementById('variationMode').value !== 'explore') {   /* v0.29.0 */
+    pxSet('variationMode', 'explore', 'change');
+    log('info', `Single-mode wave: Variation set to Explore so the mode indices can move — in Neighbourhood ${(completed.field || {}).mode === 'sheet' ? 'only the iso shift, phase and density move' : 'only the density moves (the iso level is the density knob)'}. You can switch back in the dock.`);
+  }
+
+  if (family === 'wave' && waveEqualAxes(completed)) {   /* v0.29.0 */
+    const sym = (completed.field || {}).symmetry || 'cubic';
+    log('info', `Wave, ${sym} symmetry: every mode is summed over the axis swaps, so on a cube Ex = Ey = Ez whatever the modes, phases or amplitudes. Only the cell stretch (the Cell scale ranges) makes the axes differ — keep the ranges open to rank on anisotropy or directionality.`);
   }
 
   updateScalePreview();

@@ -242,6 +242,7 @@ function gpuDesignFields(d) {
     zener_A: d.zener_A,
     C_GPa: d.C_GPa,                 // full 6×6 Voigt stiffness [xx yy zz yz xz xy], GPa
     cell_aspect: d.cell_aspect,     // physical cell edges, max = 1 (stretched cells)
+    metrics_N: d.metrics_N,         // v0.29.1 — grid the geometry metrics were measured on
     island_trim_pct: d.island_trim_pct,
     island_trim_skipped_pct: d.island_trim_skipped_pct,
     thermal_converged: d.thermal_converged,
@@ -424,6 +425,21 @@ function exportResults() {
           border:      g.mode === 'wet' ? (g.border != null ? g.border : null) : null,
           stretch:     a.enabled && Array.isArray(a.stretch) ? a.stretch.slice() : [1, 1, 1],
           tile_mm:     g.tile_mm != null ? g.tile_mm : null
+        };
+      }
+      if (baseFamily === 'wave') {   /* v0.29.0 */
+        const f = baseRecipe.field || {}, modes = Array.isArray(f.modes) ? f.modes : [];
+        return {
+          ...baseCommon,
+          mode:        f.mode === 'sheet' ? 'sheet' : 'solid',
+          symmetry:    f.symmetry || 'pure',
+          phase:       f.signFlip ? 'B' : 'A',
+          mode_count:  modes.length,
+          indices:     modes.map(mm => [mm.n, mm.m, mm.p]),
+          iso:         typeof f.iso === 'number' ? f.iso : 0,
+          thickness:   f.mode === 'sheet' ? (f.thickness != null ? f.thickness : null) : null,
+          phase_time:  typeof f.phaseTime === 'number' ? f.phaseTime : 0,
+          cell_scale:  typeof f.cellScale === 'number' ? f.cellScale : 1
         };
       }
       if (baseFamily === 'beam') {

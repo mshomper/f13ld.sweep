@@ -1,6 +1,22 @@
 # F13LD.sweep — next steps
 
-**As of 2026-10-10.** `main` = v0.28.0 — target-aware sweeps (F13LD.vault "Aim Sweep" link, point-target ranking, auto rounds), merged after Matt's click-test together with Vault v0.7.0. Notes: [`REFACTOR.md`](REFACTOR.md) → v0.28.0; recap: [`SESSION_RECAP_2026-10-09.md`](SESSION_RECAP_2026-10-09.md) → "Evening".
+**As of 2026-10-10 (evening).** `main` = **v0.29.1** — Wave family + cell stretch (v0.29.0) and every family measured on its real cell (v0.29.1), merged after Matt's click-test and speed bench (no slowdown: foam +5 %, the rest unchanged). Shipped with F13LD.mesh v0.9.8, F13LD.wave v0.6, F13LD.lab v0.26.1, F13LD.ingest v0.9.1, F13LD.vault v0.8.0. Recap: [`SESSION_RECAP_2026-10-10.md`](SESSION_RECAP_2026-10-10.md); notes: [`REFACTOR.md`](REFACTOR.md) → v0.29.0, v0.29.1.
+
+**Next:** Matt wipes and re-seeds F13LD.vault from fresh exports, then **Bundle (v0.30.0)** — plan: [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md) §2. Pinned for later: density exponent and bound efficiency as Sweep target metrics (`13-target.js` + Vault's `23-reach.js`); the CPU fallback with the GPU physics (stretched cells).
+
+## 0c. v0.29.0 / v0.29.1 — merged 2026-10-10 (the checks they went through)
+1. Sweep branch: load a multi-mode wave (e.g. Schwarz P 3-mode, or a sheet with the iso off centre) → Neighbourhood sweep, GPU, 32³, 100 designs: density landing, speed, the reference row, the 3D preview tiling.
+2. Load a single-mode wave (Gyroid, Chiral 3-2-1): the dock switches to Explore with a log line; switch back to Neighbourhood and run — only phase / iso shift / density move.
+3. A recipe with a fractional index (type 1.5 into the Wave tool): refused at load with the note.
+4. Open a design in F13LD.mesh and in F13LD.lab: same surface as in Sweep's preview.
+5. Export → drop into Ingest (branch): validates. Vault branch (`?mock` is fine): wave cards and inspector render; Aim Sweep on a wave design opens Sweep; plot density exponent / bound efficiency as axes and add them as range filters; turn on the Pareto front (a smooth curve now).
+6. Stretch: a cubic-symmetry wave with the Cell scale ranges open — anisotropy now spreads; with them closed — the warning. In F13LD.wave (branch) move the stretch sliders; Open in Mesh (branch) prints the stretched cell; the same design in Lab (branch) shows "stretched cell".
+7. Noise: the Cell scale ranges now set its X / Y / Z stretch (default 50–150 %).
+8. v0.29.1: `tests/bench.html` speed bench on TPMS shell, beam, foam and wave (Fast and Rigorous) against v0.29.0 — the extra measuring is CPU-side; if Fast slows noticeably, the floor (`METRICS_N_MIN`, 32) or the grid can drop. Genus / curvature now read on every family.
+
+Pinned for later: density exponent and bound efficiency as Sweep target metrics (both lists, `13-target.js` and Vault's `23-reach.js` `SWEEP_TARGET_KEYS`).
+
+**Earlier, 2026-10-10.** `main` = v0.28.0 — target-aware sweeps (F13LD.vault "Aim Sweep" link, point-target ranking, auto rounds), merged after Matt's click-test together with Vault v0.7.0. Notes: [`REFACTOR.md`](REFACTOR.md) → v0.28.0; recap: [`SESSION_RECAP_2026-10-09.md`](SESSION_RECAP_2026-10-09.md) → "Evening".
 
 **Then:** Wave (now **v0.29.0**), Bundle (**v0.30.0**). Matt is holding the Vault re-seed until Wave is ingestable.
 

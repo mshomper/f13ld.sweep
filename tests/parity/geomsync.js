@@ -23,6 +23,7 @@ const BLOCKS = [
   { name: 'NOISE',        lab: '13-kernels.js',      sweep: 'geom/noise.js' },
   { name: 'GRAIN',        lab: '13-kernels.js',      sweep: 'geom/grain.js' },
   { name: 'BEAM',         lab: '13b-kernels-new.js', sweep: 'geom/beam.js' },
+  { name: 'WAVE',         lab: '13b-kernels-new.js', sweep: 'geom/wave.js' },   // v0.29.0
   { name: 'VOXELS',       lab: '14-rasterizer.js',   sweep: 'geom/voxels.js' },
   { name: 'BUILDARGS',    lab: '14-rasterizer.js',   sweep: 'geom/voxels.js' },
   { name: 'RECIPE',       lab: '60-add-design.js',   sweep: 'geom/recipe.js' },
@@ -38,6 +39,7 @@ const HEADER = {
   'geom/noise.js':  'Noise field: the ten F13LD.noise types, seed, stored normalization range.',
   'geom/grain.js':  'Grain field: spinodoid, Gaussian random field, hyperuniform.',
   'geom/beam.js':   'Beam field: periodic capsule lattice (F13LD.beam / F13LD.mesh).',
+  'geom/wave.js':   'Wave field: cymatic standing-wave modes under five symmetries (F13LD.wave / F13LD.mesh).',
   'geom/voxels.js': 'Recipe geometry → voxel mask, margin field, raw field; build arguments.',
   'geom/recipe.js': 'External F13LD recipe → lab recipe (family, mode, geometry translation).',
 };

@@ -18,7 +18,7 @@ const { DIRS, context, load, run } = require('./parity/lib/env.js');
 const N = +(process.argv[2] || 32);
 const FILTER = process.argv[3] || '';
 const ctx = context();
-load(ctx, DIRS.sweep, ['geom/tpms.js', 'geom/noise.js', 'geom/grain.js', 'geom/beam.js', 'geom/foam.js', 'geom/voxels.js', 'geom/recipe.js', '40-design.js', '41-density.js']);
+load(ctx, DIRS.sweep, ['geom/tpms.js', 'geom/noise.js', 'geom/grain.js', 'geom/beam.js', 'geom/foam.js', 'geom/wave.js', 'geom/voxels.js', 'geom/recipe.js', '40-design.js', '41-density.js']);
 const fx = JSON.parse(fs.readFileSync(path.join(__dirname, 'parity', 'fixtures.json'), 'utf8'));
 ctx.__fx = fx;
 

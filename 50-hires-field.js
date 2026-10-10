@@ -33,6 +33,28 @@ function buildGeomField(geo, N) {
   return { solidMask, voidMask, rawField, N };
 }
 
+/* v0.29.1 — the signed field on the solver grid's own voxels (TPMS solid /
+   shell, beam, foam, wave measure their geometry there, floored at 32): the
+   mask the solver used, plus −margin at the same voxel centres. */
+function buildGeomFieldOn(geo, N, solidMask) {
+  const N3 = N * N * N, NN = N * N;
+  const L = Math.PI, step = (2 * L) / N;
+  const margin = designMarginFn(geo);
+  const rawField = new Float32Array(N3);
+  const voidMask = new Uint8Array(N3);
+  for (let i = 0; i < N; i++) {
+    const x = -L + (i + 0.5) * step;
+    for (let j = 0; j < N; j++) {
+      const y = -L + (j + 0.5) * step;
+      for (let k = 0; k < N; k++) {
+        const id = i * NN + j * N + k;
+        rawField[id] = -margin(x, y, -L + (k + 0.5) * step);
+        voidMask[id] = solidMask[id] > 0.5 ? 0 : 1;
+      }
+    }
+  }
+  return { solidMask, voidMask, rawField, N };
+}
 /* Preview bake: the design's margin (solid ⟺ m > 0) at the N³ voxel
    centres, stored x-fastest (WebGL texImage3D order), plus the largest
    finite-difference slope |∇m| per unit of the [-1,1] preview box — the

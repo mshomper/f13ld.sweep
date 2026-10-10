@@ -10,7 +10,7 @@
 const { DIRS, context, load, run, grid, clone } = require('./env');
 
 const FILES = ['worker/m05-sdf-registry.js', 'worker/m10-noise.js', 'worker/m11-grain-fields.js',
-  'worker/m12-reaction-diffusion.js', 'worker/m20-sdf-noise-tpms.js', 'worker/m21-sdf-beam.js', 'worker/m22-sdf-grain.js'];
+  'worker/m12-reaction-diffusion.js', 'worker/m20-sdf-noise-tpms.js', 'worker/m21-sdf-beam.js', 'worker/m22-sdf-grain.js', 'worker/m24-sdf-wave.js'];
 const ctx = load(context({ self: { postMessage() {} } }), DIRS.mesh, FILES);
 run(ctx, `
   function __sdf(family, s, opt) {
@@ -19,6 +19,7 @@ run(ctx, `
     if (family === 'beam') { j.family = 'beam'; return buildBeamSDF(j); }
     if (family === 'grain') return buildGrainSDF(j, null, null, opt && opt.periodic ? { periodic: true } : undefined);
     if (family === 'noise') return buildNoiseSDF(j, opt && opt.range ? opt.range : undefined);
+    if (family === 'wave') return buildWaveSDF(j);
     throw new Error('mesh: no builder for ' + family);
   }
   /* m90 bakeRaw preview range over world [-5,5]³ at the draft preview N (42-preview-bake.js) + rawRange pad */
@@ -75,6 +76,11 @@ function voxels(family, json, N, variant) {
     const sdf = ctx.__sdf('beam', s), cs = beamCellScale(g);
     const k = cs.map(c => 5 / (Math.PI * c));
     return { mask: grid(N, (x, y, z) => sdf([x * k[0], y * k[1], z * k[2]]) < 0), note };
+  }
+  if (family === 'wave') {   /* v0.29.0 — one cell = world [-5,5]³ × stretch (q = p·π/5 ÷ stretch) */
+    const sdf = ctx.__sdf('wave', s);
+    const st = (j.field && Array.isArray(j.field.stretch)) ? j.field.stretch : [1, 1, 1];
+    return { mask: grid(N, (x, y, z) => sdf([x * P5 * st[0], y * P5 * st[1], z * P5 * st[2]]) < 0), note };
   }
   throw new Error('mesh: family ' + family);
 }

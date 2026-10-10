@@ -35,8 +35,14 @@
 //   K_gauss_mean         — ⟨K⟩ (mm⁻²), saddle (<0) vs spherical (>0)
 //   curvature_uniformity — 1 / (1 + σ_H/⟨|H|⟩) ∈ (0,1]
 //   MIH                  — ∫ H dA over the cell's interface (mm)
-function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N) {
+/* v0.29.1 — w = [wx, wy, wz]: a stretched cell's voxel edges (geometric
+   mean 1). Derivatives are taken per physical length (∂/∂x = ∂/∂i ÷ w_x),
+   and a crossing along axis a stands for a face of area w_b·w_c, so the
+   area estimate stays exact for planes. Omitted = a cube (unchanged). */
+function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N, w) {
   const NN = N * N;
+  const WA = w || [1, 1, 1], iwx = 1 / WA[0], iwy = 1 / WA[1], iwz = 1 / WA[2];
+  const AF = [WA[1] * WA[2], WA[0] * WA[2], WA[0] * WA[1]];
   const N3 = NN * N;
   const h_mm = cellSizeMm / N;
   const eps = 1e-6;
@@ -65,18 +71,18 @@ function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N) {
         const px = phi(ip*NN + j*N + k), mx = phi(im*NN + j*N + k);
         const py = phi(i*NN + jp*N + k), my = phi(i*NN + jm*N + k);
         const pz = phi(i*NN + j*N + kp), mz = phi(i*NN + j*N + km);
-        const fx = (px - mx) * 0.5, fy = (py - my) * 0.5, fz = (pz - mz) * 0.5;
+        const fx = (px - mx) * 0.5 * iwx, fy = (py - my) * 0.5 * iwy, fz = (pz - mz) * 0.5 * iwz;
         const grad2 = fx*fx + fy*fy + fz*fz;
         slot[id] = Hs.length;
         if (grad2 < eps) { Hs.push(NaN); Ks.push(NaN); Nx.push(0); Ny.push(0); Nz.push(0); continue; }
 
-        const fxx = px - 2*c + mx, fyy = py - 2*c + my, fzz = pz - 2*c + mz;
+        const fxx = (px - 2*c + mx) * iwx * iwx, fyy = (py - 2*c + my) * iwy * iwy, fzz = (pz - 2*c + mz) * iwz * iwz;
         const fxy = (phi(ip*NN + jp*N + k) - phi(ip*NN + jm*N + k)
-                   - phi(im*NN + jp*N + k) + phi(im*NN + jm*N + k)) * 0.25;
+                   - phi(im*NN + jp*N + k) + phi(im*NN + jm*N + k)) * 0.25 * iwx * iwy;
         const fxz = (phi(ip*NN + j*N + kp) - phi(ip*NN + j*N + km)
-                   - phi(im*NN + j*N + kp) + phi(im*NN + j*N + km)) * 0.25;
+                   - phi(im*NN + j*N + kp) + phi(im*NN + j*N + km)) * 0.25 * iwx * iwz;
         const fyz = (phi(i*NN + jp*N + kp) - phi(i*NN + jp*N + km)
-                   - phi(i*NN + jm*N + kp) + phi(i*NN + jm*N + km)) * 0.25;
+                   - phi(i*NN + jm*N + kp) + phi(i*NN + jm*N + km)) * 0.25 * iwy * iwz;
 
         const lap = fxx + fyy + fzz;
         const quad = fx*fx*fxx + fy*fy*fyy + fz*fz*fzz + 2*(fx*fy*fxy + fx*fz*fxz + fy*fz*fyz);
@@ -101,6 +107,7 @@ function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N) {
     if (va && vb) { w = 0.5 * (NAx[sa] + NAx[sb]); H = 0.5 * (Hs[sa] + Hs[sb]); K = 0.5 * (Ks[sa] + Ks[sb]); }
     else if (va)  { w = NAx[sa]; H = Hs[sa]; K = Ks[sa]; }
     else          { w = NAx[sb]; H = Hs[sb]; K = Ks[sb]; }
+    w *= AF[axis];
     W += w; sumH += w * H; sumAbsH += w * Math.abs(H); sumH2 += w * H * H; sumK += w * K;
   };
   for (let i = 0; i < N; i++) {

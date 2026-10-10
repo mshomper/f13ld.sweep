@@ -166,6 +166,23 @@ async function runSweep(opts) {
     }
   }
 
+  /* v0.29.0 — wave: the highest mode index against the grid (a warning, never a block) */
+  if (family === 'wave' && waveEqualAxes(baseRecipe)) {
+    /* equal axes unless the cell stretches: a rank on anisotropy can't separate the designs */
+    const flat = [xHi - xLo, yHi - yLo, zHi - zLo].every(w => Math.abs(w) < 1e-9) && Math.abs(xLo - yLo) < 1e-9 && Math.abs(yLo - zLo) < 1e-9;
+    const AX = ['anisotropy', 'directionality', 'ortho_contrast', 'aniso_efficiency', 'thermal_anisotropy', 'stiff_axis'];
+    const ranks = ((sweepSettings.context || {}).rank_metrics || []).map(r => r.metric).filter(m => AX.indexOf(m) >= 0);
+    const st = (baseRecipe.field || {}).stretch;
+    const recipeCube = !(Array.isArray(st) && st.some(v => Math.abs(v - 1) > 1e-4));
+    if (flat && recipeCube) log('warn', `Wave, ${(baseRecipe.field || {}).symmetry} symmetry on a cube: Ex = Ey = Ez on every design${ranks.length ? ` — the rank on ${ranks.join(', ')} can't separate them` : ''}. Open the Cell scale ranges to stretch the cell.`);
+    else if (flat && ranks.length) log('info', `Wave: the Cell scale ranges are closed, so every design keeps the recipe's stretch — ${ranks.join(', ')} will barely move.`);
+  }
+  if (family === 'wave') {
+    const hi = Math.max(1, ...(((baseRecipe.field || {}).modes) || []).map(mm => Math.max(Math.abs(mm.n), Math.abs(mm.m), Math.abs(mm.p))));
+    const reach = variation.mode === 'explore' ? Math.min(8, hi + 1) : hi, vpp = gridN / reach;
+    if (vpp < 6) log('warn', `Wave: the highest mode index${variation.mode === 'explore' ? ' Explore can reach' : ''} is ${reach} — ${vpp.toFixed(1)} voxels per wavelength on the ${gridN}³ grid. Expect the under-resolved flag; a finer grid reads it better.`);
+  }
+
   // Sampling method — Sobol low-discrepancy gives better coverage than uniform
   // random at small N. Falls through to Math.random() for high-D jitter.
   const samplingMethod = document.getElementById('samplingMethod')?.value || 'sobol';

@@ -45,7 +45,7 @@ function gpuLanesFor(N) { return N <= 16 ? 6 : N <= 32 ? 4 : 2; }
 function designCellEdges(recipe, family) {
   const s = recipeCellScale(recipe, family);
   if (family === 'tpms') return s.map(v => 1 / v);
-  if (family === 'beam') return s.slice();
+  if (family === 'beam' || family === 'wave') return s.slice();   /* wave: field.stretch (v0.29.0) */
   return [1, 1, 1];
 }
 

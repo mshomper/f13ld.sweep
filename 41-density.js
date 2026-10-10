@@ -19,6 +19,7 @@
                             smoothing / node ball, so the node shape keeps
                             its proportion to the strut)
      foam                   geometry.thickness (wet: geometry.border)
+     wave solid / sheet     field.iso / field.thickness (v0.29.0)
 
    How: every knob enters the design's margin field (solid ⟺ margin > 0,
    geom/voxels.js buildVoxelMargin — the same test the voxels use) as
@@ -94,6 +95,18 @@ function densityKnob(recipe) {
     return { name: 'thickness', lo: 0.004, hi: 4, rel: true,
       get: r => r.geometry.thickness > 0 ? r.geometry.thickness : 0.08,
       set: (r, k) => { r.geometry.thickness = +k.toFixed(4); } };
+  }
+  if (fam === 'wave') {
+    /* v0.29.0 — the iso level (solid) or the sheet thickness. Both are pure
+       threshold knobs (the same slope at every point), so the solve is exact.
+       Bounds from the largest |field| the modes can reach. */
+    const f = recipe.field || {}, B = Math.max(0.05, typeof waveFieldBound === 'function' ? waveFieldBound(recipe) : 6);
+    if (f.mode === 'sheet') return { name: 'thickness', lo: 0.002, hi: 2 * B, rel: true,
+      get: r => r.field.thickness > 0 ? r.field.thickness : 0.2,
+      set: (r, k) => { r.field.thickness = +k.toFixed(5); } };
+    return { name: 'iso', lo: -B, hi: B, step: B / 8,
+      get: r => typeof r.field.iso === 'number' ? r.field.iso : 0,
+      set: (r, k) => { r.field.iso = +k.toFixed(5); } };
   }
   if (fam === 'beam') {
     const r0 = { x: g.radius_x, y: g.radius_y, z: g.radius_z, k: g.node_smoothing_k || 0, b: g.node_ball_radius || 0 };

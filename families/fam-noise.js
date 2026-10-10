@@ -5,9 +5,10 @@
    The design recipe is F13LD.noise's export shape. Noise type, seed,
    octaves, cellular distance metric, worley jitter and vein settings stay
    as authored (Neighbourhood). Varied × (1 ± spread) around the recipe:
-     frequency · scale_x/y/z (the field's own anisotropy — noise has no
-     separate cell scale; their geometric mean is held at the recipe's so
-     they don't repeat the frequency draw) · center (± 0.40 at 25 % spread
+     frequency · scale_x/y/z (the field's own anisotropy: v0.29.0, the Cell
+     scale ranges × the recipe's scales, so the stretch limits are set in
+     the drawer like every other family — Matt, 2026-10-10; their geometric
+     mean is held at the recipe's so they don't repeat the frequency draw) · center (± 0.40 at 25 % spread
      — sheet and solid modes; for half it is the density knob) ·
      lacunarity / gain for octave types · warp strength · curl step /
      potential scale.
@@ -21,7 +22,7 @@
 
 SWEEP_FAMILIES.noise = {
   label: 'noise',
-  usesCellScale: false,
+  usesCellScale: true,                 /* v0.29.0 — drives scale_x/y/z (the field's stretch), not a cell size */
 
   nominalScale() { return 1.0; },
 
@@ -46,7 +47,8 @@ SWEEP_FAMILIES.noise = {
 
     s.frequency = +J.mul(p.frequency, [0.05, 1.50], ctx.u(), M).toFixed(3);
     /* per-axis scale around the recipe's, geometric mean held */
-    const sc = [p.scaleX, p.scaleY, p.scaleZ].map(v => v * (M[0] + ctx.u() * (M[1] - M[0])));
+    const cs = ctx.scale || [1, 1, 1];
+    const sc = [p.scaleX * cs[0], p.scaleY * cs[1], p.scaleZ * cs[2]];
     const gm0 = Math.cbrt(p.scaleX * p.scaleY * p.scaleZ), gm = Math.cbrt(sc[0] * sc[1] * sc[2]);
     s.scale_x = +J.clamp(sc[0] * gm0 / gm, 0.2, 5).toFixed(3);
     s.scale_y = +J.clamp(sc[1] * gm0 / gm, 0.2, 5).toFixed(3);

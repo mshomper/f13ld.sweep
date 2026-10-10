@@ -24,7 +24,7 @@ const opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 && argv[i + 1] 
 const N = +opt('--N', 32);
 const QUICK = argv.includes('--quick');
 const WRITE_FIX = argv.includes('--write-fixtures');
-const ALL_FAMILIES = ['tpms', 'noise', 'grain', 'beam'];
+const ALL_FAMILIES = ['tpms', 'noise', 'grain', 'beam', 'wave'];
 const FAMILIES = opt('--family', ALL_FAMILIES.join(',')).split(',').map(s => s.trim()).filter(Boolean);
 const JSON_OUT = opt('--json', null);
 const N_DESIGNS = +opt('--designs', QUICK ? 2 : 6);
@@ -73,7 +73,7 @@ function runAll() {
     if (!n) return resolve(rows);
     for (let w = 0; w < n; w++) {
       const wk = new Worker(path.join(__dirname, 'lib', 'worker.js'), { workerData: { N, tol: SM_TOL, env: {
-        LAB_DIR: DIRS.lab, MESH_DIR: DIRS.mesh, TPMS_DIR: DIRS.tpms, NOISE_DIR: DIRS.noise, GRAIN_DIR: DIRS.grain, BEAM_DIR: DIRS.beam } } });
+        LAB_DIR: DIRS.lab, MESH_DIR: DIRS.mesh, TPMS_DIR: DIRS.tpms, NOISE_DIR: DIRS.noise, GRAIN_DIR: DIRS.grain, BEAM_DIR: DIRS.beam, WAVE_DIR: DIRS.wave } } });
       pool.push(wk);
       const next = () => { const j = queue.shift(); if (j) wk.postMessage(j); else wk.terminate(); };
       wk.on('message', ({ idx, row }) => {
@@ -123,6 +123,12 @@ runAll().then(rows => {
   const fixPath = path.join(__dirname, 'fixtures.json');
   if (fullA) {
     const fixtures = {}; for (const r of rows.filter(r => r.section === 'A')) fixtures[r.name] = r.json;
+    /* v0.29.0 — keep the hand-added recipes of families this script doesn't export
+       (the foam recipes from F13LD.mesh, v0.27.0) instead of dropping them */
+    if (fs.existsSync(fixPath)) {
+      const old = JSON.parse(fs.readFileSync(fixPath, 'utf8'));
+      for (const k of Object.keys(old)) if (!(k in fixtures) && old[k] && ALL_FAMILIES.indexOf(old[k].family) < 0) fixtures[k] = old[k];
+    }
     const text = JSON.stringify(fixtures, null, 1) + '\n';
     if (WRITE_FIX) { fs.writeFileSync(fixPath, text); console.log(`\nwrote tests/parity/fixtures.json (${Object.keys(fixtures).length} recipes)`); }
     else if (!fs.existsSync(fixPath)) console.log('\nnote: tests/parity/fixtures.json not found — run with --write-fixtures');

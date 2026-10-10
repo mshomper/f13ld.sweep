@@ -93,12 +93,32 @@ const BEAM = [
     { scale_xyz: [1.2, 1.5, 2.0], cell: 1.5326, radius_x: 0.08, radius_y: 0.08, radius_z: 0.1, node_smoothing_k: 0.03, node_ball_radius: 0.1 }],
 ];
 
+/* ── F13LD.wave (v0.29.0) — the tool's presets, a few edited the way a user would */
+const W = (n, m, p, A = 1, phi = 0) => ({ n, m, p, A, phi });
+const WAVE = [
+  ['schwarzP pure solid',            { sym: 0, modes: [W(1,0,0), W(0,1,0), W(0,0,1)] }, true],
+  ['gyroid schoen sheet iso.3 t.25', { sym: 4, modes: [W(1,1,0)], sheet: true, iso: 0.3, thickness: 0.25 }, true],
+  ['chiral321 solid iso.4 B',        { sym: 3, modes: [W(3,2,1)], iso: 0.4, signFlip: true }],
+  /* iso 0 on Chladni puts whole voxel planes exactly on the surface (field = 0 on x = y …), where
+     Lab's "solid ⟺ field ≥ iso" and Mesh's "SDF < 0" break the tie differently — an off-zero iso */
+  ['chladni210 solid iso.05',        { sym: 1, modes: [W(2,1,0)], iso: 0.05 }],
+  ['octave pure sheet t1.2 time.6',  { sym: 0, modes: [W(1,0,0), W(0,1,0), W(0,0,1), W(2,0,0,.5), W(0,2,0,.5), W(0,0,2,.5)], sheet: true, thickness: 0.3, time: 0.6, iso: 0.2 }],
+  ['triad123 cubic solid',           { sym: 2, modes: [W(1,2,3)], iso: -0.5 }],
+  ['diamond pure solid phi',         { sym: 0, modes: [W(1,1,0), W(0,1,1,1,0.4), W(1,0,1,0.8,1.0)], iso: 0.2 }],
+  ['harmonic cubic sheet',           { sym: 2, modes: [W(1,0,0,1), W(2,0,0,.5), W(3,0,0,.33)], sheet: true, thickness: 0.4 }],
+  ['mesh cubic 2-mode',              { sym: 2, modes: [W(1,1,1,1,0), W(2,1,1,0.4,0.3)] }],
+  /* v0.29.0 — the Wave tool's stretch sliders (a box-shaped cell) */
+  ['gyroid schoen stretched',        { sym: 4, modes: [W(1,1,0)], iso: 0.2, stretch: [1.6, 1, 0.7] }, true],
+  ['cubic sheet stretched y',        { sym: 2, modes: [W(1,0,0)], sheet: true, thickness: 0.3, stretch: [1, 1.5, 1] }],
+];
+
 /* Every section-A case, in order: [{ name, family, quick }] — cheap, nothing is built. */
 const CASES = [
   ...TPMS.map(([name, st, extra, quick]) => ({ name, family: 'tpms', quick: !!quick, spec: { st, extra } })),
   ...NOISE.map(([name, ui, quick]) => ({ name, family: 'noise', quick: !!quick, spec: { ui } })),
   ...GRAIN.map(([name, ui, quick]) => ({ name, family: 'grain', quick: !!quick, spec: { ui } })),
   ...BEAM.map(([name, st, extra, quick]) => ({ name, family: 'beam', quick: !!quick, spec: { st, extra } })),
+  ...WAVE.map(([name, st, quick]) => ({ name, family: 'wave', quick: !!quick, spec: { st } })),
 ];
 
 /* Build one case with its tool's export code → { name, family, quick, json, tool } (cached).
@@ -115,6 +135,8 @@ function build(name) {
     if (c.spec.extra) Object.assign(json.geometry, c.spec.extra); else tool = { family: 'tpms', ui: c.spec.st };
   } else if (c.family === 'noise' || c.family === 'grain') {
     json = tools[c.family].exportRecipe(c.spec.ui); tool = { family: c.family, ui: c.spec.ui };
+  } else if (c.family === 'wave') {
+    json = tools.wave.exportRecipe(c.spec.st);   /* F13LD.wave has no CPU voxelizer of its own here */
   } else {
     const st = c.spec.st;
     json = st.builder ? tools.beam.exportBuilder(st.builder, st.beams || tools.beam.catalog()[st.from], st.r) : tools.beam.exportRecipe(st.topo, st.r, st.cell);
@@ -131,6 +153,7 @@ const SECTION_B = {
   noise: ['foam half', 'cellular half man j1 s5', 'warp sheet'],
   grain: ['spin tilt half', 'HU single half', 'GRF ortho half-inv'],
   beam:  ['octet r.10 c1.5 (default)', '[x] octet per-axis 1.5 k+ball', 'bcc r.25 c2.0'],
+  wave:  ['diamond pure solid phi', 'gyroid schoen sheet iso.3 t.25', 'octave pure sheet t1.2 time.6', 'gyroid schoen stretched'],
 };
 
 module.exports = { CASES, build, SECTION_B };
