@@ -4,6 +4,8 @@
 
 **Then:** Wave (now **v0.29.0**), Bundle (**v0.30.0**). Matt is holding the Vault re-seed until Wave is ingestable.
 
+**Next session (from 2026-10-10): Wave, v0.29.0.** Vault v0.7.1 (aimed runs, four colour modes) merged 2026-10-10. Pinned to do alongside Wave: density exponent and bound efficiency as Vault plot axes and range filters (and, later, as Sweep target metrics — both lists, `13-target.js` and Vault's `23-reach.js` `SWEEP_TARGET_KEYS`). Details: Vault `docs/SESSION_RECAP_2026-10-09.md` → "Next session".
+
 ## 0b. v0.28.0 — merged 2026-10-09/10 (checks it went through)
 1. Vault branch (`?mock` is fine): set a target in the 2D plot → **Aim Sweep** on the banner. Sweep (branch build) opens with the recipe, the density window in Set, the spread and the target; the log says which design and why.
 2. Run with your normal settings (GPU, 32³ or 64³, 100–200 designs): rounds of 25 Fast designs walk toward the target, then the final run. Watch: the density window following the trend, Explore when stuck, the trail on the plot, the time per round.
