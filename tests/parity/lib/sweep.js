@@ -4,9 +4,9 @@
 'use strict';
 const { DIRS, context, load, run, toBits } = require('./env');
 
-const FILES = ['geom/tpms.js', 'geom/noise.js', 'geom/grain.js', 'geom/beam.js', 'geom/voxels.js', 'geom/recipe.js',
+const FILES = ['geom/tpms.js', 'geom/noise.js', 'geom/grain.js', 'geom/beam.js', 'geom/foam.js', 'geom/wave.js', 'geom/voxels.js', 'geom/recipe.js',
   'families/fam-index.js', 'families/fam-tpms.js', 'families/fam-noise.js', 'families/fam-grain.js', 'families/fam-beam.js',
-  '40-design.js'];
+  'families/fam-foam.js', 'families/fam-wave.js', '40-design.js'];
 
 const ctx = load(context(), DIRS.sweep, FILES);
 run(ctx, `
@@ -28,6 +28,10 @@ run(ctx, `
     var base = JSON.parse(baseCompletedStr);
     var draw = { u: function (i) { if (!(i in draws)) throw new Error('draw.u(' + i + ') out of range'); return draws[i]; } };
     var c = JSON.parse(ctxObj);
+    /* v0.29.0 — the v0.26 jitter reads its draws through ctx.u() and ctx.rand (as runSweep) */
+    var next = c.scale ? 4 : 1;
+    c.u = function () { return draw.u(next++); };
+    c.rand = Math.random;
     return JSON.stringify(SWEEP_FAMILIES[f].jitter(base, draw, c));
   }
 `);

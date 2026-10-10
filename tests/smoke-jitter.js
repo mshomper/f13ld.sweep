@@ -15,8 +15,8 @@ const { DIRS, context, load, run } = require('./parity/lib/env.js');
 const [nArg, modeArg, spreadArg, FILTER] = process.argv.slice(2);
 const N_DESIGNS = +(nArg || 3), MODE = modeArg || 'neighbourhood', SPREAD = +(spreadArg || 0.25);
 const ctx = context({ self: {} });
-load(ctx, DIRS.sweep, ['geom/tpms.js', 'geom/noise.js', 'geom/grain.js', 'geom/beam.js', 'geom/foam.js', 'geom/voxels.js', 'geom/recipe.js',
-  'families/fam-index.js', 'families/fam-tpms.js', 'families/fam-noise.js', 'families/fam-grain.js', 'families/fam-beam.js', 'families/fam-foam.js',
+load(ctx, DIRS.sweep, ['geom/tpms.js', 'geom/noise.js', 'geom/grain.js', 'geom/beam.js', 'geom/foam.js', 'geom/wave.js', 'geom/voxels.js', 'geom/recipe.js',
+  'families/fam-index.js', 'families/fam-tpms.js', 'families/fam-noise.js', 'families/fam-grain.js', 'families/fam-beam.js', 'families/fam-foam.js', 'families/fam-wave.js',
   '40-design.js', '41-density.js', '42-fft.js', '43-elastic-solver.js', '44-solver-config.js', '45-homogenize.js', '50-hires-field.js',
   '51-transport.js', '52-geometry-metrics.js', '53-pores.js', '54-estimate.js', 'solver/lab/14a-connectivity.js', '61-sobol.js']);
 const cases = JSON.parse(fs.readFileSync(path.join(__dirname, 'recipes.json'), 'utf8'));

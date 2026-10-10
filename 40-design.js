@@ -3,7 +3,7 @@
    Designs are recipes.
 
    Every design the sweep explores is a recipe in the design tools' own
-   export format (F13LD.tpms / .noise / .grain / .beam / .foam, plus the keys
+   export format (F13LD.tpms / .noise / .grain / .beam / .foam / .wave, plus the keys
    F13LD.mesh reads: per-axis cell scale, normal_weights, beam radius_x/y/z
    …). The solver worker builds its geometry from that recipe, and the
    results / Export Design / F13LD.mesh handoff write that same recipe —
@@ -19,8 +19,8 @@
    ============================================================ */
 
 /* Families the sweep explores, each a shared geom/ kernel. */
-var KERNELS = { tpms: TpmsKernel, noise: NoiseKernel, grain: GrainKernel, beam: BeamKernel, foam: FoamKernel };
-const SWEEP_FAMILY_LIST = ['tpms', 'noise', 'grain', 'beam', 'foam'];
+var KERNELS = { tpms: TpmsKernel, noise: NoiseKernel, grain: GrainKernel, beam: BeamKernel, foam: FoamKernel, wave: WaveKernel };
+const SWEEP_FAMILY_LIST = ['tpms', 'noise', 'grain', 'beam', 'foam', 'wave'];
 
 function designGeometry(recipe) {
   const info = labRecipeInfo(recipe);
@@ -64,6 +64,53 @@ function stampNoiseRange(surface) {
   surface.norm_max = r.noiseMax;
   surface.norm_for = noiseFieldKey(p);
   return surface;
+}
+
+/* ── Wave (v0.29.0): load checks and field size, used by families/fam-wave.js
+   and 41-density.js (page and worker). ── */
+/* Whole-number indices and a field that isn't zero: null when fine, else why. */
+function waveRecipeProblem(recipe) {
+  const f = recipe.field || {};
+  const modes = Array.isArray(f.modes) ? f.modes : [];
+  if (!modes.length) return 'the wave recipe has no modes';
+  for (let i = 0; i < modes.length; i++) {
+    const mm = modes[i] || {};
+    for (const k of ['n', 'm', 'p']) {
+      const v = mm[k];
+      if (typeof v !== 'number' || !isFinite(v)) return `mode ${i + 1} has no ${k} index`;
+      if (Math.abs(v - Math.round(v)) > 1e-9)
+        return `mode ${i + 1} has ${k} = ${+v.toPrecision(6)} — a fractional index repeats only over several cells, ` +
+               `and Sweep (like F13LD.lab and F13LD.wave's own homogenisation) solves one cell. Use whole-number indices`;
+    }
+  }
+  if (waveFieldRMS(recipe) < 1e-6 * (1 + waveFieldBound(recipe)))
+    return 'the field is zero everywhere (these indices cancel under this symmetry — e.g. Chladni needs three different indices, Schoen a non-zero first index)';
+  return null;
+}
+
+/* Largest |field| the modes can reach: Σ |A·cos(phi + t)| × the symmetry's term count. */
+const WAVE_SYM_TERMS = [1, 6, 6, 3, 3];
+function waveFieldBound(recipe) {
+  const p = WaveKernel.parseRecipe({ field: (recipe.field || {}) });
+  let s = 0;
+  for (const mm of p.modes) s += Math.abs((mm.A != null ? mm.A : 1) * Math.cos((mm.phi || 0) + p.t));
+  return s * (WAVE_SYM_TERMS[p.sym] || 1);
+}
+
+/* RMS of the raw field on 512 fixed points of the cell (R3 set). */
+let _wavePts = null;
+function waveFieldRMS(recipe) {
+  if (!_wavePts) {
+    let g = 1.2;
+    for (let i = 0; i < 30; i++) g = Math.pow(1 + g, 1 / 4);
+    const a = [1 / g, 1 / (g * g), 1 / (g * g * g)];
+    _wavePts = new Float64Array(512 * 3);
+    for (let i = 0; i < 512; i++) for (let d = 0; d < 3; d++) _wavePts[i * 3 + d] = -Math.PI + ((0.5 + a[d] * (i + 1)) % 1) * 2 * Math.PI;
+  }
+  const p = WaveKernel.parseRecipe({ field: (recipe.field || {}) });
+  let s = 0;
+  for (let i = 0; i < 512; i++) { const v = WaveKernel._evalRaw(p, _wavePts[i * 3], _wavePts[i * 3 + 1], _wavePts[i * 3 + 2]); s += v * v; }
+  return Math.sqrt(s / 512);
 }
 
 /* Fill in what a design recipe leaves to defaults, the way F13LD.mesh

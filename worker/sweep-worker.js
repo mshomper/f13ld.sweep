@@ -21,6 +21,7 @@ importScripts(
   '../geom/grain.js',
   '../geom/beam.js',
   '../geom/foam.js',
+  '../geom/wave.js',
   '../geom/voxels.js',
   '../geom/recipe.js',
   '../40-design.js',

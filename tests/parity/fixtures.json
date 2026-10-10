@@ -5650,6 +5650,486 @@
   ],
   "homogenization": null
  },
+ "schwarzP pure solid": {
+  "schema": "f13ld.wave/v1",
+  "tool": "F13LD.wave",
+  "family": "wave",
+  "version": "0.3",
+  "timestamp": "2026-10-08T00:00:00.000Z",
+  "field": {
+   "symmetry": "pure",
+   "symmetryId": 0,
+   "phase": "A",
+   "signFlip": false,
+   "mode": "solid",
+   "thickness": null,
+   "iso": 0,
+   "cellScale": 1,
+   "phaseTime": 0,
+   "modes": [
+    {
+     "n": 1,
+     "m": 0,
+     "p": 0,
+     "A": 1,
+     "phi": 0
+    },
+    {
+     "n": 0,
+     "m": 1,
+     "p": 0,
+     "A": 1,
+     "phi": 0
+    },
+    {
+     "n": 0,
+     "m": 0,
+     "p": 1,
+     "A": 1,
+     "phi": 0
+    }
+   ]
+  },
+  "domain": {
+   "unit": "mm",
+   "size": 10,
+   "bounds": [
+    -5,
+    5
+   ]
+  },
+  "coordinate": {
+   "convention": "f13ld",
+   "worldScale": 0.6283185307179586,
+   "periodicityRadians": 6.283185307179586,
+   "signConvention": "negative-inside"
+  },
+  "metrics": {
+   "modeCount": 3
+  }
+ },
+ "gyroid schoen sheet iso.3 t.25": {
+  "schema": "f13ld.wave/v1",
+  "tool": "F13LD.wave",
+  "family": "wave",
+  "version": "0.3",
+  "timestamp": "2026-10-08T00:00:00.000Z",
+  "field": {
+   "symmetry": "schoen",
+   "symmetryId": 4,
+   "phase": "A",
+   "signFlip": false,
+   "mode": "sheet",
+   "thickness": 0.25,
+   "iso": 0.3,
+   "cellScale": 1,
+   "phaseTime": 0,
+   "modes": [
+    {
+     "n": 1,
+     "m": 1,
+     "p": 0,
+     "A": 1,
+     "phi": 0
+    }
+   ]
+  },
+  "domain": {
+   "unit": "mm",
+   "size": 10,
+   "bounds": [
+    -5,
+    5
+   ]
+  },
+  "coordinate": {
+   "convention": "f13ld",
+   "worldScale": 0.6283185307179586,
+   "periodicityRadians": 6.283185307179586,
+   "signConvention": "negative-inside"
+  },
+  "metrics": {
+   "modeCount": 1
+  }
+ },
+ "chiral321 solid iso.4 B": {
+  "schema": "f13ld.wave/v1",
+  "tool": "F13LD.wave",
+  "family": "wave",
+  "version": "0.3",
+  "timestamp": "2026-10-08T00:00:00.000Z",
+  "field": {
+   "symmetry": "chiral",
+   "symmetryId": 3,
+   "phase": "B",
+   "signFlip": true,
+   "mode": "solid",
+   "thickness": null,
+   "iso": 0.4,
+   "cellScale": 1,
+   "phaseTime": 0,
+   "modes": [
+    {
+     "n": 3,
+     "m": 2,
+     "p": 1,
+     "A": 1,
+     "phi": 0
+    }
+   ]
+  },
+  "domain": {
+   "unit": "mm",
+   "size": 10,
+   "bounds": [
+    -5,
+    5
+   ]
+  },
+  "coordinate": {
+   "convention": "f13ld",
+   "worldScale": 0.6283185307179586,
+   "periodicityRadians": 6.283185307179586,
+   "signConvention": "negative-inside"
+  },
+  "metrics": {
+   "modeCount": 1
+  }
+ },
+ "chladni210 solid iso.05": {
+  "schema": "f13ld.wave/v1",
+  "tool": "F13LD.wave",
+  "family": "wave",
+  "version": "0.3",
+  "timestamp": "2026-10-08T00:00:00.000Z",
+  "field": {
+   "symmetry": "antisym",
+   "symmetryId": 1,
+   "phase": "A",
+   "signFlip": false,
+   "mode": "solid",
+   "thickness": null,
+   "iso": 0.05,
+   "cellScale": 1,
+   "phaseTime": 0,
+   "modes": [
+    {
+     "n": 2,
+     "m": 1,
+     "p": 0,
+     "A": 1,
+     "phi": 0
+    }
+   ]
+  },
+  "domain": {
+   "unit": "mm",
+   "size": 10,
+   "bounds": [
+    -5,
+    5
+   ]
+  },
+  "coordinate": {
+   "convention": "f13ld",
+   "worldScale": 0.6283185307179586,
+   "periodicityRadians": 6.283185307179586,
+   "signConvention": "negative-inside"
+  },
+  "metrics": {
+   "modeCount": 1
+  }
+ },
+ "octave pure sheet t1.2 time.6": {
+  "schema": "f13ld.wave/v1",
+  "tool": "F13LD.wave",
+  "family": "wave",
+  "version": "0.3",
+  "timestamp": "2026-10-08T00:00:00.000Z",
+  "field": {
+   "symmetry": "pure",
+   "symmetryId": 0,
+   "phase": "A",
+   "signFlip": false,
+   "mode": "sheet",
+   "thickness": 0.3,
+   "iso": 0.2,
+   "cellScale": 1,
+   "phaseTime": 0.6,
+   "modes": [
+    {
+     "n": 1,
+     "m": 0,
+     "p": 0,
+     "A": 1,
+     "phi": 0
+    },
+    {
+     "n": 0,
+     "m": 1,
+     "p": 0,
+     "A": 1,
+     "phi": 0
+    },
+    {
+     "n": 0,
+     "m": 0,
+     "p": 1,
+     "A": 1,
+     "phi": 0
+    },
+    {
+     "n": 2,
+     "m": 0,
+     "p": 0,
+     "A": 0.5,
+     "phi": 0
+    },
+    {
+     "n": 0,
+     "m": 2,
+     "p": 0,
+     "A": 0.5,
+     "phi": 0
+    },
+    {
+     "n": 0,
+     "m": 0,
+     "p": 2,
+     "A": 0.5,
+     "phi": 0
+    }
+   ]
+  },
+  "domain": {
+   "unit": "mm",
+   "size": 10,
+   "bounds": [
+    -5,
+    5
+   ]
+  },
+  "coordinate": {
+   "convention": "f13ld",
+   "worldScale": 0.6283185307179586,
+   "periodicityRadians": 6.283185307179586,
+   "signConvention": "negative-inside"
+  },
+  "metrics": {
+   "modeCount": 6
+  }
+ },
+ "triad123 cubic solid": {
+  "schema": "f13ld.wave/v1",
+  "tool": "F13LD.wave",
+  "family": "wave",
+  "version": "0.3",
+  "timestamp": "2026-10-08T00:00:00.000Z",
+  "field": {
+   "symmetry": "cubic",
+   "symmetryId": 2,
+   "phase": "A",
+   "signFlip": false,
+   "mode": "solid",
+   "thickness": null,
+   "iso": -0.5,
+   "cellScale": 1,
+   "phaseTime": 0,
+   "modes": [
+    {
+     "n": 1,
+     "m": 2,
+     "p": 3,
+     "A": 1,
+     "phi": 0
+    }
+   ]
+  },
+  "domain": {
+   "unit": "mm",
+   "size": 10,
+   "bounds": [
+    -5,
+    5
+   ]
+  },
+  "coordinate": {
+   "convention": "f13ld",
+   "worldScale": 0.6283185307179586,
+   "periodicityRadians": 6.283185307179586,
+   "signConvention": "negative-inside"
+  },
+  "metrics": {
+   "modeCount": 1
+  }
+ },
+ "diamond pure solid phi": {
+  "schema": "f13ld.wave/v1",
+  "tool": "F13LD.wave",
+  "family": "wave",
+  "version": "0.3",
+  "timestamp": "2026-10-08T00:00:00.000Z",
+  "field": {
+   "symmetry": "pure",
+   "symmetryId": 0,
+   "phase": "A",
+   "signFlip": false,
+   "mode": "solid",
+   "thickness": null,
+   "iso": 0.2,
+   "cellScale": 1,
+   "phaseTime": 0,
+   "modes": [
+    {
+     "n": 1,
+     "m": 1,
+     "p": 0,
+     "A": 1,
+     "phi": 0
+    },
+    {
+     "n": 0,
+     "m": 1,
+     "p": 1,
+     "A": 1,
+     "phi": 0.4
+    },
+    {
+     "n": 1,
+     "m": 0,
+     "p": 1,
+     "A": 0.8,
+     "phi": 1
+    }
+   ]
+  },
+  "domain": {
+   "unit": "mm",
+   "size": 10,
+   "bounds": [
+    -5,
+    5
+   ]
+  },
+  "coordinate": {
+   "convention": "f13ld",
+   "worldScale": 0.6283185307179586,
+   "periodicityRadians": 6.283185307179586,
+   "signConvention": "negative-inside"
+  },
+  "metrics": {
+   "modeCount": 3
+  }
+ },
+ "harmonic cubic sheet": {
+  "schema": "f13ld.wave/v1",
+  "tool": "F13LD.wave",
+  "family": "wave",
+  "version": "0.3",
+  "timestamp": "2026-10-08T00:00:00.000Z",
+  "field": {
+   "symmetry": "cubic",
+   "symmetryId": 2,
+   "phase": "A",
+   "signFlip": false,
+   "mode": "sheet",
+   "thickness": 0.4,
+   "iso": 0,
+   "cellScale": 1,
+   "phaseTime": 0,
+   "modes": [
+    {
+     "n": 1,
+     "m": 0,
+     "p": 0,
+     "A": 1,
+     "phi": 0
+    },
+    {
+     "n": 2,
+     "m": 0,
+     "p": 0,
+     "A": 0.5,
+     "phi": 0
+    },
+    {
+     "n": 3,
+     "m": 0,
+     "p": 0,
+     "A": 0.33,
+     "phi": 0
+    }
+   ]
+  },
+  "domain": {
+   "unit": "mm",
+   "size": 10,
+   "bounds": [
+    -5,
+    5
+   ]
+  },
+  "coordinate": {
+   "convention": "f13ld",
+   "worldScale": 0.6283185307179586,
+   "periodicityRadians": 6.283185307179586,
+   "signConvention": "negative-inside"
+  },
+  "metrics": {
+   "modeCount": 3
+  }
+ },
+ "mesh cubic 2-mode": {
+  "schema": "f13ld.wave/v1",
+  "tool": "F13LD.wave",
+  "family": "wave",
+  "version": "0.3",
+  "timestamp": "2026-10-08T00:00:00.000Z",
+  "field": {
+   "symmetry": "cubic",
+   "symmetryId": 2,
+   "phase": "A",
+   "signFlip": false,
+   "mode": "solid",
+   "thickness": null,
+   "iso": 0,
+   "cellScale": 1,
+   "phaseTime": 0,
+   "modes": [
+    {
+     "n": 1,
+     "m": 1,
+     "p": 1,
+     "A": 1,
+     "phi": 0
+    },
+    {
+     "n": 2,
+     "m": 1,
+     "p": 1,
+     "A": 0.4,
+     "phi": 0.3
+    }
+   ]
+  },
+  "domain": {
+   "unit": "mm",
+   "size": 10,
+   "bounds": [
+    -5,
+    5
+   ]
+  },
+  "coordinate": {
+   "convention": "f13ld",
+   "worldScale": 0.6283185307179586,
+   "periodicityRadians": 6.283185307179586,
+   "signConvention": "negative-inside"
+  },
+  "metrics": {
+   "modeCount": 2
+  }
+ },
  "foam open-lloyd": {
   "family": "foam",
   "meta": {

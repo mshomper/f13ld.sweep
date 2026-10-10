@@ -84,8 +84,8 @@ function previewUpload(key) {
   gl.texImage3D(gl.TEXTURE_3D, 0, gl.R16F, b.N, b.N, b.N, 0, gl.RED, gl.FLOAT, b.data);
   gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  /* TPMS, beam and foam cells are periodic: interpolate across the faces. */
-  const wrap = (b.family === 'tpms' || b.family === 'beam' || b.family === 'foam') ? gl.REPEAT : gl.CLAMP_TO_EDGE;
+  /* TPMS, beam, foam and wave cells are periodic: interpolate across the faces. */
+  const wrap = (b.family === 'tpms' || b.family === 'beam' || b.family === 'foam' || b.family === 'wave') ? gl.REPEAT : gl.CLAMP_TO_EDGE;
   gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, wrap);
   gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, wrap);
   gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, wrap);

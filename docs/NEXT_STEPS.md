@@ -1,6 +1,17 @@
 # F13LD.sweep — next steps
 
-**As of 2026-10-10.** `main` = v0.28.0 — target-aware sweeps (F13LD.vault "Aim Sweep" link, point-target ranking, auto rounds), merged after Matt's click-test together with Vault v0.7.0. Notes: [`REFACTOR.md`](REFACTOR.md) → v0.28.0; recap: [`SESSION_RECAP_2026-10-09.md`](SESSION_RECAP_2026-10-09.md) → "Evening".
+**As of 2026-10-10 (afternoon).** Branch `v0.29.0-wave` = Wave family, with F13LD.ingest `v0.9.1-wave`, F13LD.vault `v0.8.0-wave` and F13LD.lab `wave-geom-markers` (comments only). Notes: [`REFACTOR.md`](REFACTOR.md) → v0.29.0. Waiting for Matt's click-test and GPU runs before anything goes to `main`; then the Vault wipe and re-seed, then **Bundle (v0.30.0)**.
+
+## 0c. v0.29.0 Wave — checks before merging (Matt, on your machine)
+1. Sweep branch: load a multi-mode wave (e.g. Schwarz P 3-mode, or a sheet with the iso off centre) → Neighbourhood sweep, GPU, 32³, 100 designs: density landing, speed, the reference row, the 3D preview tiling.
+2. Load a single-mode wave (Gyroid, Chiral 3-2-1): the dock switches to Explore with a log line; switch back to Neighbourhood and run — only phase / iso shift / density move.
+3. A recipe with a fractional index (type 1.5 into the Wave tool): refused at load with the note.
+4. Open a design in F13LD.mesh and in F13LD.lab: same surface as in Sweep's preview.
+5. Export → drop into Ingest (branch): validates. Vault branch (`?mock` is fine): wave cards and inspector render; Aim Sweep on a wave design opens Sweep; plot density exponent / bound efficiency as axes and add them as range filters.
+
+Pinned for later: density exponent and bound efficiency as Sweep target metrics (both lists, `13-target.js` and Vault's `23-reach.js` `SWEEP_TARGET_KEYS`).
+
+**Earlier, 2026-10-10.** `main` = v0.28.0 — target-aware sweeps (F13LD.vault "Aim Sweep" link, point-target ranking, auto rounds), merged after Matt's click-test together with Vault v0.7.0. Notes: [`REFACTOR.md`](REFACTOR.md) → v0.28.0; recap: [`SESSION_RECAP_2026-10-09.md`](SESSION_RECAP_2026-10-09.md) → "Evening".
 
 **Then:** Wave (now **v0.29.0**), Bundle (**v0.30.0**). Matt is holding the Vault re-seed until Wave is ingestable.
 

@@ -59,7 +59,7 @@ function runJob(job, N, tol) {
     const fam = job.family, base = recipes.build(job.base);
     const completed = sweep.complete(base.json);
     const seed = hashStr(`${fam}|${job.base}|${job.i}`), rnd = prng(seed);
-    const draws = Array.from({ length: 16 }, () => rnd());      /* draw.u(i) = draws[i]; u(0..2) → cell scale, as runSweep */
+    const draws = Array.from({ length: 64 }, () => rnd());      /* draw.u(i) = draws[i]; u(0..2) → cell scale, as runSweep */
     let scale = null;
     if (sweep.usesCellScale(fam)) {
       const nominal = sweep.nominalScale(fam, completed);

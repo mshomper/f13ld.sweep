@@ -166,6 +166,13 @@ async function runSweep(opts) {
     }
   }
 
+  /* v0.29.0 — wave: the highest mode index against the grid (a warning, never a block) */
+  if (family === 'wave') {
+    const hi = Math.max(1, ...(((baseRecipe.field || {}).modes) || []).map(mm => Math.max(Math.abs(mm.n), Math.abs(mm.m), Math.abs(mm.p))));
+    const reach = variation.mode === 'explore' ? Math.min(8, hi + 1) : hi, vpp = gridN / reach;
+    if (vpp < 6) log('warn', `Wave: the highest mode index${variation.mode === 'explore' ? ' Explore can reach' : ''} is ${reach} — ${vpp.toFixed(1)} voxels per wavelength on the ${gridN}³ grid. Expect the under-resolved flag; a finer grid reads it better.`);
+  }
+
   // Sampling method — Sobol low-discrepancy gives better coverage than uniform
   // random at small N. Falls through to Math.random() for high-D jitter.
   const samplingMethod = document.getElementById('samplingMethod')?.value || 'sobol';

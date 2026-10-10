@@ -13,6 +13,7 @@ const DIRS = {
   noise: path.resolve(process.env.NOISE_DIR || sib('f13ld.noise')),
   grain: path.resolve(process.env.GRAIN_DIR || sib('f13ld.grain')),
   beam:  path.resolve(process.env.BEAM_DIR  || sib('f13ld.beam')),
+  wave:  path.resolve(process.env.WAVE_DIR  || sib('f13ld.wave')),
 };
 
 const read = (dir, f) => fs.readFileSync(path.join(dir, f), 'utf8');
