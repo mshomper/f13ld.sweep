@@ -39,10 +39,14 @@ function setSolverN(n) {
 // Resolve actual grid N for a given mode. Picker is a floor for STD-family
 // modes; PI-TPMS and beam impose their own (higher) geometric floors.
 function resolveGridN(mode) {
+  return resolveGridNFor(mode, _currentSolverN);
+}
+/* v0.28.0 — the same, for a grid other than the picker's (auto-target rounds) */
+function resolveGridNFor(mode, n) {
   const isPi   = (mode === 'pi-tpms');
   const isBeam = (mode === 'beam-solid');
   const familyFloor = isPi ? FFT_N_PI : isBeam ? FFT_N_BEAM : FFT_N_STD;
-  return Math.max(_currentSolverN, familyFloor);
+  return Math.max(n, familyFloor);
 }
 
 // Volume-fraction acceptance bounds — designs outside skip the CG solve entirely.

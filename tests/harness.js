@@ -112,7 +112,8 @@ async function runBuild(browser, url, label) {
 
 // Fields that are SUPPOSED to change between releases.
 // v0.24.0: the stiffness flags and the export schema bump are intended additions.
-const IGNORE = new Set(['tool_version', 'schema_version', 'stiffness_flag', 'void_limited_axes', 'under_resolved', 'stiffness_flag_reasons', 'stiffness_flag_void_share']);
+// v0.28.0: meta.solver.target (null without a target) is an intended addition.
+const IGNORE = new Set(['tool_version', 'schema_version', 'target', 'stiffness_flag', 'void_limited_axes', 'under_resolved', 'stiffness_flag_reasons', 'stiffness_flag_void_share']);
 // …and the flag markers in the table HTML
 const stripFlags = h => typeof h === 'string' ? h.replace(/<span class="sflag"[^>]*><\/span>/g, '').replace(/<span class="sflag-val"[^>]*>([\s\S]*?<\/span>)<\/span>/g, '$1').replace(/<td class="td-rank">/g, '<td class="td-rank">') : h;
 // v0.25.0: icons are SVG now (no glyphs) and header tooltips carry the

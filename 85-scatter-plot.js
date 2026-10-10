@@ -23,11 +23,49 @@ const METRIC_LABELS = {
 };
 
 function getPlotAxes() {
+  /* v0.28.0 — with a target the plot shows its metrics (13-target.js) */
+  if (typeof TARGET !== 'undefined' && TARGET && TARGET.metrics.length) {
+    const ks = TARGET.metrics.map(m => m.key), hasVF = ks.indexOf('volume_fraction') >= 0;
+    return { x: 'tgt_0', y: ks.length > 1 ? 'tgt_1' : (hasVF ? 'anisotropy' : 'volume_fraction'),
+             z: ks.length > 2 ? 'tgt_2' : (hasVF || ks.length < 2 ? 'tgt_off' : 'volume_fraction') };
+  }
   return {
     x: document.getElementById('r1metric')?.value === 'none' ? 'anisotropy' : (document.getElementById('r1metric')?.value || 'anisotropy'),   /* v0.27.1: rank 1 can be off */
     y: document.getElementById('r2metric')?.value === 'none' ? 'Ex_GPa' : (document.getElementById('r2metric')?.value || 'Ex_GPa'),
     z: document.getElementById('r3metric')?.value === 'none' ? 'volume_fraction' : (document.getElementById('r3metric')?.value || 'volume_fraction'),
   };
+}
+
+/* v0.28.0 — axis label (target metrics by their symbol) */
+function plotAxisLabel(key) {
+  if (key === 'tgt_off') return 'off target';
+  if (/^tgt_\d$/.test(key) && TARGET && TARGET.metrics[+key.slice(4)]) return tgtLabel(TARGET.metrics[+key.slice(4)]);
+  return METRIC_LABELS[key] || key;
+}
+/* The value a target puts on an axis (null when the target leaves it free). */
+function plotTargetValue(key) {
+  if (!(TARGET && TARGET.metrics.length)) return null;
+  if (key === 'tgt_off') return 0;
+  if (/^tgt_\d$/.test(key)) { const m = TARGET.metrics[+key.slice(4)]; return m && Number.isFinite(m.value) ? m.value : null; }
+  return null;
+}
+/* Axis span over the designs, the auto-target trail and the target itself. */
+function plotRange(key) {
+  const tOn = typeof TARGET !== 'undefined' && TARGET && TARGET.metrics.length;
+  /* without a target: as before v0.28.0 (a missing value counts as 0) */
+  const v = tOn ? plotData.map(d => d[key]).filter(x => typeof x === 'number' && Number.isFinite(x)) : plotData.map(d => d[key] || 0);
+  if (tOn && TARGET_RUN.trail.length) TARGET_RUN.trail.forEach(t => { const x = t[key]; if (typeof x === 'number' && Number.isFinite(x)) v.push(x); });
+  const tv = plotTargetValue(key); if (tv != null) v.push(tv);
+  if (!v.length) return { mn: 0, mx: 1, range: 1 };
+  let mn = v[0], mx = v[0];
+  for (const x of v) { if (x < mn) mn = x; if (x > mx) mx = x; }
+  return { mn, mx, range: mx - mn || 1 };
+}
+function plotFmt(key, v) {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
+  if (key === 'tgt_off') return (v * 100).toFixed(1) + '%';
+  if (/^tgt_\d$/.test(key) && TARGET && TARGET.metrics[+key.slice(4)]) return tgtFmt(TARGET.metrics[+key.slice(4)].key, v);
+  return v.toFixed(2);
 }
 
 function resizePlot() {
@@ -120,20 +158,14 @@ function drawPlot() {
   if (plotData.length === 0) return;
 
   // Normalize data to [-1, 1] — high values always at +1, low at -1
-  const vals = key => plotData.map(d => d[key] || 0);
-  const minmax = key => {
-    const v = vals(key);
-    const mn = Math.min(...v), mx = Math.max(...v);
-    return { mn, mx, range: mx - mn || 1 };
-  };
-  const nx = minmax(axes.x), ny = minmax(axes.y), nz = minmax(axes.z);
+  const nx = plotRange(axes.x), ny = plotRange(axes.y), nz = plotRange(axes.z);
   const norm = (v, mm) => (v - mm.mn) / mm.range * 2 - 1;
 
   // ── Axis labels on cube edges ─────────────────────────────────────────────
   const axesDef = [
-    { from: [-1,-1,-1], to: [1,-1,-1], label: (METRIC_LABELS[axes.x] || axes.x).slice(0,11), color: '#5fb5b5' },
-    { from: [-1,-1,-1], to: [-1,1,-1], label: (METRIC_LABELS[axes.y] || axes.y).slice(0,11), color: '#c794d4' },
-    { from: [-1,-1,-1], to: [-1,-1,1], label: (METRIC_LABELS[axes.z] || axes.z).slice(0,11), color: '#d4b04a' },
+    { from: [-1,-1,-1], to: [1,-1,-1], label: plotAxisLabel(axes.x).slice(0,11), color: '#5fb5b5' },
+    { from: [-1,-1,-1], to: [-1,1,-1], label: plotAxisLabel(axes.y).slice(0,11), color: '#c794d4' },
+    { from: [-1,-1,-1], to: [-1,-1,1], label: plotAxisLabel(axes.z).slice(0,11), color: '#d4b04a' },
   ];
 
   axesDef.forEach(ax => {
@@ -151,7 +183,10 @@ function drawPlot() {
   });
 
   // Build points with depth for painter's sort
-  const points = plotData.map(d => {
+  /* v0.28.0 — with a target, a design missing an axis value isn't drawn (0 would put it on the target plane) */
+  const tgtAxesOn = typeof TARGET !== 'undefined' && TARGET && TARGET.metrics.length;
+  const finite3 = d => [axes.x, axes.y, axes.z].every(k => typeof d[k] === 'number' && Number.isFinite(d[k]));
+  const points = plotData.filter(d => !tgtAxesOn || finite3(d)).map(d => {
     const px = norm(d[axes.x] || 0, nx);
     const py = norm(d[axes.y] || 0, ny);
     const pz = norm(d[axes.z] || 0, nz);
@@ -162,11 +197,35 @@ function drawPlot() {
   // Sort back to front
   points.sort((a, b) => a.proj.depth - b.proj.depth);
 
-  // ── Ideal corner ─────────────────────────────────────────────────────────
-  const idealX = (directions[1] || 'max') === 'max' ?  1 : -1;
-  const idealY = (directions[2] || 'max') === 'max' ?  1 : -1;
-  const idealZ = (directions[3] || 'max') === 'max' ?  1 : -1;
+  /* v0.28.0 — the auto-target rounds, faded, oldest faintest */
+  const tgtOn = typeof TARGET !== 'undefined' && TARGET && TARGET.metrics.length;
+  if (tgtOn && TARGET_RUN.trail.length) {
+    const nR = Math.max(1, ...TARGET_RUN.trail.map(t => t._round || 1));
+    TARGET_RUN.trail.forEach(t => {
+      const a = t[axes.x], b = t[axes.y], c = t[axes.z];
+      if (![a, b, c].every(v => typeof v === 'number' && Number.isFinite(v))) return;
+      const pr = project3D(norm(a, nx), norm(b, ny), norm(c, nz), cx, cy, plotRot.x, plotRot.y, scale);
+      pctx.globalAlpha = 0.12 + 0.28 * ((t._round || 1) / nR);
+      pctx.fillStyle = '#7a8a9a';
+      pctx.beginPath(); pctx.arc(pr.sx, pr.sy, 2, 0, Math.PI * 2); pctx.fill();
+    });
+    pctx.globalAlpha = 1;
+  }
+
+  // ── Ideal corner (or, with a target, the target) ─────────────────────────
+  let idealX = (directions[1] || 'max') === 'max' ?  1 : -1;
+  let idealY = (directions[2] || 'max') === 'max' ?  1 : -1;
+  let idealZ = (directions[3] || 'max') === 'max' ?  1 : -1;
+  let tgtFree = false;
+  if (tgtOn) {
+    const tx = plotTargetValue(axes.x), ty = plotTargetValue(axes.y), tz = plotTargetValue(axes.z);
+    idealX = tx != null ? norm(tx, nx) : 0; idealY = ty != null ? norm(ty, ny) : 0;
+    tgtFree = tz == null; idealZ = tz != null ? norm(tz, nz) : 0;
+  }
   const idealProj = project3D(idealX, idealY, idealZ, cx, cy, plotRot.x, plotRot.y, scale);
+  if (tgtOn && tgtFree) {   /* the target leaves this axis free: a column through it */
+    line(idealX, idealY, -1, idealX, idealY, 1, '#c8f542', 0.45, 1);
+  }
 
   // Whisker lines from ideal to top 3 — drawn behind points
   const top3 = points.filter(pt => (pt.d.filterRank || 999) <= 3)
@@ -208,6 +267,18 @@ function drawPlot() {
   });
 
   // Draw ideal corner marker on top of everything
+  if (tgtOn) {   /* v0.28.0 — the target: neon crosshair */
+    pctx.strokeStyle = '#c8f542'; pctx.lineWidth = 1.6;
+    pctx.beginPath(); pctx.arc(idealProj.sx, idealProj.sy, 7, 0, Math.PI * 2); pctx.stroke();
+    pctx.beginPath();
+    pctx.moveTo(idealProj.sx - 13, idealProj.sy); pctx.lineTo(idealProj.sx - 4, idealProj.sy);
+    pctx.moveTo(idealProj.sx + 4, idealProj.sy); pctx.lineTo(idealProj.sx + 13, idealProj.sy);
+    pctx.moveTo(idealProj.sx, idealProj.sy - 13); pctx.lineTo(idealProj.sx, idealProj.sy - 4);
+    pctx.moveTo(idealProj.sx, idealProj.sy + 4); pctx.lineTo(idealProj.sx, idealProj.sy + 13);
+    pctx.stroke();
+    pctx.fillStyle = '#c8f542'; pctx.font = '500 9px "JetBrains Mono", monospace'; pctx.textAlign = 'center';
+    pctx.fillText('target', idealProj.sx, idealProj.sy + 24);
+  } else {
   pctx.beginPath();
   pctx.arc(idealProj.sx, idealProj.sy, 5, 0, Math.PI * 2);
   pctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -227,6 +298,7 @@ function drawPlot() {
   pctx.font = '400 8px "JetBrains Mono", monospace';
   pctx.textAlign = 'center';
   pctx.fillText('ideal', idealProj.sx, idealProj.sy + 16);
+  }
 
   // Tooltip for hovered point
   if (plotHovered) {
@@ -244,7 +316,7 @@ function drawPlot() {
       pctx.fillText(`#${plotHovered.id}`, tx + 8, ty + 2);
       pctx.fillStyle = '#7a9ab5';
       pctx.font = '400 9px "JetBrains Mono", monospace';
-      pctx.fillText(`${(plotHovered[axes.x]||0).toFixed(2)} · ${(plotHovered[axes.y]||0).toFixed(2)} · ${(plotHovered[axes.z]||0).toFixed(2)}`, tx + 8, ty + 16);
+      pctx.fillText(`${plotFmt(axes.x, plotHovered[axes.x])} · ${plotFmt(axes.y, plotHovered[axes.y])} · ${plotFmt(axes.z, plotHovered[axes.z])}`, tx + 8, ty + 16);
       pctx.fillStyle = '#5a7a5a';
       pctx.fillText(`aniso ${(plotHovered.anisotropy||0).toFixed(2)}×`, tx + 8, ty + 28);
     }
@@ -286,13 +358,13 @@ window.addEventListener('mousemove', e => {
   const cx = W / 2, cy = H / 2;
   const scale = Math.min(W, H) * 0.24;
   const axes = getPlotAxes();
-  const vals = key => plotData.map(d => d[key] || 0);
-  const minmax = key => { const v = vals(key); const mn = Math.min(...v), mx2 = Math.max(...v); return { mn, mx: mx2, range: mx2 - mn || 1 }; };
   const normH = (v, mm) => (v - mm.mn) / mm.range * 2 - 1;
-  const nx = minmax(axes.x), ny = minmax(axes.y), nz = minmax(axes.z);
+  const nx = plotRange(axes.x), ny = plotRange(axes.y), nz = plotRange(axes.z);
 
   let closest = null, closestDist = 20;
+  const tgtAxesOn = typeof TARGET !== 'undefined' && TARGET && TARGET.metrics.length;
   plotData.forEach(d => {
+    if (tgtAxesOn && ![axes.x, axes.y, axes.z].every(k => typeof d[k] === 'number' && Number.isFinite(d[k]))) return;
     const proj = project3D(
       normH(d[axes.x]||0, nx),
       normH(d[axes.y]||0, ny),

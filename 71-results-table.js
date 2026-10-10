@@ -70,9 +70,13 @@ function tableColumnKeys() {
   const rankOf = {};
   ranks.forEach((k, i) => { if (k && !rankOf[k]) rankOf[k] = i + 1; });
 
-  const chosen = new Set(['volume_fraction']);
-  const fits = add => chosen.size + add.length <= TABLE_MAX_METRICS;
-  ranks.forEach(k => { if (k && !chosen.has(k) && fits([k])) chosen.add(k); });
+  /* v0.28.0 — with a target: how far off, then the target metrics, first */
+  const tgtKeys = (TARGET && TARGET.metrics.length) ? ['tgt_off'].concat(TARGET.metrics.map((m, i) => 'tgt_' + i)) : [];
+  const chosen = new Set(tgtKeys.concat(['volume_fraction']));
+  const cap = TABLE_MAX_METRICS + tgtKeys.length;
+  if (tgtKeys.length) Object.keys(rankOf).forEach(k => { delete rankOf[k]; });   /* the rank rows don't apply */
+  const fits = add => chosen.size + add.length <= cap;
+  if (!tgtKeys.length) ranks.forEach(k => { if (k && !chosen.has(k) && fits([k])) chosen.add(k); });
   (DOMAIN_COLUMNS[domain] || DOMAIN_COLUMNS.general).forEach(g => {
     const add = (Array.isArray(g) ? g : [g]).filter(k => !chosen.has(k));
     if (add.length && fits(add)) add.forEach(k => chosen.add(k));
@@ -80,6 +84,8 @@ function tableColumnKeys() {
 
   const order = COLUMNS.map(c => c.key);
   const keys = [...chosen].sort((a, b) => {
+    const ta = tgtKeys.indexOf(a), tb = tgtKeys.indexOf(b);
+    if (ta >= 0 || tb >= 0) return (ta < 0 ? 99 : ta) - (tb < 0 ? 99 : tb);
     const ia = order.indexOf(a), ib = order.indexOf(b);
     return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
   });
@@ -87,6 +93,9 @@ function tableColumnKeys() {
 }
 
 function columnFor(key) {
+  /* v0.28.0 — target columns */
+  if (key === 'tgt_off') return { label: 'Off', key, tgt: true };
+  if (/^tgt_\d$/.test(key)) { const m = TARGET && TARGET.metrics[+key.slice(4)]; return { label: m ? tgtLabel(m) : key, key, tgt: true, tgtKey: m ? m.key : null }; }
   return COLUMNS.find(c => c.key === key) || { label: (METRIC_INFO[key] && METRIC_INFO[key].sym) || key, key };
 }
 
@@ -182,7 +191,7 @@ function renderTable(data) {
   const colClass = col => {
     const c = [];
     if (col.cls) c.push(col.cls);
-    if (!rankOf[col.key] && col.key !== 'volume_fraction') c.push('col-opt');   // hidden on phones
+    if (!rankOf[col.key] && col.key !== 'volume_fraction' && !col.tgt) c.push('col-opt');   // hidden on phones
     return c.length ? ` class="${c.join(' ')}"` : '';
   };
 
@@ -198,6 +207,16 @@ function renderTable(data) {
     const tds = cols.map(col => {
       const cls = colClass(col);
       const v = d[col.key];
+      if (col.key === 'tgt_off') {   /* v0.28.0 */
+        if (v == null) return `<td${cls}>${dash}</td>`;
+        const on = TARGET && v <= TARGET.tol;
+        return `<td${cls}><span class="${on ? 'tg-on' : 'tg-off'}" title="Worst metric's distance from the target${on ? ' — on target' : ''}">${(v * 100).toFixed(1)}%</span></td>`;
+      }
+      if (col.tgt) {
+        const m = TARGET && TARGET.metrics[+col.key.slice(4)];
+        const e = m ? tgtRelErr(v, m.value) : Infinity;
+        return `<td${cls}>${v == null ? dash : `<span class="${TARGET && e <= TARGET.tol ? 'tg-on' : ''}" style="font-variant-numeric:tabular-nums">${escapeLog(tgtFmt(col.tgtKey, v))}</span>`}</td>`;
+      }
       if (col.key === 'stiff_axis') {
         if (v === null || v === undefined) return `<td${cls}>${dash}</td>`;
         const axisColor = v === 'X' ? '#5fb5b5' : v === 'Y' ? '#c794d4' : '#d4b04a';
@@ -234,11 +253,15 @@ function renderTable(data) {
     const cls = [
       isActive ? (sortState.dir === 'asc' ? 'sort-asc' : 'sort-desc') : '',
       col.cls || '',
-      (!rankOf[col.key] && col.key !== 'volume_fraction') ? 'col-opt' : ''
+      (!rankOf[col.key] && col.key !== 'volume_fraction' && !col.tgt) ? 'col-opt' : '',
+      col.tgt ? 'th-tgt' : ''
     ].join(' ').trim();
     const arrow = swGlyph(isActive ? (sortState.dir === 'asc' ? 'up' : 'dn') : 'updn');
     const info = METRIC_INFO[col.key];
-    const title = (info ? `${info.name} — ${info.desc}` : col.key) + (rankOf[col.key] ? ` · rank ${rankOf[col.key]} metric` : '');
+    const tinfo = col.tgtKey ? TGT_METRICS[col.tgtKey] : null, tm = col.tgt && col.key !== 'tgt_off' && TARGET ? TARGET.metrics[+col.key.slice(4)] : null;
+    const title = col.key === 'tgt_off' ? `Off target — the worst metric's distance from the target (${tgtSummary(TARGET)}); on target within ${Math.round(TARGET.tol * 100)} %`
+      : tinfo ? `${tinfo.name} — target ${tgtFmt(col.tgtKey, tm && tm.value)}`
+      : (info ? `${info.name} — ${info.desc}` : col.key) + (rankOf[col.key] ? ` · rank ${rankOf[col.key]} metric` : '');
     const pip = rankOf[col.key] ? `<span class="rank-pip" style="display:inline-block;width:6px;height:6px;margin-right:4px;vertical-align:1px;background:${RANK_COLORS[rankOf[col.key]]}"></span>` : '';
     return `<th class="${cls}" data-col="${col.key}" tabindex="0" title="${escapeLog(title)}" aria-sort="${isActive ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none'}"
       onclick="sortBy('${col.key}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();sortBy('${col.key}')}">${pip}${col.label}<span class="sort-indicator">${arrow}</span></th>`;

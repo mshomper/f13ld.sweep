@@ -1,6 +1,16 @@
 /* ============================================================
    F13LD.sweep · 62-run-sweep.js
    runSweep / cancelSweep.
+
+   v0.28.0 — runSweep(opts) takes overrides for the auto-target rounds
+   (63-auto-target.js): opts.samples, opts.precision ('fast' | 'rigorous'),
+   opts.grid (16 | 32 | 64, the family floor still applies), opts.round
+   ({ k, cap } or 'final', logged and recorded), opts.targetRun (what the
+   rounds did, recorded with a final run), opts.keepBusy (leave the
+   Run / Cancel buttons busy between rounds). Called with no options it
+   does exactly what it did before. It resolves to { cancelled, results }.
+   With a target set (13-target.js) the rank rows are skipped and designs
+   are ranked by how far they are from it.
    ============================================================ */
 
 // ─── Sweep ────────────────────────────────────────────────────────────────────
@@ -8,8 +18,9 @@ function cancelSweep() {
   window._sweepCancelled = true;
 }
 
-async function runSweep() {
-  if (!baseRecipe) return;
+async function runSweep(opts) {
+  opts = opts || {};
+  if (!baseRecipe) return { cancelled: false, results: [] };
   if (typeof toggleDrawer === 'function') toggleDrawer(false);   /* v0.25.0 — Run closes the Configure drawer (Matt) */
 
   const btn = document.getElementById('runBtn');
@@ -25,7 +36,9 @@ async function runSweep() {
   // (different material may mean different Es/nu/ks → different Gamma).
   // Actual cache invalidation in workers happens lazily via getElasticGamma's keying.
 
-  const nSamples = parseInt(samplesSlider.value);
+  const nSamples = opts.samples || parseInt(samplesSlider.value);
+  const precMode = opts.precision || getPrecisionMode();
+  const tgt = TARGET && TARGET.metrics.length ? TARGET : null;
   const family = baseFamily;
   const fam = SWEEP_FAMILIES[family];
   const baseGeo = designGeometry(baseRecipe);
@@ -40,23 +53,26 @@ async function runSweep() {
   const voxelToUm = getVoxelToUm();
   /* Solver settings are fixed for the whole sweep (a toggle mid-sweep
      applies to the next one). */
-  const precision = PRECISION_MODES[getPrecisionMode()];
+  const precision = PRECISION_MODES[precMode];
   /* v0.24.0 — F13LD.lab's GPU solver when this browser has WebGPU, else the
      CPU solver. N = 64 is a GPU-only grid. */
   const gpu = await getGpuSolver();
   updateSolverStatusUI();
-  if (!gpu && getSolverN() > 32) {
+  if (!gpu && (opts.grid || getSolverN()) > 32) {
     log('warn', 'No GPU solver here — N = 64 is GPU-only, running at N = 32');
     setResolutionUI(32);
   }
-  const gpuPrec = gpu ? GPU_PRECISION[getPrecisionMode()] : null;
-  const gridN = resolveGridN(baseGeo.sweepMode);
+  const gpuPrec = gpu ? GPU_PRECISION[precMode] : null;
+  const gridN = opts.grid ? resolveGridNFor(baseGeo.sweepMode, gpu ? opts.grid : Math.min(32, opts.grid)) : resolveGridN(baseGeo.sweepMode);
   lastSweepSettings = null;
   const sweepSettings = {
     context: buildLiveAnalysisContext(),
-    precision_mode: getPrecisionMode(), contrast: precision.contrast, maxiter: precision.maxiter,
-    resolution_picker: getSolverN(), grid_N: gridN
+    precision_mode: precMode, contrast: precision.contrast, maxiter: precision.maxiter,
+    resolution_picker: opts.grid || getSolverN(), grid_N: gridN
   };
+  /* v0.28.0 — the target this sweep aimed at, and which round it was */
+  if (tgt) sweepSettings.target = Object.assign({ metrics: tgt.metrics.map(m => Object.assign({}, m)), tol: tgt.tol, round: opts.round || null, source: tgt.source || null },
+    opts.targetRun ? { rounds: opts.targetRun.rounds, stopped: opts.targetRun.stopped, final: opts.targetRun.final } : {});
   if (gpu) Object.assign(sweepSettings, {
     backend: 'gpu', gpu_adapter: gpu.adapter, solver_version: SOLVER_VERSION_GPU,
     void_ratio: gpuPrec.voidRatio, gpu_cg_tol: gpuPrec.tol, gpu_cg_maxiter: gpuPrec.maxiter,
@@ -81,7 +97,8 @@ async function runSweep() {
   sweepSettings.density_window = [+dens.lo.toFixed(4), +dens.hi.toFixed(4)];
   sweepSettings.reference_design = true;
 
-  log('accent', `Starting sweep: ${nSamples} samples + the recipe itself as the reference design`);
+  const roundTxt = opts.round === 'final' ? 'Final run · ' : opts.round ? `Round ${opts.round.k} of up to ${opts.round.cap} · ` : '';
+  log('accent', `${roundTxt}Starting sweep: ${nSamples} samples + the recipe itself as the reference design${opts.precision || opts.grid ? ` · ${precMode === 'fast' ? 'Fast' : 'Rigorous'} ${gridN}³` : ''}`);
   log('info', `Variation: ${variation.mode === 'explore' ? 'Explore (wider redraw, fresh seeds)' : 'Neighbourhood (the recipe keeps its identity)'} · spread ±${Math.round(variation.spread * 100)} % · density ${(dens.lo * 100).toFixed(1)}–${(dens.hi * 100).toFixed(1)} % (${dens.auto ? 'Auto: recipe ± spread' : 'set by hand'})`);
   /* a window far from the recipe's own density is worth a look before 100 solves */
   if (baseDensity != null && baseDensity > 0) {
@@ -103,8 +120,11 @@ async function runSweep() {
   // The profile is also stashed on a module-scope variable so the export
   // can include it in meta.solver.target_profile without re-querying the
   // DOM (which may have changed since sweep start).
-  const currentTargetProfile = buildTargetProfile();
+  /* v0.28.0 — with a point target the density window does the steering
+     (63-auto-target.js aims it), so the rank-row pressures stay out */
+  const currentTargetProfile = tgt ? { has_bias: false, pressures: null, anisotropy_explicit: false, summary: [], selections: [] } : buildTargetProfile();
   const currentTargetHints   = priorsToJitterHints(currentTargetProfile);
+  if (tgt) log('info', `Target: ${tgtSummary(tgt)} · designs are ranked by how far they are from it (on target within ${Math.round(tgt.tol * 100)} %)`);
   lastSweepTargetProfile = currentTargetProfile;
   if (currentTargetProfile.has_bias) {
     const p = currentTargetProfile.pressures;
@@ -140,8 +160,9 @@ async function runSweep() {
       log('warn', 'Sweep aborted — strut radius below solver resolution. Adjust recipe or jitter range and try again.');
       document.getElementById('runBtn').disabled = false;
       setRunBtn(false);
+      cancelBtn.style.display = 'none';
       document.getElementById('progressWrap').classList.remove('visible');
-      return;
+      return { cancelled: false, aborted: true, results: [] };
     }
   }
 
@@ -258,7 +279,7 @@ async function runSweep() {
     progressFill.style.width = pct + '%';
     progressPct.textContent = pct + '%';
     const discardRate = attempts > 0 ? Math.round(discarded / attempts * 100) : 0;
-    progressLabel.textContent = `Valid: ${validCount} / ${nSamples} · discarded: ${discarded} (${discardRate}%)`;
+    progressLabel.textContent = (TARGET_RUN.running && TARGET_RUN.status ? TARGET_RUN.status + ' · ' : '') + `Valid: ${validCount} / ${nSamples} · discarded: ${discarded} (${discardRate}%)`;
   }
 
   // Continuous-dispatch chain: each result triggers the next dispatch from the same worker.
@@ -389,14 +410,17 @@ async function runSweep() {
   }
   const totalSampled = results.length;
 
+  const wasCancelled = !!window._sweepCancelled;
   if (totalSampled === 0) {
-    progressWrap.classList.remove('visible');
-    document.getElementById('logBadge').textContent = 'done';
-    btn.disabled = false;
-    setRunBtn(false);
-    cancelBtn.style.display = 'none';
-    window._sweepCancelled = false;
-    return;
+    if (!opts.keepBusy) {
+      progressWrap.classList.remove('visible');
+      document.getElementById('logBadge').textContent = 'done';
+      btn.disabled = false;
+      setRunBtn(false);
+      cancelBtn.style.display = 'none';
+      window._sweepCancelled = false;
+    }
+    return { cancelled: wasCancelled, results: [] };
   }
 
   /* v0.25.0 — the stat cards became a one-line funnel above the table */
@@ -407,6 +431,16 @@ async function runSweep() {
   const refDesign = results.find(r => r.reference) || null;
   let filtered = results.filter(r => !r.reference);
 
+  if (tgt) {
+    /* v0.28.0 — a target replaces the rank rows: nothing is filtered out,
+       applyFinalRanking sorts by distance to the target */
+    const all = refDesign ? filtered.concat([refDesign]) : filtered;
+    tgtStamp(all, tgt);
+    const on = all.filter(d => d.tgt_off != null && d.tgt_off <= tgt.tol).length;
+    const b = all.slice().sort(tgtCompare)[0];
+    log('success', `Target: ${on} of ${all.length} designs within ${Math.round(tgt.tol * 100)} %` + (b && b.tgt_off != null ? ` · closest ${(b.tgt_off * 100).toFixed(1)} % off (${b.reference ? 'the reference' : '#' + b.id})` : ''));
+    funnel.r = [null, null, null];
+  } else {
   const r1Active = (document.getElementById('r1metric')?.value || 'none') !== 'none';
   const r2Active = (document.getElementById('r2metric')?.value || 'none') !== 'none';
   const r3Active = (document.getElementById('r3metric')?.value || 'none') !== 'none';
@@ -428,14 +462,17 @@ async function runSweep() {
     ? `After Rank 3 keep top %: ${filtered.length} designs passed all filters`
     : `Rank 3: inactive — no metric selected (filter skipped) · ${filtered.length} designs final`);
   funnel.r.push(r3Active ? filtered.length : null);
+  }
+  funnel.target = tgt ? { tol: tgt.tol, on: filtered.concat(refDesign ? [refDesign] : []).filter(d => d.tgt_off != null && d.tgt_off <= tgt.tol).length } : null;
   funnel.flagged = filtered.filter(d => d.stiffness_flag).length;
   renderFunnel(funnel);
-  if (refDesign) filtered.push(refDesign);
+  if (refDesign) { if (tgt) tgtStamp([refDesign], tgt); filtered.push(refDesign); }
 
   // Store reference for rank mode switching, then apply final ranking
   currentFiltered = filtered;
   applyFinalRanking(filtered);
 
+  if (sweepSettings.target) sweepSettings.target.cancelled = wasCancelled;
   lastSweepSettings = sweepSettings;
   // v0.12.1: stamp the recipe identity that produced these results.
   // exportResults uses this to refuse exports when the recipe has been
@@ -443,16 +480,21 @@ async function runSweep() {
   sweptRecipeId = recipeLoadId;
   // Re-enable export buttons now that fresh results exist
   const validateBtnEl = document.getElementById('validateBtn');
+  /* v0.28.0 — auto-target rounds (Fast) are not exported; only a final run */
+  const isRound = !!(opts.round && opts.round !== 'final');
   if (validateBtnEl) {
-    validateBtnEl.disabled = false;
+    validateBtnEl.disabled = isRound;
     validateBtnEl.style.opacity = '';
     validateBtnEl.style.cursor = '';
   }
 
-  progressWrap.classList.remove('visible');
-  document.getElementById('logBadge').textContent = 'done';
-  btn.disabled = false;
-  setRunBtn(false);
-  cancelBtn.style.display = 'none';
-  window._sweepCancelled = false;
+  if (!opts.keepBusy) {
+    progressWrap.classList.remove('visible');
+    document.getElementById('logBadge').textContent = 'done';
+    btn.disabled = false;
+    setRunBtn(false);
+    cancelBtn.style.display = 'none';
+    window._sweepCancelled = false;
+  }
+  return { cancelled: wasCancelled, results: results.slice() };
 }
