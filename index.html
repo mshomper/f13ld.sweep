@@ -63,7 +63,7 @@
       <button id="exportDesignBtn" class="pill-btn ghost" onclick="exportSelectedDesign()" disabled title="The selected design's recipe" data-g="down" data-label="Export design"></button>
     </div>
     <div class="fh-right">
-      <span class="fh-ver">v0.27.2</span>
+      <span class="fh-ver">v0.28.0</span>
       <!-- Sweep tool icon — fan of lines emanating from a pivot, per brand guidelines -->
       <div class="fh-ico" title="F13LD.Sweep — parameter-space exploration">
         <svg width="18" height="18" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
@@ -126,7 +126,7 @@
       <div class="panel-header">
         <div class="panel-title">Results</div>
         <div class="mode-toggle-group">
-          <button class="mode-toggle-btn active" onclick="setRankMode('ideal',this)">Ideal Corner</button>
+          <button class="mode-toggle-btn active" id="rankIdealBtn" onclick="setRankMode('ideal',this)">Ideal Corner</button>
           <button class="mode-toggle-btn" onclick="setRankMode('outlier',this)">Outlier</button>
         </div>
         <div class="funnel" id="funnel"></div>
@@ -260,8 +260,8 @@
           </section>
 
           <section class="dr-col" data-col="ranks">
-            <div class="dr-ph"><span class="ico ico-lg" data-ico="ranks"></span><div class="dr-pt-wrap"><div class="dr-pt">Ranks</div><div class="dr-ps">Sort, then keep the top share</div></div></div>
-            <div class="rk-head"><span></span><label>Metric</label><label>Direction</label><label>Keep top</label><span></span></div>
+            <div class="dr-ph"><span class="ico ico-lg" data-ico="ranks"></span><div class="dr-pt-wrap"><div class="dr-pt" id="rkTitle">Ranks</div><div class="dr-ps" id="rkSub">Sort, then keep the top share</div></div></div>
+            <div class="rk-head" id="rkHead"><span></span><label>Metric</label><label>Direction</label><label>Keep top</label><span></span></div>
             <div class="rk-rows">
               <div class="rk-row"><span class="rk-n r1">1</span><div class="dd dd-r" id="rk1Dd"></div>
                 <div class="seg" data-seg="dir1"><button type="button" data-v="max" data-g="up" data-label="max" title="Higher is better"></button><button type="button" data-v="min" data-g="dn" data-label="min" title="Lower is better"></button></div>
@@ -273,7 +273,26 @@
                 <div class="seg" data-seg="dir3"><button type="button" data-v="max" data-g="up" data-label="max" title="Higher is better"></button><button type="button" data-v="min" data-g="dn" data-label="min" title="Lower is better"></button></div>
                 <span class="num-u"><i class="pre">top</i><input class="num" id="pxKeep3" data-px="keep3" type="number" min="1" max="100" step="1" placeholder="100" aria-label="Rank 3: keep top percent"><i>%</i></span><button class="rk-clear" type="button" data-rank="3" data-g="x" title="Turn rank 3 off" aria-label="Turn rank 3 off"></button></div>
             </div>
-            <div class="hint">Rank 1 sorts every valid design; ranks 2 and 3 each keep the top share of what is left. The table still sorts by any column; a new domain resets the ranks.</div>
+            <div class="hint" id="hRanks">Rank 1 sorts every valid design; ranks 2 and 3 each keep the top share of what is left. The table still sorts by any column; a new domain resets the ranks.</div>
+            <div class="tg-wrap" id="tgWrap">
+              <div class="tg-head"><span class="ico ico-md" data-ico="target"></span><div class="tg-ht"><b id="tgHead">Aim at values</b><small id="tgSrc">Aim at values instead of a corner</small></div>
+                <button class="mini-btn" id="tgSet" type="button" onclick="tgtStartManual()" data-g="target" data-label="Aim at values"></button>
+                <button class="mini-btn ghost" id="tgClear" type="button" onclick="tgtClear()" data-g="x" data-label="Clear"></button></div>
+              <div class="tg-body" id="tgBody">
+                <div class="tg-row" data-i="0"><div class="dd dd-r" id="tg0Dd"></div><span class="num-u"><input class="num" id="pxTg0" data-px="tg0" type="number" step="any" aria-label="Target value 1"><i id="tgU0"></i></span><button class="rk-clear" type="button" data-tgrm="0" data-g="x" title="Remove this metric from the target" aria-label="Remove target metric 1"></button></div>
+                <div class="tg-row" data-i="1"><div class="dd dd-r" id="tg1Dd"></div><span class="num-u"><input class="num" id="pxTg1" data-px="tg1" type="number" step="any" aria-label="Target value 2"><i id="tgU1"></i></span><button class="rk-clear" type="button" data-tgrm="1" data-g="x" title="Remove this metric from the target" aria-label="Remove target metric 2"></button></div>
+                <div class="tg-row" data-i="2"><div class="dd dd-r" id="tg2Dd"></div><span class="num-u"><input class="num" id="pxTg2" data-px="tg2" type="number" step="any" aria-label="Target value 3"><i id="tgU2"></i></span><button class="rk-clear" type="button" data-tgrm="2" data-g="x" title="Remove this metric from the target" aria-label="Remove target metric 3"></button></div>
+                <button class="mini-btn ghost tg-add" id="tgAdd" type="button" onclick="tgtAddMetric()" data-g="plus" data-label="Add a metric"></button>
+                <div class="tg-opts">
+                  <div class="dr-f"><label>Run</label><div class="seg" data-seg="tgauto"><button type="button" data-v="on" title="Rounds of Fast designs walk toward the target, then a final run at your settings">Auto rounds</button><button type="button" data-v="off" title="One sweep at your settings, ranked by distance to the target">One sweep</button></div></div>
+                  <div class="pair">
+                    <div class="dr-f"><label for="pxTgTol">On target within</label><span class="num-u"><input class="num" id="pxTgTol" data-px="tgtol" type="number" min="1" max="50" step="1" aria-label="On target within, percent"><i>%</i></span></div>
+                    <div class="dr-f" id="fTgCap"><label for="pxTgCap">Rounds, at most</label><span class="num-u"><input class="num" id="pxTgCap" data-px="tgcap" type="number" min="1" max="12" step="1" aria-label="Most rounds"><i>× 25</i></span></div>
+                  </div>
+                </div>
+                <div class="hint" id="hTg"></div>
+              </div>
+            </div>
           </section>
 
         </div>
@@ -584,7 +603,7 @@
     <button class="log-chip" id="logChip" type="button" onclick="dockTab('log', true)" title="Open the log"><span class="ico ico-sm" data-ico="log"></span><b>Log</b> <span id="logChipMsg">Drop a JSON recipe to begin.</span> <span class="w" id="logChipWarn"></span></button>
     <span class="dock-hw" id="dockHw"></span>
     <button id="cancelBtn" class="cancel-btn" onclick="cancelSweep()" style="display:none" data-g="x" data-label="Cancel"></button>
-    <button class="run" id="runBtn" onclick="runSweep()" disabled></button>
+    <button class="run" id="runBtn" onclick="runClick()" disabled></button>
   </footer>
 
   <div class="col-tip" id="colTip" role="tooltip"></div>
@@ -596,6 +615,7 @@
 <script src="10-state.js"></script>
 <script src="11-rank.js"></script>
 <script src="12-target-profile.js"></script>
+<script src="13-target.js"></script>
 <script src="20-recipe-load.js"></script>
 <script src="21-materials-domain.js"></script>
 <script src="22-controls.js"></script>
@@ -630,6 +650,7 @@
 <script src="60-solver-pool.js"></script>
 <script src="61-sobol.js"></script>
 <script src="62-run-sweep.js"></script>
+<script src="63-auto-target.js"></script>
 <script src="70-export.js"></script>
 <script src="71-results-table.js"></script>
 <script src="72-mesh-handoff.js"></script>

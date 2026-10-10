@@ -1,5 +1,16 @@
 # F13LD.sweep — next steps
 
+**As of 2026-10-09, late.** `main` = v0.27.2. Branch `v0.28.0-target` = target-aware sweeps (F13LD.vault "Aim Sweep" link, point-target ranking, auto rounds) — waiting on Matt's GPU check and click-test; Vault v0.7.0 (branch `v0.7.0-target`) goes with it. Notes: [`REFACTOR.md`](REFACTOR.md) → v0.28.0; recap: [`SESSION_RECAP_2026-10-09.md`](SESSION_RECAP_2026-10-09.md) → "Evening".
+
+**Then:** Wave (now **v0.29.0**), Bundle (**v0.30.0**). Matt is holding the Vault re-seed until Wave is ingestable.
+
+## 0b. v0.28.0 — checks for Matt
+1. Vault branch (`?mock` is fine): set a target in the 2D plot → **Aim Sweep** on the banner. Sweep (branch build) opens with the recipe, the density window in Set, the spread and the target; the log says which design and why.
+2. Run with your normal settings (GPU, 32³ or 64³, 100–200 designs): rounds of 25 Fast designs walk toward the target, then the final run. Watch: the density window following the trend, Explore when stuck, the trail on the plot, the time per round.
+3. Export the final run and drop it into Ingest: it should validate as before (`meta.solver.target` is extra).
+4. Try a target past a physics limit (e.g. E* above the volume fraction): a warning, still runs, stops at the limit.
+
+
 **As of 2026-10-09.** `main` = v0.26.0 (merged after Matt's GPU runs: gyroid sheet, spinodoid, beam BCC, gyroid Explore). v0.26.0 = how designs are varied — density as a sampled axis, Neighbourhood / Explore, one Spread, reference design #0, shear gating (`REFACTOR.md` → v0.26.0). Plan for what follows (Foam → Wave → Bundle, then Ingest / Vault with flags and shear, Vault wipe + re-seed): [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md).
 
 ## 0a. v0.27.0 Foam — merged 2026-10-09 after Matt's GPU runs (open and wet Lloyd foam; Mesh round trip matched)

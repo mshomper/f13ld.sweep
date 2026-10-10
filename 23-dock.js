@@ -38,6 +38,8 @@ var SWEEP_ICONS = {
   key:      '<path d="M5 6 H12 V13 H5 Z M5 28 H12 V35 H5 Z"' + SW_SV + ' opacity=".75"/><path d="M17 9.5 H35 M17 20.5 H31 M17 31.5 H35"' + SW_SV + ' opacity=".8"/><path d="M5 17 H12 V24 H5 Z"' + SW_SV + '/><circle class="acc" cx="8.5" cy="20.5" r="2.4"/>',
   /* sliders (settings) */
   sliders:  '<path d="M5 11 H9.5 M18.5 11 H35 M5 29 H21.5 M30.5 29 H35"' + SW_SV + '/><circle cx="14" cy="11" r="4.5"' + SW_SV + '/><circle class="acc" cx="26" cy="29" r="4"/>',
+  /* a crosshair on a point (v0.28.0 — targets) */
+  target:   '<circle cx="20" cy="20" r="12.5"' + SW_SV + '/><path d="M20 3 V10 M20 30 V37 M3 20 H10 M30 20 H37"' + SW_SV + ' opacity=".7"/><circle class="acc" cx="20" cy="20" r="3.4"/>',
   /* one lattice cell (a recipe) */
   cell:     '<path d="M20 4 L34 12 V28 L20 36 L6 28 V12 Z"' + SW_SV + '/><path d="M20 12 L27 16 V24 L20 28 L13 24 V16 Z"' + SW_SV + ' stroke-width="2" opacity=".55"/><circle class="acc" cx="20" cy="20" r="3.2"/>'
 };
@@ -60,6 +62,8 @@ var SWEEP_GLYPHS = {
   unlink: '<path d="M8.6 4.6 L9.9 3.3 a2.4 2.4 0 0 1 3.4 3.4 L11.4 8.6 M4.6 7.4 L3.1 9 a2.4 2.4 0 0 0 3.4 3.4 L7.8 11.1 M3 3 L4.6 4.6 M13 13 L11.4 11.4"' + SW_GS + '/>',
   flag:   '<path d="M4 14 V2.6 M4 3.2 H11.8 L10 6.2 L11.8 9.2 H4"' + SW_GS + '/>',
   upload: '<path d="M8 10.5 V3 M4.8 6.2 L8 3 L11.2 6.2 M3 13.5 H13"' + SW_GS + '/>',
+  target: '<circle cx="8" cy="8" r="4.6"' + SW_GS + '/><path d="M8 1.5 V4 M8 12 V14.5 M1.5 8 H4 M12 8 H14.5"' + SW_GS + '/><circle cx="8" cy="8" r="1.2" fill="currentColor"/>',
+  plus:   '<path d="M8 3.5 V12.5 M3.5 8 H12.5"' + SW_GS + '/>',
   reset:  '<path d="M3.6 8 a4.4 4.4 0 1 0 1.3 -3.1 M3.4 2.6 V5.3 H6.1"' + SW_GS + '/>'
 };
 function swGlyph(name, cls) { return '<svg class="g' + (cls ? ' ' + cls : '') + '" viewBox="0 0 16 16" aria-hidden="true">' + (SWEEP_GLYPHS[name] || '') + '</svg>'; }
@@ -173,7 +177,15 @@ function updateDock() {
   /* ranks */
   var dirs = (typeof directions !== 'undefined') ? directions : {};
   var bothOff = ['r2metric', 'r3metric'].every(function (id) { var v = dockVal(id); return !v || v === 'none'; });
-  for (var r = 1; r <= 3; r++) {
+  /* v0.28.0 — a target replaces the rank tags */
+  var tgOn = typeof TARGET !== 'undefined' && TARGET && TARGET.metrics.length;
+  var rib = document.getElementById('rankIdealBtn'); if (rib) rib.textContent = tgOn ? 'Target' : 'Ideal Corner';
+  if (tgOn) {
+    var R = TARGET_RUN, tsub = R.running && R.status ? R.status : TARGET.auto ? 'auto rounds' : 'one sweep';
+    tags.push('<button class="dock-tag tg" type="button" onclick="dockTab(\'ranks\', true)" title="' + dockEsc('Target: ' + tgtSummary(TARGET) + ' · on target within ' + Math.round(TARGET.tol * 100) + ' %') + '">' +
+      '<span class="ico ico-sm">' + swIcon('target') + '</span><b>' + dockEsc(TARGET.metrics.map(tgtLabel).join(' · ')) + '</b><span class="sub">' + dockEsc(tsub) + '</span></button>');
+  }
+  for (var r = 1; r <= 3 && !tgOn; r++) {
     var k = dockVal('r' + r + 'metric'), off = !k || k === 'none';
     var rn = '<span class="rk-n r' + r + '">' + r + '</span>';
     if (bothOff && r === 3) continue;
@@ -223,13 +235,14 @@ function renderFunnel(f) {
   if (!f) { el.innerHTML = ''; return; }
   var sep = swGlyph('next', 'sep');
   var h = '<b>' + f.attempts + '</b> drawn ' + sep + ' <b>' + f.valid + '</b> valid';
-  for (var r = 0; r < 3; r++) {
+  for (var r = 0; r < 3 && !f.target; r++) {
     var v = f.r[r];
     h += ' ' + sep + ' <span style="color:var(--rank' + (r + 1) + ')">R' + (r + 1) + '</span> ' + (v == null ? '<span class="off">off</span>' : '<b>' + v + '</b>');
   }
+  if (f.target) h += ' ' + sep + ' <span class="tg">' + f.target.on + ' on target</span>';
   if (f.flagged) h += ' <span class="fl"><span class="fl-dot"></span>' + f.flagged + ' flagged</span>';
   el.innerHTML = h;
-  el.title = f.attempts + ' designs drawn, ' + f.valid + ' passed the volume-fraction and connectivity gates; rank 1 sorts, ranks 2 and 3 keep the top share' + (f.flagged ? '; ' + f.flagged + ' may read stiffer than they are (dot on the row)' : '');
+  el.title = f.attempts + ' designs drawn, ' + f.valid + ' passed the volume-fraction and connectivity gates; ' + (f.target ? f.target.on + ' are within ' + Math.round(f.target.tol * 100) + ' % of the target on every metric' : 'rank 1 sorts, ranks 2 and 3 keep the top share') + (f.flagged ? '; ' + f.flagged + ' may read stiffer than they are (dot on the row)' : '');
 }
 
 /* ── inspector: the hovered or selected design ──────────────── */
@@ -253,9 +266,15 @@ function renderInspector(d) {
     ['Ex_GPa', 'Ex', ''], ['Ey_GPa', 'Ey', ''], ['Ez_GPa', 'Ez', '']
   ].concat(shear ? [['Gyz_GPa', 'Gyz', ''], ['Gxz_GPa', 'Gxz', ''], ['Gxy_GPa', 'Gxy', '']]
                  : [['keff_x', 'kx', ''], ['keff_y', 'ky', ''], ['keff_z', 'kz', '']]);
+  /* v0.28.0 — with a target: how far off, and the target metrics, first */
+  if (typeof TARGET !== 'undefined' && TARGET && TARGET.metrics.length) {
+    cells = [['tgt_off', 'Off target', '']].concat(TARGET.metrics.map(function (m, i) { return ['tgt_' + i, tgtLabel(m), '']; })).concat(cells).slice(0, 9);
+  }
   var vl = d.void_limited_axes || '';
   kv.innerHTML = cells.map(function (c) {
     var v = d[c[0]], txt = (typeof formatMetric === 'function') ? formatMetric(c[0], v) : String(v);
+    if (c[0] === 'tgt_off') txt = v == null ? '—' : (v * 100).toFixed(1) + ' %';
+    else if (/^tgt_\d$/.test(c[0])) txt = tgtFmt(TARGET.metrics[+c[0].slice(4)].key, v);
     var col = (typeof COL_COLORS !== 'undefined' && COL_COLORS[c[0]]) || 'var(--ink)';
     var ax = { Ex_GPa: 'x', Ey_GPa: 'y', Ez_GPa: 'z' }[c[0]];
     var cls = (ax && vl.indexOf(ax) >= 0) ? ' class="sflag-val"' : '';

@@ -85,8 +85,27 @@ function ddMaterialGroups() {
   return [{ label: null, items: items }];
 }
 
+/* v0.28.0 — target metrics (13-target.js), grouped as F13LD.vault groups them */
+function ddTargetGroups() {
+  var out = [];
+  TGT_GROUPS.forEach(function (g) {
+    var items = Object.keys(TGT_METRICS).filter(function (k) { return TGT_METRICS[k].group === g; })
+      .map(function (k) { var i = TGT_METRICS[k]; return { v: k, name: i.name, em: i.sym, sub: i.unit === 'με' ? 'Under the reference stress' : i.bound ? 'Has a theoretical limit' : '' }; });
+    if (items.length) out.push({ label: g, items: items });
+  });
+  return out;
+}
+
 /* key → { groups, value, disabled, label (when disabled) } */
 function ddSpec(key) {
+  if (key.indexOf('tg') === 0) {
+    var ti = +key.slice(2, 3), tm = TARGET && TARGET.metrics[ti];
+    if (typeof TARGET_RUN !== 'undefined' && TARGET_RUN.running) {   /* locked while auto rounds run */
+      var tinf = tm && TGT_METRICS[tm.key];
+      return { groups: [], value: null, disabled: true, label: tinf ? dockEsc(tinf.name) + '<em>' + dockEsc(tinf.sym) + '</em>' : '—' };
+    }
+    return { groups: ddTargetGroups(), value: tm ? tm.key : null };
+  }
   if (key === 'domain') return { groups: ddDomainGroups(), value: dockVal('domainSel') };
   if (key === 'material') {
     var on = pxEl('materialGroup').style.display !== 'none';
@@ -166,6 +185,7 @@ function pickDd(key, v, ev) {
   DD_OPEN = null;
   if (key === 'domain') pxSet('domainSel', v, 'change');          /* onDomainChange() */
   else if (key === 'material') pxSet('materialSel', v, 'change');  /* onMaterialChange() */
+  else if (key.indexOf('tg') === 0) tgtSetMetric(+key.slice(2, 3), v);   /* v0.28.0 */
   else pxSet('r' + key.slice(2, 3) + 'metric', v, 'change');      /* updateRankActiveState() */
   pxAfter();
 }
@@ -343,6 +363,7 @@ function onSeg(btn) {
   else if (group === 'prec') setPrecisionUI(v);
   else if (group === 'grid') setResolutionUI(+v);
   else if (/^dir\d$/.test(group)) setDirBtn(+group.slice(3), v);
+  else if (group === 'tgauto' && TARGET) TARGET.auto = v === 'on';   /* v0.28.0 */
   pxAfter();
 }
 
@@ -375,6 +396,21 @@ function onNum(inp, commit) {
     }
   } else if (k === 'sigma') { if (isFinite(v) && v > 0) pxSet('sigmaRef', raw, 'input'); }
   else if (k === 'cell') { if (isFinite(v) && v > 0) pxSet('cellSize', raw, 'input'); }
+  else if (/^tg\d$/.test(k)) {   /* v0.28.0 — a target value */
+    var m = TARGET && TARGET.metrics[+k.slice(2)];
+    if (!m || !isFinite(v)) return;
+    m.value = v;
+    if (commit) tgtRerank();
+  } else if (k === 'tgtol') {
+    if (!TARGET || !isFinite(v) || v <= 0) return;
+    if (commit) { v = Math.max(1, Math.min(50, v)); inp.value = v; }
+    TARGET.tol = v / 100;
+    if (commit) tgtRerank();
+  } else if (k === 'tgcap') {
+    if (!TARGET || !isFinite(v)) return;
+    if (commit) { v = Math.max(1, Math.min(12, Math.round(v))); inp.value = v; }
+    TARGET.cap = Math.max(1, Math.min(12, Math.round(v)));
+  }
   else if (k === 'keep2' || k === 'keep3') {
     if (raw !== '' && (!isFinite(v) || v < 1 || v > 100)) { if (!commit) return; v = Math.max(1, Math.min(100, Math.round(v) || 100)); inp.value = v; raw = String(v); }
     pxSet('r' + k.slice(4) + 'keep', raw, 'input');
@@ -453,11 +489,19 @@ function paintSettings() {
                        : 'Pores 1e-4 of the solid, for absolute stiffness values.');
   pxEl('hGrid').textContent = (N === 16 ? 'Fastest.' : N === 32 ? 'Resolves thin walls; several times slower.' : 'Fine walls and struts; GPU only.') +
     ' PI-TPMS and beams use 32³ or finer.';
-  /* ranks */
+  /* ranks (v0.28.0 — a target replaces them) */
   var pane0 = pxEl('setPane');
+  var tgOn = !!(TARGET && TARGET.metrics.length);
+  /* the rank rows step aside while a target is set (they don't apply) */
+  var rkRows = pane0.querySelector('.rk-rows'); if (rkRows) rkRows.hidden = tgOn;
+  ['rkHead', 'hRanks'].forEach(function (id) { var e = pxEl(id); if (e) e.hidden = tgOn; });
+  pxEl('rkTitle').textContent = tgOn ? 'Target' : 'Ranks';
+  var rkIco = pane0.querySelector('.dr-col[data-col="ranks"] .dr-ph .ico'), want = tgOn ? 'target' : 'ranks';
+  if (rkIco && rkIco.getAttribute('data-ico') !== want) { rkIco.setAttribute('data-ico', want); rkIco.innerHTML = swIcon(want); }
+  pxEl('rkSub').textContent = tgOn ? 'Ranked by distance to it' : 'Sort, then keep the top share';
   for (var r = 1; r <= 3; r++) {
     renderDd('rk' + r);
-    var off = (dockVal('r' + r + 'metric') || 'none') === 'none';
+    var off = tgOn || (dockVal('r' + r + 'metric') || 'none') === 'none';
     paintSeg('dir' + r, (typeof directions !== 'undefined' && directions[r]) || 'max', function () { return off; });
     var rc = pane0.querySelector('.rk-clear[data-rank="' + r + '"]');
     if (rc) rc.disabled = off;
@@ -468,6 +512,55 @@ function paintSettings() {
       kp.parentNode.classList.toggle('na', off);
     }
   }
+  paintTarget();
+}
+
+/* v0.28.0 — the Target block under the ranks (13-target.js, 63-auto-target.js) */
+function paintTarget() {
+  var wrap = pxEl('tgWrap');
+  if (!wrap) return;
+  var T = (typeof TARGET !== 'undefined') ? TARGET : null, on = !!(T && T.metrics.length);
+  var busy = (typeof TARGET_RUN !== 'undefined') && TARGET_RUN.running;
+  wrap.classList.toggle('on', on);
+  pxEl('tgSet').hidden = on;
+  pxEl('tgClear').hidden = !on;
+  pxEl('tgClear').disabled = busy;
+  pxEl('tgBody').hidden = !on;
+  var src = pxEl('tgSrc');
+  pxEl('tgHead').textContent = on ? 'Aimed at' : 'Aim at values';
+  if (!on) { src.textContent = 'Rank designs by distance to values you set, instead of a corner'; return; }
+  var s = T.source;
+  src.textContent = s && s.tool === 'f13ld.vault' ? 'From F13LD.vault' + (s.name ? ' · ' + s.name : '') + (s.id ? ' · ' + s.id : '') : 'Set here';
+  for (var i = 0; i < 3; i++) {
+    var row = wrap.querySelector('.tg-row[data-i="' + i + '"]'), m = T.metrics[i];
+    row.hidden = !m;
+    if (!m) continue;
+    renderDd('tg' + i);
+    var info = TGT_METRICS[m.key] || {};
+    pxVal('pxTg' + i, isFinite(m.value) ? +(+m.value).toPrecision(4) : '');
+    pxEl('tgU' + i).textContent = info.unit || '';
+    var rm = row.querySelector('.rk-clear'); if (rm) rm.disabled = busy;
+    pxEl('pxTg' + i).disabled = busy;
+  }
+  pxEl('tgAdd').disabled = busy;
+  pxEl('pxTgTol').disabled = busy;
+  wrap.querySelectorAll('.seg[data-seg="tgauto"] button').forEach(function (b) { b.disabled = busy; });
+  pxEl('tgAdd').hidden = T.metrics.length >= 3;
+  paintSeg('tgauto', T.auto ? 'on' : 'off');
+  pxVal('pxTgTol', Math.round(T.tol * 100));
+  pxVal('pxTgCap', T.cap);
+  pxEl('fTgCap').classList.toggle('na', !T.auto);
+  pxEl('pxTgCap').disabled = !T.auto || busy;
+  var db = (typeof baseRecipe !== 'undefined' && baseRecipe) ? densityBounds() : null;
+  var warns = tgtPhysics(T, db ? db.hi : null, db ? db.lo : null);
+  var R = TARGET_RUN, last = R.rounds.length ? R.rounds[R.rounds.length - 1] : null;
+  var h = T.auto
+    ? 'Run walks toward the target in rounds of ' + T.roundSize + ' Fast designs (re-centring, re-aiming the density, resizing Spread), then a final run of your Designs count at your precision and grid. Only the final run is exported.'
+    : 'One sweep at your settings, ranked by distance to the target.';
+  if (last) h += ' Last: ' + R.rounds.length + ' round' + (R.rounds.length > 1 ? 's' : '') + (last.best != null ? ', best ' + (last.best * 100).toFixed(1) + ' % off' : '') + '.';
+  if (warns.length) h += ' Physics: ' + warns.map(function (w) { return w.text; }).join(' ');
+  pxEl('hTg').textContent = h;
+  pxEl('hTg').classList.toggle('warn', !!warns.length);
 }
 
 /* called from initDock (23-dock.js) */
@@ -479,6 +572,7 @@ function initSettings() {
     if (b && !b.disabled && pane.contains(b)) onSeg(b);
     /* v0.27.1 — the clear button at the end of a rank row turns that rank off */
     var c = e.target.closest && e.target.closest('.rk-clear');
+    if (c && !c.disabled && pane.contains(c) && c.dataset.tgrm != null) { closeDropdowns(); tgtRemoveMetric(+c.dataset.tgrm); return; }   /* v0.28.0 */
     if (c && !c.disabled && pane.contains(c)) { closeDropdowns(); pxSet('r' + c.dataset.rank + 'metric', 'none', 'change'); pxAfter(); }
   });
   /* v0.26.0 — only a real keystroke in a density field switches the window to Set */
@@ -513,7 +607,9 @@ function swHasOpt(id, v) { var e = pxEl(id); if (!e) return false; for (var i = 
 function swSnapshot() {
   return {
     n: +dockVal('samplesSlider'), samp: dockVal('samplingMethod'),
-    vary: dockVal('variationMode'), spread: +dockVal('spreadPct'),
+    /* v0.28.0 — while a target drives variation and spread, the user's own are kept */
+    vary: (typeof TGT_HOLD !== 'undefined' && TGT_HOLD) ? TGT_HOLD.vary : dockVal('variationMode'),
+    spread: (typeof TGT_HOLD !== 'undefined' && TGT_HOLD) ? TGT_HOLD.spread : +dockVal('spreadPct'),
     scale: SC_AX.map(function (a) { return [pxNum('scale' + a + 'lo'), pxNum('scale' + a + 'hi')]; }),
     link: typeof DOCK_STATE.link === 'boolean' ? DOCK_STATE.link : null,
     domain: dockVal('domainSel'), material: pxEl('materialGroup').style.display !== 'none' ? dockVal('materialSel') : '', sigma: dockVal('sigmaRef'), cell: dockVal('cellSize'),

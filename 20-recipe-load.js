@@ -39,6 +39,7 @@ function loadFile(file) {
   reader.readAsText(file);
 }
 
+/* → true when the recipe loaded (v0.28.0) */
 function loadRecipe(json, name) {
   /* Clear any previous sweep: exportResults refuses to mix a previous
      recipe's results with this one (recipeLoadId vs sweptRecipeId). */
@@ -68,14 +69,16 @@ function loadRecipe(json, name) {
     family = labRecipeInfo(json).family;
     if (!SWEEP_FAMILIES[family]) {
       log('warn', `${escapeLog(name)}: family "${escapeLog(family)}" is not swept (supported: ${SWEEP_FAMILY_LIST.join(', ')}) — sweep disabled`);
-      return;
+      return false;
     }
     completed = completeRecipe(json);
     designGeometry(completed);                 /* throws if the recipe can't be built */
   } catch (err) {
     log('warn', `${escapeLog(name)}: ${escapeLog(err.message)} — sweep disabled`);
-    return;
+    return false;
   }
+  /* v0.28.0 — a target from Vault named the design it came from (63-auto-target.js) */
+  if (typeof tgtOnNewRecipe === 'function') tgtOnNewRecipe();
   baseRecipe = completed;
   baseFamily = family;
   const fam = SWEEP_FAMILIES[family];
@@ -121,4 +124,5 @@ function loadRecipe(json, name) {
   const sc = recipeCellScale(completed, family);
   showPreview({ id: 'base', family, recipe: completed, scaleX: sc[0], scaleY: sc[1], scaleZ: sc[2],
                 anisotropy: (completed.homogenization && typeof completed.homogenization.anisotropy === 'number') ? completed.homogenization.anisotropy : null });
+  return true;   /* v0.28.0 — the link loader checks it */
 }

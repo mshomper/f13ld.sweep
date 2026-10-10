@@ -16,6 +16,8 @@
 
 ## Testing
 - Before merging, run `node tests/harness.js <old build> <new build>` (see `tests/README.md`). It runs the CPU solver path (`window.SWEEP_GPU = false`). Changes that are not meant to move numbers must come out identical.
+- v0.28.0 targets: `13-target.js` (maths; metric names = F13LD.vault's columns — keep in step with Vault's `23-reach.js` `SWEEP_TARGET_KEYS`) and `63-auto-target.js` (link, Run, rounds). `runSweep()` with no options must stay exactly as before. `node tests/target.js` checks the maths.
+- A headless Chromium exists in the cloud VM (`/opt/google/chrome/chrome`): with `playwright-core` installed somewhere on `NODE_PATH`, the harness can run here on CPU for quick checks (point `chromium.launch` at it with a small `-r` shim). GPU checks stay on Matt's machine.
 - Latest plan: `docs/FAMILIES_AND_JITTER_PLAN.md` (v0.26.0 jitter overhaul, then Foam / Wave / Bundle, Ingest / Vault). Session recaps: `docs/SESSION_RECAP_2026-10-09.md` (latest), `docs/SESSION_RECAP_2026-10-08_gpu.md`, `docs/SESSION_RECAP_2026-10-08.md`; what's next: `docs/NEXT_STEPS.md`. Refactor plan, decisions and phase status: `docs/REFACTOR.md`. v0.19.0 findings: `docs/AUDIT_v0.19.0.md`.
 - Cross-tool geometry check: `node tests/parity/parity.js --quick` (needs the other F13LD repos as siblings).
-- Density solve and jitter without a browser (v0.26.0): `node tests/density.js`, `node tests/smoke-jitter.js` (both slow on grain / noise — filter to a case). No Chromium in the cloud VM, so `harness.js` and `bench.html` run on Matt's machine.
+- Density solve and jitter without a browser (v0.26.0): `node tests/density.js`, `node tests/smoke-jitter.js` (both slow on grain / noise — filter to a case). `bench.html` (WebGPU) runs on Matt's machine; full harness runs too, but a few cases on CPU here are fine.

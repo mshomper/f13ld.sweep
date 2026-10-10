@@ -1138,3 +1138,37 @@ input.num:disabled { color: var(--t3); }
   .rk-row > .num-u { width: 100%; }
   .num-u .pre, .dr-col[data-col="ranks"] .num-u .pre { display: inline; }
 }
+
+/* ── v0.28.0 — Target block under the ranks (24-drawer.js paintTarget) ── */
+.tg-wrap { margin-top: 12px; padding: 10px 10px 10px 12px; border: 1px solid var(--hair); border-radius: 8px; background: var(--s1); display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.tg-wrap.on { border-color: var(--neon-ring); }
+.tg-wrap [hidden] { display: none !important; }
+.tg-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.tg-head .ico { color: var(--neon, #c8f542); flex-shrink: 0; }
+.tg-ht { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tg-ht b { font: 600 12px 'Exo 2', sans-serif; color: var(--t1); }
+.tg-ht small { font: 10.5px var(--mono); color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tg-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 7px 18px; align-items: center; min-width: 0; }
+.tg-row { display: grid; grid-template-columns: minmax(0, 1fr) 104px 24px; gap: 8px; align-items: center; min-width: 0; }
+.tg-row .num-u { width: 104px; }
+.tg-add { justify-self: start; }
+.tg-opts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: flex-end; padding-top: 6px; border-top: 1px solid var(--hair); }
+.tg-opts .dr-f { min-width: 0; }
+.tg-opts .pair { flex: 1 1 260px; max-width: 360px; }
+.tg-body > .hint, .dr-col[data-col="ranks"] .tg-body > .hint { grid-column: 1 / -1; }
+.dr-col[data-col="ranks"] .rk-rows[hidden] + .hint[hidden] + .tg-wrap, .dr-col[data-col="ranks"] .tg-wrap.on { margin-top: 2px; }
+.rk-rows[hidden], .rk-head[hidden], #hRanks[hidden] { display: none !important; }
+#hTg.warn { color: var(--warn); }
+@media (max-width: 1599px) and (min-width: 1280px) {
+  .dr-col[data-col="ranks"] .tg-wrap { grid-column: 2; }
+}
+/* the plot's target marker colour lives in 85-scatter-plot.js (canvas) */
+.funnel .tg { color: var(--neon, #c8f542); }
+.tg-on { color: var(--neon, #c8f542); font-weight: 600; }
+.tg-off { color: var(--t2); }
+th.th-tgt { color: var(--neon, #c8f542); }
+/* v0.28.0 — phone: the drawer's tab strip fits (Reset shows its icon only) */
+@media (max-width: 560px) {
+  .dr-reset span { display: none; }
+  .dr-reset { padding: 0 8px; }
+}

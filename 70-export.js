@@ -274,6 +274,12 @@ function exportResults() {
     log('warn', 'Run a sweep first, then export results.');
     return;
   }
+  /* v0.28.0 — auto-target rounds are Fast designs; only a final run is exported */
+  const tr = lastSweepSettings && lastSweepSettings.target;
+  if ((typeof TARGET_RUN !== 'undefined' && TARGET_RUN.running) || (tr && tr.round && tr.round !== 'final')) {
+    log('warn', 'These are auto-target round designs (Fast precision) — only the final run is exported. Let the rounds finish, or set the target to One sweep and run again.');
+    return;
+  }
 
   // v0.12.1: refuse to export when the swept results don't match the
   // currently-loaded recipe. Without this guard, loading a new recipe
@@ -316,7 +322,9 @@ function exportResults() {
       // solver/geometry versions recorded here and per design.
       // v0.19.0 (Sweep v0.24.0): GPU solver fields (shear moduli, 6×6,
       // cell aspect …) and the stiffness flags, all additive.
-      schema_version: '0.19.0',
+      // v0.20.0 (Sweep v0.28.0): meta.solver.target — the point target and
+      // auto-target rounds, additive.
+      schema_version: '0.20.0',
       count:    currentFiltered.length,
       solver: {
         method:   'FFT-CG',
@@ -383,7 +391,12 @@ function exportResults() {
               pressures:  lastSweepTargetProfile.pressures,
               anisotropy_explicit: lastSweepTargetProfile.anisotropy_explicit
             }
-          : null
+          : null,
+        /* v0.28.0 — the point target this sweep aimed at (13-target.js):
+           metrics in F13LD.vault's units, where it came from, and — after
+           auto rounds — each round's closeness. Only the final run's
+           designs are in this export. null without a target. Additive. */
+        target: (lastSweepSettings && lastSweepSettings.target) ? JSON.parse(JSON.stringify(lastSweepSettings.target)) : null
       }
     },
     // Analysis context — UI provenance for reproducibility (P2g). Captures
@@ -543,5 +556,5 @@ function exportResults() {
   URL.revokeObjectURL(url);
 
   log('success', `Exported ${currentFiltered.length} designs → ${a.download}`);
-  log('info', 'Run batch_validate.py on this file to get GPU-validated stiffness values');
+  log('info', 'Drop this file into F13LD.ingest to add it to F13LD.vault; open a design in F13LD.lab for a full solve');
 }

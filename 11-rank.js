@@ -135,7 +135,12 @@ function applyFinalRanking(filtered) {
     { key: document.getElementById('r3metric')?.value, dir: directions[3] || 'max' },
   ].filter(a => a.key && a.key !== 'none');
 
-  if (rankMode === 'outlier') {
+  if (rankMode !== 'outlier' && TARGET && TARGET.metrics.length) {
+    /* v0.28.0 — a point target (13-target.js): closest first */
+    tgtStamp(filtered, TARGET);
+    filtered.sort(tgtCompare);
+    log('info', `Ranked by distance from the target (${tgtSummary(TARGET)})`);
+  } else if (rankMode === 'outlier') {
     computeOutlierScores(filtered);
     filtered.sort((a, b) => b._outlierScore - a._outlierScore);
     log('info', `Ranked by outlier score (KNN k=5) — most isolated designs first`);
