@@ -38,7 +38,7 @@ const COLUMNS = [
   { label: 'με̄',    key: 'microstrain_avg' },
   { label: 'φ',      key: 'pore_size',          cls: 'td-group-start' },
   { label: 'φt',     key: 'throat_size',        cls: 'td-group-mid' },
-  { label: 'φt/c',   key: 'throat_ratio' },
+  { label: 'φt/φ',   key: 'throat_ratio' },
   { label: 'perc',   key: 'perc_idx' },
   { label: 'SA',     key: 'surface_complexity' },
   { label: 'ρ%',     key: 'volume_fraction' },

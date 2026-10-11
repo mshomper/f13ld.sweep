@@ -242,7 +242,7 @@ const METRIC_INFO_LIST = [
   { key:'microstrain_avg',  sym:'με̄', name:'Avg Microstrain (Frost)',  desc:'isotropic mean · Frost (1987): <200 disuse · 200–1500 maintenance · 1500–3000 osteogenic (target) · >3000 overload' },
   { key:'pore_size',        sym:'φ',   name:'Mean Pore Size',      desc:'inscribed sphere diameter (µm)' },
   { key:'throat_size',      sym:'φt',  name:'Min Throat Diam.',    desc:'narrowest pore connection (µm)' },
-  { key:'throat_ratio',     sym:'φt/c',name:'Throat Ratio',        desc:'v0.13: throat as fraction of cell — raw, no VF gate (vault composes any gate)' },
+  { key:'throat_ratio',     sym:'φt/φ',name:'Throat / Pore',       desc:'v0.30: narrowest throat ÷ mean pore — the constriction ratio (≈1 = uniform channels); cell-size free' },
   { key:'perc_idx',         sym:'perc',name:'Void Percolation',    desc:'fraction of axes with open pore channels' },
   { key:'surface_complexity',sym:'SA', name:'Surface Complexity',  desc:'SA/V proxy — v0.13: raw, no min(1,…) cap' },
   { key:'volume_fraction',  sym:'ρ%',  name:'Volume Fraction',     desc:'% of unit cell that is solid material' },

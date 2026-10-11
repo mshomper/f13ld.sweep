@@ -1,5 +1,13 @@
 # F13LD.sweep — next steps
 
+**As of 2026-10-11 (evening).** `main` = **v0.30.0** — metrics for F13LD.vault v0.9.0's audit: `specific_surface` (true interface area ÷ V^(2/3), from the curvature pass), `throat_ratio` = throat ÷ mean pore (was throat ÷ cell), and Aim targets `_beff` (Voigt efficiency, stiffest axis — the bound-efficiency target pinned on 2026-10-10), `_tp` (throat ÷ pore) and `_keff` (conductivity efficiency). Merged with F13LD.vault v0.9.0; F13LD.ingest unchanged (the new field lands in `metrics_extended`), no database change. Recap: [`SESSION_RECAP_2026-10-11_metrics.md`](SESSION_RECAP_2026-10-11_metrics.md).
+
+**Next:**
+1. **Matt wipes and reseeds F13LD.vault** through Push to Vault from v0.30.0 (noise from F13LD.noise v0.12.0+). The reseed fills specific surface, the new throat ratio and the stiffness matrix on every row.
+2. **Bundle — now v0.31.0** (it was planned as v0.30.0; that number went to the metrics release). Plan: [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md) §2.
+3. Later: **local thickness pore size** (see §4) — the micro-CT standard, so Vault's pore sizes compare with published scaffold data.
+4. Still pinned: density exponent as a target metric; the CPU fallback with the GPU physics (stretched cells).
+
 **As of 2026-10-11 (afternoon).** `main` = **v0.29.4** — noise revision 2 (`surface.noise_rev`): `geom/noise.js` from F13LD.lab builds the fixed noise F13LD.noise v0.12.0 previews; revision-1 recipes build exactly as before. Shipped with F13LD.noise v0.12.0, F13LD.mesh v0.9.9, F13LD.lab v0.26.2, F13LD.vault v0.8.1, F13LD.ingest v0.11.0 (push 1.1.0). Recap: [`SESSION_RECAP_2026-10-11_noise-rev2.md`](SESSION_RECAP_2026-10-11_noise-rev2.md); spec: `f13ld.noise/docs/NOISE_REV2.md`.
 
 **For the Vault reseed:** noise designs must start from an F13LD.noise v0.12.0+ export (revision 2) — Ingest's push rule and the database policy refuse revision 1.
@@ -82,6 +90,7 @@ Built 2026-10-08 (session recap [`SESSION_RECAP_2026-10-08_gpu.md`](SESSION_RECA
 Built 2026-10-08, Configure drawer rebuilt the same day as one Settings panel with SVG icons (notes in `REFACTOR.md`). Merged after Matt's review. Open: should picking General reset the rank metrics; plot hover / depth / ideal-corner nits (audit U10).
 
 ## 4. Smaller open items
+- **Local thickness pore size** (Matt, 2026-10-11 — noted for later): add the micro-CT standard pore size (local thickness, BoneJ / Hildebrand–Rüegsegger: per void voxel, the largest sphere inside the void that contains it; report the mean and distribution) to the pores pass (`53-pores.js`), so Vault's pore sizes compare directly with published scaffold data. Today's `pore_size` (mean of the top inscribed spheres) is close but not identical; P10 / P50 / P90 are distance-to-wall percentiles, not pore diameters. Vault v0.9.0's biomedical pore window scores the mean pore.
 
 | Item | Notes |
 |---|---|

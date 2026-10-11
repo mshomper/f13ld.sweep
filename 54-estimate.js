@@ -164,7 +164,7 @@ function prepareDesign(recipe, opts) {
   // ── v0.12 Phase 1: Geometric metrics (curvature, topology, tortuosity, diffusivity) ──
   let geom = {
     H_mean: 0, H_mean_abs: 0, H_std: 0,
-    K_gauss_mean: 0, curvature_uniformity: 0, MIH: 0,
+    K_gauss_mean: 0, curvature_uniformity: 0, MIH: 0, specific_surface: null,
     euler_char: 0, genus: 0, genus_per_cell: 0,
     tortuosity_x: 0, tortuosity_y: 0, tortuosity_z: 0,
     D_eff_x_norm: 0, D_eff_y_norm: 0, D_eff_z_norm: 0
@@ -415,9 +415,14 @@ function finishDesign(P, S, opts) {
     // vault-flavored opinion (penalize VF < 30%) that belongs in vault
     // composition, not sweep emission. Vault can recover the old behavior
     // via throat_ratio × min(volume_fraction/30, 1.0) if needed.
+    // v0.30.0: throat ÷ pore (both inscribed diameters, µm) — the
+    // constriction ratio the name always promised. Sweep ≤ 0.29 stored
+    // throat ÷ cell here, the same number as throat_size_norm. Not P50:
+    // that is the median of the distance field over every void voxel,
+    // about half the pore size, so throat ÷ P50 reads ~2 for open cells.
     throat_ratio: +(
-      (cellSizeMm > 0)
-        ? pores.throat_size / (cellSizeMm * 1000)
+      (pores.pore_size > 0)
+        ? pores.throat_size / pores.pore_size
         : 0
     ).toFixed(4),
     perc_idx:           pores.perc_idx,
@@ -455,6 +460,7 @@ function finishDesign(P, S, opts) {
     K_gauss_mean:         geom.K_gauss_mean,
     curvature_uniformity: geom.curvature_uniformity,
     MIH:                  geom.MIH,
+    specific_surface:     geom.specific_surface,   // v0.30.0 — true area ÷ V^(2/3)
 
     // ── v0.12 Phase 1: Topology ────────────────────────────────────────
     euler_char:     geom.euler_char,
