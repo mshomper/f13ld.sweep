@@ -23,3 +23,4 @@
 - v0.29.2 Push to Vault: `pushResultsToVault()` (70-export.js) loads F13LD.ingest's `f13ld-vault-push.js` (`VAULT_PUSH_JS`, 00-config.js) and opens its push window on `buildResultsPayload()`. The rules live in Ingest — don't copy them here. Check with `node tests/vault-push.js ../f13ld.ingest`.
 - Cross-tool geometry check: `node tests/parity/parity.js --quick` (needs the other F13LD repos as siblings).
 - Density solve and jitter without a browser (v0.26.0): `node tests/density.js`, `node tests/smoke-jitter.js` (both slow on grain / noise — filter to a case). `bench.html` (WebGPU) runs on Matt's machine; full harness runs too, but a few cases on CPU here are fine.
+- v0.29.3 design space: `84-points-gl.js` (WebGL points, Vault's renderer) + `85-scatter-plot.js` (camera, overlay, picking, chips, empty states). It redraws from its own animation loop; `drawPlot()` only marks it dirty. Keep its projection maths identical to the shader's.

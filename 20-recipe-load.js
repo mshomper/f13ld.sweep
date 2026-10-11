@@ -61,7 +61,7 @@ function loadRecipe(json, name) {
     if (b) b.disabled = true;            /* look comes from .pill-btn:disabled */
   }
   if (typeof clearSelection === 'function') clearSelection();
-  if (typeof drawPlot === 'function') drawPlot();
+  if (typeof plotSetEmpty === 'function') plotSetEmpty('none');   /* v0.29.3 */
   document.getElementById('runBtn').disabled = true;
 
   let family, completed;
@@ -138,5 +138,6 @@ function loadRecipe(json, name) {
   const sc = recipeCellScale(completed, family);
   showPreview({ id: 'base', family, recipe: completed, scaleX: sc[0], scaleY: sc[1], scaleZ: sc[2],
                 anisotropy: (completed.homogenization && typeof completed.homogenization.anisotropy === 'number') ? completed.homogenization.anisotropy : null });
+  if (typeof plotSetEmpty === 'function') plotSetEmpty('recipe', { family: fam.label, name: String(name || '').replace(/\.json$/i, '') });   /* v0.29.3 */
   return true;   /* v0.28.0 — the link loader checks it */
 }
