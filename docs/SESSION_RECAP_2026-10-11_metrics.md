@@ -1,6 +1,6 @@
 # F13LD.sweep — session recap, 2026-10-11 · v0.30.0 metrics (Vault metrics audit)
 
-Goes with F13LD.vault v0.9.0. Both ship before the Vault wipe and reseed, so the new rows carry the new fields.
+Goes with F13LD.vault v0.9.0; both merged to `main` 2026-10-11 after Matt's click-test, before the Vault wipe and reseed, so the new rows carry the new fields.
 
 ## What changed
 - **`specific_surface`** (new export field, `52-geometry-metrics.js`): interface area ÷ V^(2/3), from the curvature pass's Crofton area integral (= W / N²; a stretched cell's voxel volumes multiply to 1). Replaces Vault's use of the voxel-face `surface_complexity` (≈1.5× high). Checked: gyroid sheet 5.94 against two gyroid surfaces of ≈3.09 each. It lands in Vault's `metrics_extended` through F13LD.ingest unchanged (not a first-class column — no schema change).
@@ -10,3 +10,8 @@ Goes with F13LD.vault v0.9.0. Both ship before the Vault wipe and reseed, so the
 ## Checks
 - `node tests/harness.js <main> . tpms-gyroid-sheet,beam-bcc` (CPU): the only differences are `throat_ratio` (expected) — every other number identical.
 - `node tests/target.js` 28/28 · `node tests/loadorder.js` OK · `node tests/vault-push.js ../f13ld.ingest` PASS.
+
+## Next
+- Matt wipes and reseeds Vault from v0.30.0 exports.
+- Bundle moves to v0.31.0.
+- Later: local thickness pore size in the pores pass (`docs/NEXT_STEPS.md` §4).
