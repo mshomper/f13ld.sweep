@@ -64,7 +64,7 @@
       <button id="exportDesignBtn" class="pill-btn ghost" onclick="exportSelectedDesign()" disabled title="The selected design's recipe" data-g="down" data-label="Export design"></button>
     </div>
     <div class="fh-right">
-      <span class="fh-ver">v0.29.2</span>
+      <span class="fh-ver">v0.29.3</span>
       <!-- Sweep tool icon — fan of lines emanating from a pivot, per brand guidelines -->
       <div class="fh-ico" title="F13LD.Sweep — parameter-space exploration">
         <svg width="18" height="18" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
@@ -92,15 +92,26 @@
           <button class="mode-toggle-btn" onclick="setColorMode('terms',this)">Terms</button>
         </div>
         <div class="ph-spacer"></div>
-        <div class="panel-badge" id="plotBadge">run sweep to populate</div>
+        <div class="panel-badge" id="plotBadge">no recipe</div>
       </div>
-      <div class="preview-body plot-body">
-        <canvas id="plotCanvas" style="width:100%;height:100%;display:block;opacity:1"></canvas>
-        <div class="preview-empty" id="plotEmpty">
-          <span class="empty-ico" data-ico="cell"></span>
-          <div style="font-size:12px;color:var(--muted2);margin-top:8px">Run a sweep to see<br>the design space</div>
+      <div class="preview-body plot-body" id="plotHost">
+        <canvas class="plot-cv" id="plotGL" aria-hidden="true"></canvas>
+        <canvas class="plot-cv" id="plotCanvas" aria-label="3D design space"></canvas>
+        <div class="plot-hov tr">
+          <button class="plot-ibtn" id="plotResetBtn" type="button" title="Reset the view (double-click)" aria-label="Reset the view" data-g="reset"></button>
+          <button class="plot-pill" id="plotAliveBtn" type="button" title="Ambient motion: the view drifts slowly when left alone" aria-pressed="true" data-g="orbit" data-label="Alive"></button>
         </div>
-        <div class="preview-info" id="plotInfo"></div>
+        <div class="plot-hov plot-axes" id="plotAxes" hidden></div>
+        <div class="plot-hint">drag orbits · right-drag pans · wheel zooms · double-click resets</div>
+        <div class="plot-empty" id="plotEmpty">
+          <div class="plot-empty-card">
+            <span class="empty-ico" data-ico="cell"></span>
+            <div class="t1" id="plotEmptyT1">No recipe loaded</div>
+            <div class="t2" id="plotEmptyT2">Drop a recipe, pick one from the header, or push one from F13LD.vault</div>
+            <div class="fam" id="plotEmptyFam" hidden></div>
+          </div>
+        </div>
+        <div class="plot-tip" id="plotTip" hidden></div>
       </div>
     </section>
 
@@ -660,6 +671,7 @@
 <script src="80-preview-glsl.js"></script>
 <script src="81-preview-gl.js"></script>
 <script src="82-design-select.js"></script>
+<script src="84-points-gl.js"></script>
 <script src="85-scatter-plot.js"></script>
 <script src="99-init.js"></script>
 </body>

@@ -119,12 +119,28 @@ function runKMeans(data, k = 6, iterations = 20) {
   pts.forEach((p, i) => clusterAssignments.set(p.id, assignments[i]));
 }
 
-function getPointColor(d, fr) {
+/* v0.29.3 — outside the top three, designs shade by rank on a ramp that
+   warms toward Sweep's amber (Vault's ramp is blue → neon): low ranks a cool
+   slate, high ranks amber, so the cloud reads as a gradient while the top
+   three (neon, jade, lilac) still stand apart. n = designs on the plot. */
+const RANK_RAMP = ['#323949', '#4d4f58', '#86684c', '#c48545', '#eba65a'];
+function rankRampColor(t) {
+  t = Math.max(0, Math.min(1, t));
+  const f = t * (RANK_RAMP.length - 1), i = Math.min(RANK_RAMP.length - 2, Math.floor(f)), k = f - i;
+  const a = parseInt(RANK_RAMP[i].slice(1), 16), b = parseInt(RANK_RAMP[i + 1].slice(1), 16);
+  const ch = s => Math.round((a >> s & 255) * (1 - k) + (b >> s & 255) * k);
+  return '#' + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
+}
+function getPointColor(d, fr, n) {
   if (colorMode === 'terms') {
     const cluster = clusterAssignments.get(d.id) ?? 0;
     return CLUSTER_COLORS[cluster % CLUSTER_COLORS.length];
   }
-  return fr === 1 ? '#c8f542' : fr === 2 ? '#1D9E75' : fr === 3 ? '#b598d4' : '#5a7a5a';
+  if (fr === 1) return '#c8f542';
+  if (fr === 2) return '#1D9E75';
+  if (fr === 3) return '#b598d4';
+  const N = n || (typeof plotData !== 'undefined' ? plotData.length : 0);
+  return rankRampColor(N > 4 ? 1 - (fr - 4) / (N - 4) : 0.6);
 }
 
 // ─── Final ranking (called after filters and on mode switch) ──────────────────

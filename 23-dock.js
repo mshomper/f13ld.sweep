@@ -65,6 +65,8 @@ var SWEEP_GLYPHS = {
   target: '<circle cx="8" cy="8" r="4.6"' + SW_GS + '/><path d="M8 1.5 V4 M8 12 V14.5 M1.5 8 H4 M12 8 H14.5"' + SW_GS + '/><circle cx="8" cy="8" r="1.2" fill="currentColor"/>',
   plus:   '<path d="M8 3.5 V12.5 M3.5 8 H12.5"' + SW_GS + '/>',
   reset:  '<path d="M3.6 8 a4.4 4.4 0 1 0 1.3 -3.1 M3.4 2.6 V5.3 H6.1"' + SW_GS + '/>',
+  /* v0.29.3 — an orbit ring (the design space's ambient drift) */
+  orbit:  '<ellipse cx="8" cy="8" rx="6.2" ry="2.7"' + SW_GS + '/><circle cx="8" cy="8" r="1.5" fill="currentColor"/>',
   /* v0.29.2 — a database drum (Push to Vault) */
   vault:  '<ellipse cx="8" cy="3.8" rx="5" ry="1.9"' + SW_GS + '/><path d="M3 3.8 V8 c0 1.05 2.24 1.9 5 1.9 s5 -.85 5 -1.9 V3.8 M3 8 V12.2 c0 1.05 2.24 1.9 5 1.9 s5 -.85 5 -1.9 V8"' + SW_GS + '/>'
 };
@@ -79,6 +81,7 @@ function setRunBtn(busy) {
   if (!b) return;
   b.innerHTML = busy ? SWEEP_RUN_BUSY : SWEEP_RUN_IDLE;
   b.classList.toggle('running', !!busy);
+  if (typeof plotRunState === 'function') plotRunState(busy);   /* v0.29.3 — the design space's empty card */
 }
 /* Empty-state mark (results table, plot, preview). */
 function swEmptyIcon() { return '<span class="empty-ico">' + swIcon('cell') + '</span>'; }

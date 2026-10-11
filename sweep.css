@@ -1172,3 +1172,51 @@ th.th-tgt { color: var(--neon, #c8f542); }
   .dr-reset span { display: none; }
   .dr-reset { padding: 0 8px; }
 }
+
+/* ── v0.29.3 — design space (rebuilt on F13LD.vault's hero view) ───────── */
+.plot-body { display: block; overflow: hidden; background: radial-gradient(120% 95% at 50% 42%, #14141c 0%, #0a0b12 55%, #06080f 100%); }
+.plot-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#plotCanvas { touch-action: none; cursor: grab; }
+.plot-hov { position: absolute; z-index: 3; display: flex; gap: 6px; align-items: center; }
+.plot-hov.tr { top: 8px; right: 10px; }
+.plot-ibtn, .plot-pill { height: 28px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--hair2); border-radius: 6px; background: rgba(10,12,20,0.78); color: var(--t2); cursor: pointer;
+  font: 500 11px 'Exo 2', sans-serif; padding: 0 10px; transition: color .15s, border-color .15s; }
+.plot-ibtn { width: 28px; padding: 0; }
+.plot-ibtn:hover, .plot-pill:hover { color: var(--t1); border-color: var(--line-2); }
+.plot-pill.on { color: var(--neon); border-color: var(--neon-ring); background: rgba(200,245,66,0.06); }
+.plot-ibtn svg.g, .plot-pill svg.g { width: 14px; height: 14px; }
+.plot-axes { left: 10px; bottom: 26px; flex-wrap: wrap; max-width: calc(100% - 20px); }
+.plot-axes[hidden] { display: none; }
+.pchip { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; font: 500 11px var(--mono); color: var(--t1);
+  background: rgba(10,12,20,0.82); border: 1px solid var(--hair2); border-radius: 6px; padding: 4px 9px; white-space: nowrap; cursor: default; }
+.pchip b { font: 700 11px 'Exo 2', sans-serif; color: var(--neon); }
+.pchip .nm { overflow: hidden; text-overflow: ellipsis; }
+.pchip .u { color: var(--sweep-ink); }
+.pchip .dir { color: var(--t3); }
+.plot-hint { position: absolute; left: 0; right: 0; bottom: 7px; text-align: center; font: 400 10px var(--mono); color: var(--t3);
+  pointer-events: none; z-index: 2; opacity: 0; transition: opacity .3s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 10px; }
+.plot-body.has-data .plot-hint { opacity: 0.85; }
+.plot-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 2; transition: opacity .35s; }
+.plot-empty.hidden { opacity: 0; }
+.plot-empty-card { text-align: center; max-width: min(320px, calc(100% - 32px)); padding: 18px 22px 16px; border-radius: 12px;
+  background: rgba(10,12,20,0.72); border: 1px solid var(--hair2); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.plot-empty-card .empty-ico { margin: 0 auto 8px; }
+.plot-empty-card .t1 { font: 600 13px 'Exo 2', sans-serif; color: var(--t1); }
+.plot-empty-card .t2 { font-size: 12px; color: var(--t2); margin-top: 5px; line-height: 1.5; }
+.plot-empty-card .fam { display: inline-flex; margin-top: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 500 11px var(--mono); color: var(--sweep); border: 1px solid var(--sweep-ring); border-radius: 999px; padding: 3px 10px; }
+.plot-empty-card .fam[hidden] { display: none; }
+.plot-tip { position: absolute; z-index: 5; pointer-events: none; min-width: 160px; max-width: 260px; padding: 8px 10px; border-radius: 8px;
+  background: rgba(8,10,18,0.95); border: 1px solid var(--line-2); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+.plot-tip[hidden] { display: none; }
+.plot-tip .id { display: flex; justify-content: space-between; gap: 12px; font: 600 12px var(--mono); color: var(--neon); margin-bottom: 2px; }
+.plot-tip .id span { color: var(--t2); font-weight: 500; }
+.plot-tip .r { display: flex; justify-content: space-between; gap: 12px; font: 400 11px var(--mono); color: var(--t1); margin-top: 3px; }
+.plot-tip .r i { font-style: normal; color: var(--t2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plot-tip .fl { font: 500 10.5px var(--mono); color: var(--warn); margin-top: 5px; }
+@media (max-width: 760px) {
+  .plot-hint { display: none; }
+  .plot-axes { bottom: 8px; }
+  .pchip .dir { display: none; }
+}
