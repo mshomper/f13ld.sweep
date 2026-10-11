@@ -82,6 +82,7 @@ Built 2026-10-08 (session recap [`SESSION_RECAP_2026-10-08_gpu.md`](SESSION_RECA
 Built 2026-10-08, Configure drawer rebuilt the same day as one Settings panel with SVG icons (notes in `REFACTOR.md`). Merged after Matt's review. Open: should picking General reset the rank metrics; plot hover / depth / ideal-corner nits (audit U10).
 
 ## 4. Smaller open items
+- **Local thickness pore size** (Matt, 2026-10-11 — noted for later): add the micro-CT standard pore size (local thickness, BoneJ / Hildebrand–Rüegsegger: per void voxel, the largest sphere inside the void that contains it; report the mean and distribution) to the pores pass (`53-pores.js`), so Vault's pore sizes compare directly with published scaffold data. Today's `pore_size` (mean of the top inscribed spheres) is close but not identical; P10 / P50 / P90 are distance-to-wall percentiles, not pore diameters. Vault v0.9.0's biomedical pore window scores the mean pore.
 
 | Item | Notes |
 |---|---|
