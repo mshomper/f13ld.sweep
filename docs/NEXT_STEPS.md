@@ -1,5 +1,9 @@
 # F13LD.sweep — next steps
 
+**As of 2026-10-11 (afternoon).** `main` = **v0.29.4** — noise revision 2 (`surface.noise_rev`): `geom/noise.js` from F13LD.lab builds the fixed noise F13LD.noise v0.12.0 previews; revision-1 recipes build exactly as before. Shipped with F13LD.noise v0.12.0, F13LD.mesh v0.9.9, F13LD.lab v0.26.2, F13LD.vault v0.8.1, F13LD.ingest v0.11.0 (push 1.1.0). Recap: [`SESSION_RECAP_2026-10-11_noise-rev2.md`](SESSION_RECAP_2026-10-11_noise-rev2.md); spec: `f13ld.noise/docs/NOISE_REV2.md`.
+
+**For the Vault reseed:** noise designs must start from an F13LD.noise v0.12.0+ export (revision 2) — Ingest's push rule and the database policy refuse revision 1.
+
 **As of 2026-10-11.** `main` = **v0.29.3** (merged after Matt's click-test) — UI only: the 3D design space rebuilt on F13LD.vault's hero view. Canvases sized to the pane × pixel density every frame (fixes the stretched 300 × 150 "image" after a recipe import); WebGL glow points (`84-points-gl.js`, adapted from Vault's `30-points-gl.js`); real-value min / mid / max ticks; axis chips (metric, unit, max / min / unranked / target); Vault camera (eased orbit, wheel zoom, right / Ctrl-drag pan, double-click reset, pinch on touch); Alive drift on by default (remembered per browser); HTML tooltip; white pulse ring for the selection; empty states (no recipe / recipe loaded / running / filtered). Rank colours: top three unchanged, the rest on a slate → amber ramp (`RANK_RAMP`, 11-rank.js) as a nod to Sweep vs Vault's blue. An unranked axis puts the ideal marker mid-way along it. Harness: tpms-gyroid-sheet identical to main.
 
 **Checks it went through (Matt, 2026-10-11):** import a recipe (crisp empty cube, "Recipe loaded" card), run, orbit / zoom / pan / reset, hover and click points (table row + preview follow), Terms mode, toggle Alive and reload (remembered), an Aim Sweep link from Vault (target crosshair, trail, free-axis column, chips show target values), phone layout.
