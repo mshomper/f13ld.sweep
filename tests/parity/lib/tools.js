@@ -72,23 +72,24 @@ const noise = (() => {
   run(ctx, FIXED_DATE);
   ctx.Raymarcher = function () {}; ctx.setNoiseStatus = () => {};
   run(ctx, [
+    /* DeterministicNoise + (v0.12.0) noiseFieldKeyOf / noisePrepass / noiseStepBound */
     S('var DeterministicNoise = (function() {', '// ── Raymarcher'),
-    S('Raymarcher.prototype._runPrepass=function(params){', 'Raymarcher.prototype._buildFrag'),
     S('function seedToOffset(s){', 'function updateControlVisibility'),
     S('function homoPrepass(params){', 'function computeMIL'),
     S('function buildExportJSON(){', 'function openInMesh'),
   ].join('\n'));
-  const DEF = { noiseType: 'simplex', frequency: 0.30, isoLevel: 0, thickness: 0.15, smoothing: 0, octaves: 4, lacunarity: 2.0,
+  const DEF = { noiseType: 'simplex', frequency: 0.30, isoLevel: 0, thickness: 0.15, octaves: 4, lacunarity: 2.0,
     gain: 0.5, warpStrength: 1.0, distanceMetric: 'euclidean', curlStep: 0.10, potentialScale: 1.0, veinTurb: 3.0, veinFreq: 3.0,
-    jitter: 0.6, seed: 0, scaleX: 1, scaleY: 1, scaleZ: 1, holeFreq: 1, holeRadius: 0.3 };
+    jitter: 0.6, seed: 0, scaleX: 1, scaleY: 1, scaleZ: 1 };
   function setUI(ui) {
     const v = Object.assign({}, DEF, ui);
     ctx.document = { getElementById: id => ({ value: String(v[id]), checked: false }) };
     ctx.topoMode = v.topoMode || 'sheet'; ctx.halfInvert = !!v.halfInvert;
-    ctx.voidEnabled = false; ctx.voidType = 'spherical'; ctx.currentQuality = 'high'; ctx.lastHomogResult = null;
+    ctx.currentQuality = 'high'; ctx.lastHomogResult = null;
     const params = run(ctx, 'getParams()');
-    const rm = new ctx.Raymarcher(); rm.running = false;
-    ctx.Raymarcher.prototype._runPrepass.call(rm, params);     // the preview prepass → norm_min / norm_max
+    /* the preview prepass → norm_min / norm_max (v0.12.0: noisePrepass, keyed by noiseFieldKeyOf) */
+    const r = ctx.noisePrepass(params);
+    const rm = { running: false, noiseMin: r.noiseMin, noiseMax: r.noiseMax, _fieldKey: ctx.noiseFieldKeyOf(params) };
     ctx.raymarcher = rm;
     return { params, rm };
   }

@@ -1,0 +1,976 @@
+{
+ "note": "F13LD.noise v0.11.0 exports (no noise_rev) and their voxel hashes in Sweep / Lab / Mesh at N=32, recorded before the noise revision change.",
+ "recipes": {
+  "simplex sheet s0": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "simplex"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "simplex",
+    "frequency": 0.3,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": -4.519854571768417,
+    "norm_max": 4.568663056813564,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0,
+    "cell_scale": 3.333,
+    "mode": "shell",
+    "half_invert": false,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "simplex solid s42 scaleY2": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "simplex"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "simplex",
+    "frequency": 0.3,
+    "scale_x": 1,
+    "scale_y": 2,
+    "scale_z": 1,
+    "center": 0.1,
+    "half_width": 0.25,
+    "smoothing": 0,
+    "topology": "solid",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 42,
+    "norm_min": -4.6530550228316265,
+    "norm_max": 4.606811944096501,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0.1,
+    "cell_scale": 3.333,
+    "mode": "solid",
+    "half_invert": false,
+    "wall_thickness": 0.25,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "fbm half aniso": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "fbm"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "fbm",
+    "frequency": 0.3,
+    "scale_x": 1.5,
+    "scale_y": 1,
+    "scale_z": 0.7,
+    "center": 0.1,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": 5,
+    "lacunarity": 2,
+    "gain": 0.5,
+    "warp_strength": null,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": -2.585724808927949,
+    "norm_max": 2.561273106577572,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0.1,
+    "cell_scale": 3.333,
+    "mode": "half",
+    "half_invert": false,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "fbm sheet s7 lac2.5": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "fbm"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "fbm",
+    "frequency": 0.3,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": 3,
+    "lacunarity": 2.5,
+    "gain": 0.6,
+    "warp_strength": null,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 7,
+    "norm_min": -2.736230865556227,
+    "norm_max": 2.7706649011175144,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0,
+    "cell_scale": 3.333,
+    "mode": "shell",
+    "half_invert": false,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "ridged half-inv s11": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "ridged"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "ridged",
+    "frequency": 0.25,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0.35,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": 4,
+    "lacunarity": 2,
+    "gain": 0.5,
+    "warp_strength": null,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 11,
+    "norm_min": -4.710036941685027,
+    "norm_max": 1.2321550964449652,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0.35,
+    "cell_scale": 4,
+    "mode": "half",
+    "half_invert": true,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "billow solid": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "billow"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "billow",
+    "frequency": 0.3,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": -0.2,
+    "half_width": 0.3,
+    "smoothing": 0,
+    "topology": "solid",
+    "octaves": 4,
+    "lacunarity": 2,
+    "gain": 0.5,
+    "warp_strength": null,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": -1.2394780398917913,
+    "norm_max": 4.545874834020812,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": -0.2,
+    "cell_scale": 3.333,
+    "mode": "solid",
+    "half_invert": false,
+    "wall_thickness": 0.3,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "warp sheet": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "warp"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "warp",
+    "frequency": 0.3,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0,
+    "half_width": 0.12,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": 4,
+    "lacunarity": 2,
+    "gain": 0.5,
+    "warp_strength": 1.5,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": -2.5286987627443605,
+    "norm_max": 2.5179342065670256,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0,
+    "cell_scale": 3.333,
+    "mode": "shell",
+    "half_invert": false,
+    "wall_thickness": 0.12,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "warp0 sheet": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "warp"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "warp",
+    "frequency": 0.3,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0,
+    "half_width": 0.12,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": 4,
+    "lacunarity": 2,
+    "gain": 0.5,
+    "warp_strength": 0,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": -2.6172533404714087,
+    "norm_max": 2.5717312716022533,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0,
+    "cell_scale": 3.333,
+    "mode": "shell",
+    "half_invert": false,
+    "wall_thickness": 0.12,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "warp half-inv s4": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "warp"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "warp",
+    "frequency": 0.3,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0.05,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": 4,
+    "lacunarity": 2,
+    "gain": 0.5,
+    "warp_strength": 2.5,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 4,
+    "norm_min": -2.922510783081954,
+    "norm_max": 2.968490497657989,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0.05,
+    "cell_scale": 3.333,
+    "mode": "half",
+    "half_invert": true,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "cellular sheet euc j.6": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "cellular"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "cellular",
+    "frequency": 0.4,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": -0.6,
+    "half_width": 0.2,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": "euclidean",
+    "jitter": 0.6,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": -1.0943215496698333,
+    "norm_max": 0.9810449529552969,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": -0.6,
+    "cell_scale": 2.5,
+    "mode": "shell",
+    "half_invert": false,
+    "wall_thickness": 0.2,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "cellular half man j1 s5": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "cellular"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "cellular",
+    "frequency": 0.4,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": "manhattan",
+    "jitter": 1,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 5,
+    "norm_min": -1.0998338111693382,
+    "norm_max": 1.099992086246159,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0,
+    "cell_scale": 2.5,
+    "mode": "half",
+    "half_invert": false,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "cellular solid cheb j0": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "cellular"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "cellular",
+    "frequency": 0.5,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": -0.4,
+    "half_width": 0.2,
+    "smoothing": 0,
+    "topology": "solid",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": "chebyshev",
+    "jitter": 0,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": -1.032258064516129,
+    "norm_max": 1.096774193548387,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": -0.4,
+    "cell_scale": 2,
+    "mode": "solid",
+    "half_invert": false,
+    "wall_thickness": 0.2,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "curl sheet": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "curl"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "curl",
+    "frequency": 0.3,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": -0.2,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": -1.657007579419787,
+    "norm_max": 39.16393481778526,
+    "curl_step": 0.15,
+    "potential_scale": 1.3
+   },
+   "geometry": {
+    "offset": -0.2,
+    "cell_scale": 3.333,
+    "mode": "shell",
+    "half_invert": false,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "foam half": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "foam"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "foam",
+    "frequency": 0.4,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": "euclidean",
+    "jitter": 0.6,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": 0.20661425878222853,
+    "norm_max": 1.179110318645775,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0,
+    "cell_scale": 2.5,
+    "mode": "half",
+    "half_invert": false,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "foam sheet man j.3 s8": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "foam"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "foam",
+    "frequency": 0.45,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": "manhattan",
+    "jitter": 0.3,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 8,
+    "norm_min": 0.3607386585707047,
+    "norm_max": 1.6638797849509672,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0,
+    "cell_scale": 2.222,
+    "mode": "shell",
+    "half_invert": false,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "strut half-inv": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "strut"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "strut",
+    "frequency": 0.4,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": -0.5,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": "euclidean",
+    "jitter": 0.6,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 0,
+    "norm_min": -0.049362823931065794,
+    "norm_max": 1.0650471174146625,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": -0.5,
+    "cell_scale": 2.5,
+    "mode": "half",
+    "half_invert": true,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "strut solid cheb j.9 s2": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "strut"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "strut",
+    "frequency": 0.35,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": -0.5,
+    "half_width": 0.3,
+    "smoothing": 0,
+    "topology": "solid",
+    "octaves": null,
+    "lacunarity": null,
+    "gain": null,
+    "warp_strength": null,
+    "distance_metric": "chebyshev",
+    "jitter": 0.9,
+    "vein_turbulence": null,
+    "vein_frequency": null,
+    "seed": 2,
+    "norm_min": -0.04330805495456173,
+    "norm_max": 0.9387047741139034,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": -0.5,
+    "cell_scale": 2.857,
+    "mode": "solid",
+    "half_invert": false,
+    "wall_thickness": 0.3,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "veined sheet s2": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "veined"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "veined",
+    "frequency": 0.3,
+    "scale_x": 1,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": 4,
+    "lacunarity": 2,
+    "gain": 0.5,
+    "warp_strength": null,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": 3,
+    "vein_frequency": 3,
+    "seed": 2,
+    "norm_min": -1.099999997048859,
+    "norm_max": 1.0999999991375728,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0,
+    "cell_scale": 3.333,
+    "mode": "shell",
+    "half_invert": false,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  },
+  "veined half-inv s13 aniso": {
+   "meta": {
+    "version": "0.9.1",
+    "tool": "noise-scaffold-explorer",
+    "timestamp": "2026-10-08T00:00:00.000Z",
+    "preset": "veined"
+   },
+   "surface": {
+    "type": "noise",
+    "noise_type": "veined",
+    "frequency": 0.3,
+    "scale_x": 0.5,
+    "scale_y": 1,
+    "scale_z": 1,
+    "center": 0,
+    "half_width": 0.15,
+    "smoothing": 0,
+    "topology": "sheet",
+    "octaves": 2,
+    "lacunarity": 2,
+    "gain": 0.5,
+    "warp_strength": null,
+    "distance_metric": null,
+    "jitter": null,
+    "vein_turbulence": 5,
+    "vein_frequency": 4.5,
+    "seed": 13,
+    "norm_min": -1.0999999977332877,
+    "norm_max": 1.0999999656137598,
+    "curl_step": null,
+    "potential_scale": null
+   },
+   "geometry": {
+    "offset": 0,
+    "cell_scale": 3.333,
+    "mode": "half",
+    "half_invert": true,
+    "wall_thickness": 0.15,
+    "pipe_radius": null,
+    "phase_shift": null,
+    "gradient": {
+     "enabled": false
+    }
+   }
+  }
+ },
+ "hashes": {
+  "simplex sheet s0": {
+   "sweep": "9529d59bc97e",
+   "lab": "9529d59bc97e",
+   "mesh": "9529d59bc97e",
+   "vf": 85.85
+  },
+  "simplex solid s42 scaleY2": {
+   "sweep": "5aa1500552e0",
+   "lab": "5aa1500552e0",
+   "mesh": "5aa1500552e0",
+   "vf": 9.36
+  },
+  "fbm half aniso": {
+   "sweep": "52abdb89f46e",
+   "lab": "52abdb89f46e",
+   "mesh": "52abdb89f46e",
+   "vf": 20.4
+  },
+  "fbm sheet s7 lac2.5": {
+   "sweep": "3d0cd0f426c3",
+   "lab": "3d0cd0f426c3",
+   "mesh": "3d0cd0f426c3",
+   "vf": 74.91
+  },
+  "ridged half-inv s11": {
+   "sweep": "06d2693227f7",
+   "lab": "06d2693227f7",
+   "mesh": "06d2693227f7",
+   "vf": 14.4
+  },
+  "billow solid": {
+   "sweep": "82997815305b",
+   "lab": "82997815305b",
+   "mesh": "9c84ae530440",
+   "vf": 84.06
+  },
+  "warp sheet": {
+   "sweep": "12e93eff9c58",
+   "lab": "12e93eff9c58",
+   "mesh": "481fb53717dc",
+   "vf": 67.92
+  },
+  "warp0 sheet": {
+   "sweep": "751e052db871",
+   "lab": "751e052db871",
+   "mesh": "1fd5ae927502",
+   "vf": 68.36
+  },
+  "warp half-inv s4": {
+   "sweep": "edb897f8e2bf",
+   "lab": "edb897f8e2bf",
+   "mesh": "edb897f8e2bf",
+   "vf": 70.47
+  },
+  "cellular sheet euc j.6": {
+   "sweep": "4640bb48e2fe",
+   "lab": "4640bb48e2fe",
+   "mesh": "4640bb48e2fe",
+   "vf": 48.68
+  },
+  "cellular half man j1 s5": {
+   "sweep": "a43e2e9de520",
+   "lab": "a43e2e9de520",
+   "mesh": "a43e2e9de520",
+   "vf": 16.71
+  },
+  "cellular solid cheb j0": {
+   "sweep": "8cf1ef716bf4",
+   "lab": "8cf1ef716bf4",
+   "mesh": "8cf1ef716bf4",
+   "vf": 64.16
+  },
+  "curl sheet": {
+   "sweep": "3ce41b21cda9",
+   "lab": "3ce41b21cda9",
+   "mesh": "3ce41b21cda9",
+   "vf": 12.41
+  },
+  "foam half": {
+   "sweep": "8c5235911ac0",
+   "lab": "8c5235911ac0",
+   "mesh": "8c5235911ac0",
+   "vf": 58.14
+  },
+  "foam sheet man j.3 s8": {
+   "sweep": "9ea09beef1bf",
+   "lab": "9ea09beef1bf",
+   "mesh": "9ea09beef1bf",
+   "vf": 45.8
+  },
+  "strut half-inv": {
+   "sweep": "7ae45d65bbc7",
+   "lab": "7ae45d65bbc7",
+   "mesh": "7ae45d65bbc7",
+   "vf": 30.06
+  },
+  "strut solid cheb j.9 s2": {
+   "sweep": "736a5909b1c7",
+   "lab": "736a5909b1c7",
+   "mesh": "736a5909b1c7",
+   "vf": 31.48
+  },
+  "veined sheet s2": {
+   "sweep": "4c1fbf63d10c",
+   "lab": "4c1fbf63d10c",
+   "mesh": "4c1fbf63d10c",
+   "vf": 10.19
+  },
+  "veined half-inv s13 aniso": {
+   "sweep": "254d18bdf129",
+   "lab": "254d18bdf129",
+   "mesh": "254d18bdf129",
+   "vf": 48.41
+  }
+ }
+}
