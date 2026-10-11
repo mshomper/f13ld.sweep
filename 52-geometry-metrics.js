@@ -35,6 +35,10 @@
 //   K_gauss_mean         — ⟨K⟩ (mm⁻²), saddle (<0) vs spherical (>0)
 //   curvature_uniformity — 1 / (1 + σ_H/⟨|H|⟩) ∈ (0,1]
 //   MIH                  — ∫ H dA over the cell's interface (mm)
+//   specific_surface     — v0.30.0: interface area ÷ V^(2/3), dimensionless
+//                          (S·L/V for a cube; = W/N² — the voxels' volumes
+//                          multiply to 1). Replaces Vault's use of the voxel-
+//                          face surface_complexity, which reads up to ~1.5× high.
 /* v0.29.1 — w = [wx, wy, wz]: a stretched cell's voxel edges (geometric
    mean 1). Derivatives are taken per physical length (∂/∂x = ∂/∂i ÷ w_x),
    and a crossing along axis a stands for a face of area w_b·w_c, so the
@@ -126,7 +130,7 @@ function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N, w
   if (W <= 0) {
     return {
       H_mean: 0, H_mean_abs: 0, H_std: 0,
-      K_gauss_mean: 0, curvature_uniformity: 0, MIH: 0
+      K_gauss_mean: 0, curvature_uniformity: 0, MIH: 0, specific_surface: 0
     };
   }
 
@@ -151,7 +155,8 @@ function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N, w
     H_std:                +stdH.toFixed(4),
     K_gauss_mean:         +meanK.toFixed(4),
     curvature_uniformity: +uniformity.toFixed(3),
-    MIH:                  +(-MIH).toFixed(4)
+    MIH:                  +(-MIH).toFixed(4),
+    specific_surface:     +(W / (N * N)).toFixed(4)   /* v0.30.0 */
   };
 }
 

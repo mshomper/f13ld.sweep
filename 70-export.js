@@ -169,6 +169,7 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     K_gauss_mean:         d.K_gauss_mean,
     curvature_uniformity: d.curvature_uniformity,  // v0.13: smooth 1/(1+σ/⟨|H|⟩)
     MIH:                  d.MIH,
+    specific_surface:     d.specific_surface,   // v0.30.0
     euler_char:           d.euler_char,
     genus:                d.genus,
     genus_per_cell:       d.genus_per_cell,
@@ -536,6 +537,7 @@ function buildResultsPayload(action) {
         K_gauss_mean:         d.K_gauss_mean,
         curvature_uniformity: d.curvature_uniformity,  // v0.13: smooth formula
         MIH:                  d.MIH,
+        specific_surface:     d.specific_surface,   // v0.30.0
         euler_char:           d.euler_char,
         genus:                d.genus,
         genus_per_cell:       d.genus_per_cell,

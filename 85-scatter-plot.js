@@ -53,7 +53,7 @@ const METRIC_LABELS = {
   stiff_axis:'Stiff Axis', keff_x:'kx', keff_y:'ky', keff_z:'kz',
   thermal_anisotropy:'kα (T.Aniso)', k_density:'k/ρ',
   U_strain:'U (Strain)', microstrain_x:'με·X', microstrain_y:'με·Y', microstrain_z:'με·Z',
-  microstrain_avg:'με̄ (avg)', pore_size:'φ (µm)', throat_size:'φt (µm)', throat_ratio:'φt/c', perc_idx:'perc', surface_complexity:'SA/V', volume_fraction:'ρ%',
+  microstrain_avg:'με̄ (avg)', pore_size:'φ (µm)', throat_size:'φt (µm)', throat_ratio:'φt/φ', perc_idx:'perc', surface_complexity:'SA/V', volume_fraction:'ρ%',
 };
 /* v0.29.3 — units shown on the axis chips (only where the unit is fixed) */
 const METRIC_UNITS = {
