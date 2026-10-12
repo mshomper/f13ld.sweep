@@ -74,6 +74,16 @@ self.addEventListener('message', e => {
     } catch (err) {
       self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
     }
+  } else if (msg.type === 'connectivity') {
+    /* v0.31.0 — Preflight's reference: which axes the recipe's own solid
+       connects on, from its voxels (no solve) */
+    try {
+      const n = msg.gridN || 64;
+      const pc = computeSolidPercolation(designVoxels(designGeometry(msg.recipe), n), n);
+      self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, connect: { x: !!pc.connect_x, y: !!pc.connect_y, z: !!pc.connect_z } });
+    } catch (err) {
+      self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
+    }
   } else if (msg.type === 'bake') {
     try {
       const b = bakePreviewField(msg.recipe, msg.N);

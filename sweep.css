@@ -1242,6 +1242,7 @@ th.th-tgt { color: var(--neon, #c8f542); }
 .pf-rtx { flex: 1; min-width: 0; }
 .pf-rname { color: var(--t1); overflow-wrap: anywhere; }
 .pf-rwhy { color: var(--t2); font-size: 12px; overflow-wrap: anywhere; }
+.pf-rnote { color: var(--t3); font-size: 11px; overflow-wrap: anywhere; }
 .pf-tag { flex: none; font: 600 10px var(--mono); letter-spacing: 0.04em; padding: 2px 8px; border-radius: 6px; }
 .pf-tag.bad { color: var(--bad); background: rgba(251,113,133,0.12); }
 .pf-tag.ok { color: var(--success); background: rgba(52,211,153,0.10); }

@@ -13,9 +13,14 @@
      stretched cell scale corner. Same grid, precision and material as the
      run, so a probe is flagged exactly when a sweep design would be
      (stiffnessFlags, 54-estimate.js).
-   · When a probe flags, two fixes are worked out in the background: the
-     lowest density floor where the flagged probes clear at the current
-     grid (bisection), and the first finer grid where they clear.
+   · A probe also flags when an axis the recipe's own design connects on
+     (its voxels at 64³, no solve) reads zero stiffness: a broken load path.
+     Probes skip what the flags don't read (pores, curvature, topology,
+     tortuosity, thermal — opts.flagsOnly).
+   · When a probe flags, two fixes are worked out in the background, in two
+     parallel rounds: the lowest density floor where the flagged probes
+     clear at the current grid, and the first finer grid where they clear.
+   · When every test design fails, the popup shows them as one row.
    · Nothing shows until Run. Then: all clear → the run starts; still
      checking → Run reads "Preflight" for the few seconds left; issues →
      the popup. Apply sets the fix and runs; Ignore runs as is; Back to
@@ -28,7 +33,6 @@
    ============================================================ */
 
 const PF_SETTLE_MS = 900;       /* after the last settings change */
-const PF_FLOOR_STEPS = 4;       /* bisection steps for the density floor */
 const PF_STRETCH_MIN = 1.15;    /* a corner this much more stretched than the middle gets its own probe */
 let PF = { sig: null, coreSig: null, state: 'idle', promise: null, result: null, gen: 0,
            ignored: null, floor: 0, gating: false, _geoFor: null, _geo: null, _hashFor: null, _hash: null };
@@ -75,12 +79,13 @@ async function pfContext() {
 }
 
 /* ── the test designs ─────────────────────────────────────────────── */
+const PF_LABEL = { mid: 'the recipe’s own shape', low: 'shape varied one way', high: 'shape varied the other way', stretch: 'the most stretched cell' };
 function pfProbes(S) {
   const mid = S.sc ? S.sc.map(r => (r[0] + r[1]) / 2) : null;
   const P = [
-    { key: 'mid',  u: [0.50, 0.50], scale: mid, label: 'the recipe’s own shape' },
-    { key: 'low',  u: [0.02, 0.98], scale: mid, label: 'shape varied one way' },
-    { key: 'high', u: [0.98, 0.02], scale: mid, label: 'shape varied the other way' }
+    { key: 'mid',  u: [0.50, 0.50], scale: mid, label: PF_LABEL.mid },
+    { key: 'low',  u: [0.02, 0.98], scale: mid, label: PF_LABEL.low },
+    { key: 'high', u: [0.98, 0.02], scale: mid, label: PF_LABEL.high }
   ];
   if (S.sc) {
     const ratio = s => Math.max(...s) / Math.max(1e-9, Math.min(...s));
@@ -89,7 +94,7 @@ function pfProbes(S) {
       const s = S.sc.map((r, i) => r[(c >> i) & 1]), q = ratio(s);
       if (q > bestR * 1.0001) { best = s; bestR = q; }
     }
-    if (best && bestR >= ratio(mid) * PF_STRETCH_MIN) P.push({ key: 'stretch', u: [0.50, 0.50], scale: best, label: 'the most stretched cell' });
+    if (best && bestR >= ratio(mid) * PF_STRETCH_MIN) P.push({ key: 'stretch', u: [0.50, 0.50], scale: best, label: PF_LABEL.stretch });
   }
   /* each probe's recipe is fixed once (seeded), so re-solving it at another
      density or grid tests the same design */
@@ -121,14 +126,40 @@ function pfSpec(S, p, vf, gridN) {
       Es: S.mat.Es, nu: S.mat.nu, ks: S.mat.ks, sigma_ref: S.sigma_ref, voxelToUm: S.voxelToUm,
       eps_yield_um: S.mat.eps_yield_um, linear_cap_kind: S.mat.linear_cap_kind,
       contrast: prec.contrast, maxiter: prec.maxiter, gridN,
-      targetHints: null, scale: p.scale, targetVF: vf
+      targetHints: null, scale: p.scale, targetVF: vf,
+      /* only what the flags read: no pores, curvature, topology, tortuosity
+         or thermal solve (54-estimate.js prepareDesign) */
+      flagsOnly: true
     }
   };
 }
 
+/* Issues are kept as { k, axes, pct } so the popup can merge them:
+   break (load path), pore (pore stiffness share), vf (solid fraction off),
+   trim (thin walls in pieces), flag (anything else stiffnessFlags said). */
+const PF_ISSUE_ORDER = ['break', 'pore', 'vf', 'trim', 'flag'];
+function pfIssueText(i, N) {
+  return i.k === 'break' ? `Load path breaks on ${i.axes.join(', ')} at ${N}³`
+       : i.k === 'pore'  ? `Pores carry about ${i.pct} % of the stiffness on ${i.axes.join(', ')}`
+       : i.k === 'vf'    ? `Solid fraction ${i.pct} % off at ${N}³`
+       : i.k === 'trim'  ? `Thin walls broke into pieces (${i.pct} % of the solid)`
+       : 'Stiffness may be inflated';
+}
+/* several probes' issues → one of each kind (axes joined, the largest %) */
+function pfMergeIssues(lists) {
+  const by = {};
+  lists.forEach(l => l.forEach(i => {
+    const m = by[i.k] || (by[i.k] = { k: i.k, axes: [], pct: 0 });
+    if (i.axes) m.axes = [...new Set(m.axes.concat(i.axes))].sort();
+    if (i.pct != null) m.pct = Math.max(m.pct, i.pct);
+  }));
+  const out = PF_ISSUE_ORDER.filter(k => by[k]).map(k => by[k]);
+  return out.length > 1 ? out.filter(i => i.k !== 'flag') : out;
+}
+
 /* One probe at one density and grid → what Preflight reads from it. The
-   reason texts come from stiffnessFlags (54-estimate.js) — keep these
-   patterns in step with its wording. */
+   reasons come from stiffnessFlags (54-estimate.js) — keep these patterns
+   in step with its wording. */
 async function pfSolve(S, pool, p, vf, gridN) {
   const t0 = performance.now();
   let msg;
@@ -136,7 +167,7 @@ async function pfSolve(S, pool, p, vf, gridN) {
   catch (e) { return { built: false, error: true, reason: e.message, ms: performance.now() - t0, vf, gridN }; }
   const ms = performance.now() - t0, hom = msg.hom;
   if (!hom || hom.degenerate) return { built: false, reason: hom ? hom.reject_reason : 'error', ms, vf, gridN };
-  const issues = [];
+  const iss = [];
   if (hom.void_limited_axes) {
     const vr = S.gpu ? GPU_PRECISION[S.precMode].voidRatio : PRECISION_MODES[S.precMode].contrast;
     const rho = (hom.volume_fraction || 0) / 100;
@@ -145,89 +176,105 @@ async function pfSolve(S, pool, p, vf, gridN) {
       const e = hom['E' + a + '_GPa'];
       if (e > 0) share = Math.max(share, vr * S.mat.Es * (1 - rho) / e);
     }
-    issues.push(`Pores carry about ${Math.round(share * 100)} % of the stiffness on ${hom.void_limited_axes.split('').join(', ')}`);
+    iss.push({ k: 'pore', axes: hom.void_limited_axes.split(''), pct: Math.round(share * 100) });
   }
   const why = hom.stiffness_flag_reasons || '';
   let m;
-  if ((m = /connects differently from the metrics grid on ([xyz, ]+)/.exec(why))) issues.push(`Load path breaks on ${m[1].replace(/[ ,]/g, '').split('').join(', ')} at ${gridN}³`);
-  if ((m = /solid fraction is (\d+) % off/.exec(why))) issues.push(`Solid fraction ${m[1]} % off at ${gridN}³`);
-  if ((m = /broke into pieces on the solver grid \((\d+) %/.exec(why))) issues.push(`Thin walls broke into pieces (${m[1]} % of the solid)`);
-  if (hom.stiffness_flag && !issues.length) issues.push('Stiffness may be inflated');
-  return { built: true, flagged: !!hom.stiffness_flag, issues, E: [hom.Ex_GPa, hom.Ey_GPa, hom.Ez_GPa], ms, vf: (hom.volume_fraction || 0) / 100, gridN, slice: msg.slice || null };
+  if ((m = /connects differently from the metrics grid on ([xyz, ]+)/.exec(why))) iss.push({ k: 'break', axes: m[1].replace(/[ ,]/g, '').split('').sort() });
+  if ((m = /solid fraction is (\d+) % off/.exec(why))) iss.push({ k: 'vf', pct: +m[1] });
+  if ((m = /broke into pieces on the solver grid \((\d+) %/.exec(why))) iss.push({ k: 'trim', pct: +m[1] });
+  if (hom.stiffness_flag && !iss.length) iss.push({ k: 'flag' });
+  iss.sort((a, b) => PF_ISSUE_ORDER.indexOf(a.k) - PF_ISSUE_ORDER.indexOf(b.k));
+  return { built: true, flagged: !!hom.stiffness_flag, iss, E: [hom.Ex_GPa, hom.Ey_GPa, hom.Ez_GPa], ms, vf: (hom.volume_fraction || 0) / 100, gridN, slice: msg.slice || null };
 }
 
-/* The broken-load-path check: an axis the recipe's own design carries load
-   on (S.expect, solved on the finest grid) reads zero stiffness here — the
-   solid doesn't connect across the cell. The sweep keeps such a design
-   without a stiffness flag, so Preflight adds this one itself. */
+/* The broken-load-path check: an axis the recipe's own design connects on
+   (S.expect, its voxels on a 64³ grid) reads zero stiffness here — the solid
+   doesn't connect across the cell. The sweep keeps such a design without a
+   stiffness flag, so Preflight adds this one itself. */
 function pfJudge(S, r) {
   if (!r.built || !S.expect) return r;
   const E = { x: r.E[0], y: r.E[1], z: r.E[2] };
   const broken = S.expect.filter(a => !(E[a] > 0));
   if (!broken.length) return r;
-  const old = r.issues.find(t => /^Load path breaks/.test(t));
-  const prev = old ? old.replace(/^Load path breaks on /, '').replace(/ at .*$/, '').split(', ') : [];
-  const all = [...new Set(broken.concat(prev))].sort();
-  const issues = r.issues.filter(t => t !== old && t !== 'Stiffness may be inflated');
-  issues.unshift(`Load path breaks on ${all.join(', ')} at ${r.gridN}³`);
-  return Object.assign({}, r, { flagged: true, issues });
+  const old = r.iss.find(i => i.k === 'break');
+  const axes = [...new Set(broken.concat(old ? old.axes : []))].sort();
+  const iss = [{ k: 'break', axes }].concat(r.iss.filter(i => i.k !== 'break' && i.k !== 'flag'));
+  return Object.assign({}, r, { flagged: true, iss });
 }
 
 /* a flagged probe passes when it clears, or when it can't be built there
    (the sweep would discard it, not flag it) — a worker error never passes */
 const pfPasses = r => !r.error && !(r.built && r.flagged);
 
+/* The axes the recipe's own design connects on: its voxels on a 64³ grid
+   and a percolation check in a worker — no solve (sweep-worker.js
+   'connectivity'). */
+const PF_REF_N = 64;
+async function pfReferenceAxes(pool) {
+  try {
+    const msg = await pool.dispatch({ type: 'connectivity', attemptIdx: -100, recipe: JSON.parse(JSON.stringify(baseRecipe)), gridN: PF_REF_N });
+    const c = msg.connect || {};
+    const ax = ['x', 'y', 'z'].filter(a => c[a]);
+    return ax.length ? ax : ['x', 'y', 'z'];
+  } catch (e) { return ['x', 'y', 'z']; }
+}
+
 async function pfRun(S, gen) {
   const pool = getSolverPool(S.gpuClient);
   const stale = () => { if (gen !== PF.gen) throw { stale: true }; };
+  const t0 = performance.now();
   const probes = pfProbes(S);
-  /* what the recipe itself connects, on the finest grid this solver has:
-     the axes every probe should carry load on */
-  const fine = resolveGridNFor(S.mode, Math.max(S.gridN, S.gpu ? 64 : 32));
-  const ref = { idx: probes.length, key: 'reference', recipe: JSON.parse(JSON.stringify(baseRecipe)),
-                scale: S.sc ? recipeCellScale(baseRecipe, S.family) : null };
-  const [base, ...solved] = await Promise.all([pfSolve(S, pool, ref, null, fine)]
+  const [expect, ...solved] = await Promise.all([pfReferenceAxes(pool)]
     .concat(probes.map(p => pfSolve(S, pool, p, S.dens.lo, S.gridN))));
   stale();
-  S.expect = base.built ? ['x', 'y', 'z'].filter((a, i) => base.E[i] > 0) : [];
-  if (!S.expect.length) S.expect = ['x', 'y', 'z'];
-  const res = solved.map(r => pfJudge(S, r));
-  probes.forEach((p, i) => { p.res = res[i]; });
+  S.expect = expect;
+  probes.forEach((p, i) => { p.res = pfJudge(S, solved[i]); });
   const flagged = probes.filter(p => p.res.built && p.res.flagged);
-  const R = { S, probes, flagged: flagged.length, built: probes.filter(p => p.res.built).length, floorFix: null, gridFix: null };
+  const R = { S, probes, flagged: flagged.length, built: probes.filter(p => p.res.built).length, floorFix: null, gridFix: null,
+              time: { probes: performance.now() - t0, fixes: 0 } };
   if (!flagged.length) return R;
 
-  const testAt = async (vf, n) => {
-    const r = (await Promise.all(flagged.map(p => pfSolve(S, pool, p, vf, n)))).map(x => pfJudge(S, x));
-    stale();
-    return { pass: r.every(pfPasses), ms: r.reduce((s, x) => s + x.ms, 0) / r.length };
-  };
+  /* Fixes in two parallel rounds (on a phone, rounds one after another
+     each wait on the slowest design). Round 1: the window at a quarter,
+     half, three quarters and the top, and each finer grid at the floor.
+     Round 2: three densities inside the bracket round 1 found. */
+  const t1 = performance.now();
+  const batch = jobs => Promise.all(jobs.map(j =>
+    Promise.all(flagged.map(p => pfSolve(S, pool, p, j.vf, j.N))).then(r => r.map(x => pfJudge(S, x)))));
+  const allPass = r => r.every(pfPasses), msOf = r => r.reduce((s, x) => s + x.ms, 0) / r.length;
+  const lo = S.dens.lo, hi = S.dens.hi;
+  const fr = hi - lo >= 0.005 ? [0.25, 0.5, 0.75, 1].map(t => lo + t * (hi - lo)) : [];
+  const grids = [];
+  for (const n of [16, 32, 64]) {
+    if (n <= S.pick || (n > 32 && !S.gpu)) continue;
+    const N = resolveGridNFor(S.mode, n);
+    if (N > S.gridN && !grids.some(g => g.N === N)) grids.push({ pick: n, N });
+  }
+  const resA = await batch(fr.map(vf => ({ vf, N: S.gridN })).concat(grids.map(g => ({ vf: lo, N: g.N }))));
+  stale();
 
   /* density floor at the current grid — the default fix (Matt: the grid
      was likely picked for speed) */
-  const lo = S.dens.lo, hi = S.dens.hi;
-  if (hi - lo >= 0.005 && (await testAt(hi, S.gridN)).pass) {
-    let a = lo, b = hi;
-    for (let k = 0; k < PF_FLOOR_STEPS; k++) {
-      const m = (a + b) / 2;
-      if ((await testAt(m, S.gridN)).pass) b = m; else a = m;
-    }
+  const iA = fr.findIndex((vf, j) => allPass(resA[j]));
+  if (iA >= 0) {
+    const a = iA > 0 ? fr[iA - 1] : lo;
+    let b = fr[iA];
+    const fr2 = [0.25, 0.5, 0.75].map(t => a + t * (b - a));
+    const resB = await batch(fr2.map(vf => ({ vf, N: S.gridN })));
+    stale();
+    const iB = fr2.findIndex((vf, j) => allPass(resB[j]));
+    if (iB >= 0) b = fr2[iB];
     const floor = Math.min(hi, Math.ceil(b * 200 - 1e-9) / 200);   /* up to the next 0.5 % */
     if (floor > lo + 1e-4) R.floorFix = { floor, lo, hi };
   }
 
-  /* a finer grid at the current floor; the time against the same probes on
-     the current grid, solved the same way (the first pass shared the
-     workers with the reference design, so its times read long) */
-  let ms0 = null;
-  for (const n of [16, 32, 64]) {
-    if (n <= S.pick || (n > 32 && !S.gpu)) continue;
-    const N = resolveGridNFor(S.mode, n);
-    if (N <= S.gridN) continue;
-    if (ms0 == null) ms0 = (await testAt(lo, S.gridN)).ms;
-    const t = await testAt(lo, N);
-    if (t.pass) { R.gridFix = { pick: n, N, slower: ms0 > 0 ? t.ms / ms0 : null }; break; }
-  }
+  /* the lowest finer grid where every flagged probe clears; its solve time
+     against the current grid's in the same round */
+  const msCur = fr.length ? msOf(resA[0]) : msOf(flagged.map(p => p.res));
+  const iG = grids.findIndex((g, k) => allPass(resA[fr.length + k]));
+  if (iG >= 0) R.gridFix = { pick: grids[iG].pick, N: grids[iG].N, slower: msCur > 0 ? msOf(resA[fr.length + iG]) / msCur : null };
+  R.time.fixes = performance.now() - t1;
   return R;
 }
 
@@ -250,15 +297,17 @@ function pfStart(S) {
 
 const pfPct = v => (v * 100).toFixed(1);
 const pfPrecTxt = S => (S.precMode === 'fast' ? 'Fast' : 'Rigorous');
+const pfSec = ms => (ms / 1000).toFixed(1) + ' s';
 function pfLog(R) {
-  const S = R.S, n = R.probes.length;
-  if (!R.built) { log('info', `Preflight: none of the ${n} test designs could be built at the density floor (${pfPct(S.dens.lo)} %) — nothing to check`); return; }
-  if (!R.flagged) { log('info', `Preflight: ${R.built} test designs at the density floor (${pfPct(S.dens.lo)} %) clear on ${S.gridN}³ ${pfPrecTxt(S)}`); return; }
+  const S = R.S, n = R.probes.length, t = R.time || { probes: 0, fixes: 0 };
+  const took = R.flagged ? ` · ${pfSec(t.probes + t.fixes)} (test designs ${pfSec(t.probes)}, fixes ${pfSec(t.fixes)})` : ` · ${pfSec(t.probes)}`;
+  if (!R.built) { log('info', `Preflight: none of the ${n} test designs could be built at the density floor (${pfPct(S.dens.lo)} %) — nothing to check${took}`); return; }
+  if (!R.flagged) { log('info', `Preflight: ${R.built} test designs at the density floor (${pfPct(S.dens.lo)} %) clear on ${S.gridN}³ ${pfPrecTxt(S)}${took}`); return; }
   const fixes = [];
   if (R.floorFix) fixes.push(`density floor ${pfPct(R.floorFix.floor)} %`);
   if (R.gridFix) fixes.push(`${R.gridFix.N}³ grid`);
   log('warn', `Preflight: ${R.flagged} of ${n} test designs would be flagged on ${S.gridN}³ ${pfPrecTxt(S)}` +
-    (fixes.length ? ` — fix ready (${fixes.join(' or ')}); you'll be asked when you press Run` : ' — no quick fix found; you’ll be asked when you press Run'));
+    (fixes.length ? ` — fix ready (${fixes.join(' or ')}); you'll be asked when you press Run` : ' — no quick fix found; you’ll be asked when you press Run') + took);
 }
 
 /* ── starting it ──────────────────────────────────────────────────── */
@@ -400,8 +449,8 @@ function pfPopup(R) {
     title.id = 'pfTitle';
     ht.appendChild(title);
     const bad = R.probes.filter(p => p.res.built && p.res.flagged);
-    const breaks = bad.some(p => p.res.issues.some(t => /^Load path breaks/.test(t)));
-    const stiff = bad.some(p => p.res.issues.some(t => !/^Load path breaks/.test(t)));
+    const breaks = bad.some(p => p.res.iss.some(i => i.k === 'break'));
+    const stiff = bad.some(p => p.res.iss.some(i => i.k !== 'break'));
     const expect = breaks && stiff ? 'Expect broken load paths (zero stiffness) and inflated stiffness on the sparsest designs in this sweep.'
                  : breaks ? 'Expect broken load paths (zero stiffness) on the sparsest designs in this sweep.'
                  : 'Expect inflated stiffness on the sparsest designs in this sweep.';
@@ -410,16 +459,42 @@ function pfPopup(R) {
     card.appendChild(head);
 
     const list = pfEl('div', 'pf-probes');
-    R.probes.forEach(p => {
-      const r = p.res, row = pfEl('div', 'pf-row');
-      row.appendChild(pfSliceCanvas(r.slice));
+    const addRow = (slice, name, why, note, kind) => {
+      const row = pfEl('div', 'pf-row');
+      row.appendChild(pfSliceCanvas(slice));
       const tx = pfEl('div', 'pf-rtx');
-      tx.appendChild(pfEl('div', 'pf-rname', `Lowest density (${pfPct(S.dens.lo)} %) · ${p.label}`));
-      tx.appendChild(pfEl('div', 'pf-rwhy', !r.built ? 'Couldn’t be built at this density' : r.flagged ? r.issues.join(' · ') : 'Clear'));
+      tx.appendChild(pfEl('div', 'pf-rname', name));
+      tx.appendChild(pfEl('div', 'pf-rwhy', why));
+      if (note) tx.appendChild(pfEl('div', 'pf-rnote', note));
       row.appendChild(tx);
-      row.appendChild(pfEl('span', 'pf-tag ' + (!r.built ? 'skip' : r.flagged ? 'bad' : 'ok'), !r.built ? 'Skipped' : r.flagged ? 'Flagged' : 'Clear'));
+      row.appendChild(pfEl('span', 'pf-tag ' + kind, kind === 'skip' ? 'Skipped' : kind === 'bad' ? 'Flagged' : 'Clear'));
       list.appendChild(row);
-    });
+    };
+    const floorTxt = `at the lowest density (${pfPct(S.dens.lo)} %)`;
+    if (bad.length > 1 && bad.length === R.built) {
+      /* every test design that could be built fails: one row (Matt) — the
+         problems merged, the thinnest slice, the designs named in small print */
+      const sum = sl => (sl && sl.data) ? sl.data.reduce((s, v) => s + v, 0) / sl.data.length : Infinity;
+      const thin = bad.reduce((m, p) => (sum(p.res.slice) < sum(m.res.slice) ? p : m), bad[0]);
+      const names = bad.map(p => p.key);
+      const parts = [];
+      if (names.includes('mid')) parts.push(PF_LABEL.mid);
+      if (names.includes('low') && names.includes('high')) parts.push('both shape variations');
+      else { if (names.includes('low')) parts.push(PF_LABEL.low); if (names.includes('high')) parts.push(PF_LABEL.high); }
+      if (names.includes('stretch')) parts.push(PF_LABEL.stretch);
+      const listed = parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0];
+      const skipped = R.probes.length - R.built;
+      addRow(thin.res.slice, `All ${bad.length} test designs ${floorTxt}`,
+        pfMergeIssues(bad.map(p => p.res.iss)).map(i => pfIssueText(i, S.gridN)).join(' · '),
+        listed.charAt(0).toUpperCase() + listed.slice(1) + (skipped ? ` · ${skipped} more couldn’t be built at this density` : ''), 'bad');
+    } else {
+      R.probes.forEach(p => {
+        const r = p.res;
+        addRow(r.slice, `Lowest density (${pfPct(S.dens.lo)} %) · ${p.label}`,
+          !r.built ? 'Couldn’t be built at this density' : r.flagged ? r.iss.map(i => pfIssueText(i, r.gridN)).join(' · ') : 'Clear',
+          null, !r.built ? 'skip' : r.flagged ? 'bad' : 'ok');
+      });
+    }
     card.appendChild(list);
     card.appendChild(pfEl('div', 'pf-key', 'Slices: solid voxels light, partly filled voxels amber, pores dark'));
 

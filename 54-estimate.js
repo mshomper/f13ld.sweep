@@ -49,7 +49,8 @@ function estimateHomogenization(recipe, opts) {
   // Run thermal FFT-CG — reuses solid voxel grid from elastic solve
   const ks_val = ks || 1.0;  // normalized if no material selected
   const kv_val = ks_val * 0.0003; // void (air) ≈ 0.03% of solid
-  const therm = thermalHomogenize(fft.solid, N, ks_val, kv_val);
+  /* v0.31.0 — Preflight's test designs skip the thermal solve (no flag reads it) */
+  const therm = o.flagsOnly ? { kx: 0, ky: 0, kz: 0 } : thermalHomogenize(fft.solid, N, ks_val, kv_val);
   return finishDesign(P, {
     Ex: fft.Ex, Ey: fft.Ey, Ez: fft.Ez, cg_iters: fft.cg_iters, cg_converged: fft.cg_converged,
     solver_validity: fft.solver_validity, kx: therm.kx, ky: therm.ky, kz: therm.kz, ks_val
@@ -132,11 +133,19 @@ function prepareDesign(recipe, opts) {
      topology were skipped and exported as 0). Volume fraction and solid
      connectivity keep their sources. Each axis is measured with the cell's
      real edge (metricWeights): a stretched cell is not a cube. */
+  /* v0.31.0 — o.flagsOnly (Preflight's test designs, 64-preflight.js):
+     only what the stiffness flags read. The metrics grid's connectivity and
+     solid fraction stay (above); pores, curvature, topology and tortuosity
+     are skipped and read 0. Never set for a sweep design. */
+  const flagsOnly = !!o.flagsOnly;
   const N_MET = Math.max(N, METRICS_N_MIN);
-  const mField = _hiRes ? field : (N_MET === N ? buildGeomFieldOn(geo, N, solverGridSolid) : buildGeomField(geo, N_MET));
+  const mField = flagsOnly ? null : _hiRes ? field : (N_MET === N ? buildGeomFieldOn(geo, N, solverGridSolid) : buildGeomField(geo, N_MET));
   const wAx = metricWeights(recipe, geo.family);
-  const pores = analyzePoresFromField(mField.rawField, mField.voidMask, cellSizeMm, mField.N, wAx);
-  const hiResData = { rawField: mField.rawField, voidMask: mField.voidMask, solidMask: mField.solidMask, N: mField.N, w: wAx };
+  const pores = flagsOnly
+    ? { pore_size: 0, throat_size: 0, throat_x: 0, throat_y: 0, throat_z: 0, perc_idx: 0, perc_x: 0, perc_y: 0, perc_z: 0,
+        pore_size_p10: 0, pore_size_p50: 0, pore_size_p90: 0, pore_size_cv: 0 }
+    : analyzePoresFromField(mField.rawField, mField.voidMask, cellSizeMm, mField.N, wAx);
+  const hiResData = flagsOnly ? null : { rawField: mField.rawField, voidMask: mField.voidMask, solidMask: mField.solidMask, N: mField.N, w: wAx };
 
   /* ── FFT-CG solve on the solver-grid voxels, gated by connectivity ── */
   const connectGate = { x: !!solidPerc.connect_x, y: !!solidPerc.connect_y, z: !!solidPerc.connect_z,
@@ -197,7 +206,7 @@ function prepareDesign(recipe, opts) {
   return {
     reject: null, rejectFn: reject, geo, N, mode, isPi, isBeam, isNoise, isGrain, _contrast, _maxiter, _hiRes,
     solverGridSolid, rho_pregate, rho_hi, rho, solidPerc, solverPerc, connect_idx, connectGate, pores, complexity, geom,
-    cellSizeMm, N_GEO, N_MET: mField.N
+    cellSizeMm, N_GEO, N_MET: mField ? mField.N : N
   };
 }
 
