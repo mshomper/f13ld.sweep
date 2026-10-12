@@ -5,7 +5,7 @@
    it as meta.tool_version.
    ============================================================ */
 
-const F13LD_SWEEP_VERSION = '0.31.0';
+const F13LD_SWEEP_VERSION = '0.32.0';
 
 /* v0.29.2 — Push to Vault: the shared push file (validation, row builder,
    duplicate check, push window) lives in F13LD.ingest so every tool uses

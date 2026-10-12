@@ -26,25 +26,59 @@ function trBinaryMask(mask, N3) {
    in; meeting an already-labelled voxel in a different image means the
    component reconnects to its own image → wraps along the axes where the
    images differ.  Returns { label, count, wraps:[0, bits…], bits } with
-   bits 1 = x (i), 2 = y (j), 4 = z (k); `bits` is the OR over components. */
+   bits 1 = x (i), 2 = y (j), 4 = z (k); `bits` is the OR over components.
+
+   v0.32.0 — `axial`: [0, bits…] per component and `axialBits` (OR): the
+   axes a piece reaches its own copy STRAIGHT along (after one or more
+   cells), i.e. the axis direction lies in the span of the component's wrap
+   vectors. `wraps` counts any reach: a sheet tilted 45° meets its copy one
+   cell over on x AND y, so `wraps` marks x, y — yet pulled along x the
+   tilted sheets just slide past each other. Load needs `axial`; heat,
+   fluid and in-plane shear follow the tilted sheet, so they keep `wraps`. */
+function trWrapSpanAdd(B, v) {
+  /* B: basis rows (reduced, ≤ 3), v: integer wrap vector. → true if added */
+  const r = [v[0], v[1], v[2]];
+  for (const b of B) {
+    const p = b.p, f = r[p] / b.v[p];
+    if (f) for (let k = 0; k < 3; k++) r[k] -= f * b.v[k];
+  }
+  let p = -1, best = 1e-9;
+  for (let k = 0; k < 3; k++) if (Math.abs(r[k]) > best) { best = Math.abs(r[k]); p = k; }
+  if (p < 0) return false;
+  for (const b of B) { const f = b.v[p] / r[p]; if (f) for (let k = 0; k < 3; k++) b.v[k] -= f * r[k]; }
+  B.push({ v: r, p });
+  return true;
+}
+function trWrapSpanAxes(B) {
+  /* bit a set iff the unit vector e_a lies in span(B) */
+  if (B.length === 3) return 7;
+  let bits = 0;
+  for (let a = 0; a < 3; a++) {
+    const r = [0, 0, 0]; r[a] = 1;
+    for (const b of B) { const f = r[b.p] / b.v[b.p]; if (f) for (let k = 0; k < 3; k++) r[k] -= f * b.v[k]; }
+    if (Math.abs(r[0]) < 1e-9 && Math.abs(r[1]) < 1e-9 && Math.abs(r[2]) < 1e-9) bits |= 1 << a;
+  }
+  return bits;
+}
 function trPeriodicComponents(m, N) {
   const N3 = N * N * N, SA = N * N, SB = N, Nm1 = N - 1;
   const label = new Int32Array(N3), stack = new Int32Array(N3);
   const ox = new Int8Array(N3), oy = new Int8Array(N3), oz = new Int8Array(N3);
-  const wraps = [0];
-  let comp = 0, top = 0, all = 0;
+  const wraps = [0], axial = [0];
+  let comp = 0, top = 0, all = 0, allAxial = 0, span = [];
   const visit = (nb, cx, cy, cz) => {
     if (!m[nb]) return;
     if (!label[nb]) { label[nb] = comp; ox[nb] = cx; oy[nb] = cy; oz[nb] = cz; stack[top++] = nb; return; }
-    let w = 0;
-    if (ox[nb] !== ((cx << 24) >> 24)) w |= 1;   // compare as int8 (typed-array wrap)
-    if (oy[nb] !== ((cy << 24) >> 24)) w |= 2;
-    if (oz[nb] !== ((cz << 24) >> 24)) w |= 4;
-    if (w) wraps[comp] |= w;
+    const dx = (((cx << 24) >> 24) - ox[nb]) << 24 >> 24;   // int8 differences (typed-array wrap)
+    const dy = (((cy << 24) >> 24) - oy[nb]) << 24 >> 24;
+    const dz = (((cz << 24) >> 24) - oz[nb]) << 24 >> 24;
+    if (!(dx || dy || dz)) return;
+    wraps[comp] |= (dx ? 1 : 0) | (dy ? 2 : 0) | (dz ? 4 : 0);
+    if (span.length < 3) trWrapSpanAdd(span, [dx, dy, dz]);
   };
   for (let seed = 0; seed < N3; seed++) {
     if (!m[seed] || label[seed]) continue;
-    comp++; wraps.push(0);
+    comp++; wraps.push(0); span = [];
     top = 0; stack[top++] = seed; label[seed] = comp; ox[seed] = 0; oy[seed] = 0; oz[seed] = 0;
     while (top > 0) {
       const id = stack[--top];
@@ -59,8 +93,10 @@ function trPeriodicComponents(m, N) {
       visit(a * SA + b * SB + (c === Nm1 ? 0 : c + 1), X, Y, c === Nm1 ? Z + 1 : Z);
     }
     all |= wraps[comp];
+    axial.push(trWrapSpanAxes(span));
+    allAxial |= axial[comp];
   }
-  return { label, count: comp, wraps, bits: all };
+  return { label, count: comp, wraps, bits: all, axial, axialBits: allAxial };
 }
 
 /* Periodic exact squared EDT (Felzenszwalb–Huttenlocher), port of F13LD.lab
@@ -251,9 +287,14 @@ function computeThroatAndPerc(voidMask, cellSizeMm, N, w) {
 // their mean (0, 0.33, 0.67, 1).
 //
 // Cost: one periodic labelling pass, O(N³).
+/* v0.32.0 — connect_x/y/z use the STRAIGHT reach (pc.axialBits): a piece
+   that only meets its copy diagonally (sheets tilted 45°, fibres along the
+   cube diagonal) does not carry uniaxial load along x, y or z, and used to
+   be solved there at the pore-material floor (anisotropy pinned at 99).
+   The shear gates keep any reach: tilted sheets do carry in-plane shear. */
 function computeSolidPercolation(solidMask, N) {
   const N3 = N * N * N;
-  const pc = trPeriodicComponents(trBinaryMask(solidMask, N3), N), bits = pc.bits;
+  const pc = trPeriodicComponents(trBinaryMask(solidMask, N3), N), bits = pc.axialBits;
   const cx = bits & 1 ? 1 : 0;
   const cy = bits & 2 ? 1 : 0;
   const cz = bits & 4 ? 1 : 0;

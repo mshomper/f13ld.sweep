@@ -147,9 +147,15 @@ function prepareDesign(recipe, opts) {
     : analyzePoresFromField(mField.rawField, mField.voidMask, cellSizeMm, mField.N, wAx);
   const hiResData = flagsOnly ? null : { rawField: mField.rawField, voidMask: mField.voidMask, solidMask: mField.solidMask, N: mField.N, w: wAx };
 
-  /* ── FFT-CG solve on the solver-grid voxels, gated by connectivity ── */
-  const connectGate = { x: !!solidPerc.connect_x, y: !!solidPerc.connect_y, z: !!solidPerc.connect_z,
-                        yz: !!solidPerc.shear_yz, xz: !!solidPerc.shear_xz, xy: !!solidPerc.shear_xy };
+  /* ── FFT-CG solve on the solver-grid voxels, gated by connectivity ──
+     v0.32.0 — the gate is the grid actually solved: for PI / noise / grain
+     an axis must connect on the metrics grid AND the solver grid. An axis
+     the coarse solver grid breaks used to be solved anyway and read the
+     pore-material floor (small but not zero, anisotropy pinned at 99); it
+     is skipped now and stays flagged under-resolved (stiffnessFlags). */
+  const both = k => !!solidPerc[k] && (!solverPerc || !!solverPerc[k]);
+  const connectGate = { x: both('connect_x'), y: both('connect_y'), z: both('connect_z'),
+                        yz: both('shear_yz'), xz: both('shear_xz'), xy: both('shear_xy') };
   /* PI / noise / grain: the metrics grid is canonical for VF — gate on it
      here with the strict bounds, and let the solver skip its coarse check. */
   if (_hiRes && (rho_hi < _rhoMin || rho_hi > _rhoMax)) return { reject: reject(rho_hi < _rhoMin ? 'vf_low' : 'vf_high', rho_hi) };
@@ -229,10 +235,16 @@ function finishDesign(P, S, opts) {
   //                  independent of load-carrying ability.
   //   axial_dominance — DROPPED (conceptually overlaps with directionality).
   const E_arr = [Ex, Ey, Ez];
-  const connectArr_metric = solidPerc
-    ? [!!solidPerc.connect_x, !!solidPerc.connect_y, !!solidPerc.connect_z]
+  /* v0.32.0 — anisotropy reads the axes that carry load: solved (the
+     connectivity gate, P.connectGate — the grid actually solved), E > 0 (a
+     solve that did not settle reads 0 and is left out, not max ÷ 0 = 99),
+     and not at the pore-material level (void-level axes, below). */
+  const g = P.connectGate;
+  const connectArr_metric = g ? [!!g.x, !!g.y, !!g.z]
+    : solidPerc ? [!!solidPerc.connect_x, !!solidPerc.connect_y, !!solidPerc.connect_z]
     : [true, true, true];
-  const E_perc = E_arr.filter((e, i) => connectArr_metric[i]);
+  const vAxes = voidLevelAxes(E_arr, S.voidRatio != null ? S.voidRatio : P._contrast, Es || 100, rho);
+  const E_perc = E_arr.filter((e, i) => connectArr_metric[i] && e > 0 && !vAxes[i]);
 
   let aniso = null;
   if (E_perc.length >= 2) {
@@ -519,12 +531,24 @@ function finishDesign(P, S, opts) {
    → { stiffness_flag, void_limited_axes ('' | 'x' | 'xz' …), under_resolved,
        stiffness_flag_reasons (text | null) } */
 const STIFFNESS_FLAG_VOID_SHARE = 0.10;
+/* v0.32.0 — the safety net: an axis whose stiffness the pore material
+   carries over half of is at the void level — no real load path, whatever
+   the connectivity test said. Left out of anisotropy (finishDesign) and
+   named in the flag reasons, so a user sees one or two dead axes.
+   → [bool x, bool y, bool z] */
+const STIFFNESS_VOID_LEVEL_SHARE = 0.5;
+function voidLevelAxes(E, voidRatio, Es, rho) {
+  const vr = voidRatio != null ? voidRatio : 1e-3;
+  return E.map(e => e > 0 && vr * Es * (1 - rho) / e > STIFFNESS_VOID_LEVEL_SHARE);
+}
 function stiffnessFlags(P, S, out, Es, rho) {
   const vr = S.voidRatio != null ? S.voidRatio : (P._contrast != null ? P._contrast : 1e-3);
   const E = [out.Ex_GPa, out.Ey_GPa, out.Ez_GPa], why = [];
   const vAxes = [];
   E.forEach((e, i) => { if (e > 0 && vr * Es * (1 - rho) / e > STIFFNESS_FLAG_VOID_SHARE) vAxes.push('xyz'[i]); });
   if (vAxes.length) why.push(`pore stiffness is over ${Math.round(STIFFNESS_FLAG_VOID_SHARE * 100)} % of E on ${vAxes.join(', ')}`);
+  const dead = voidLevelAxes(E, vr, Es, rho).map((v, i) => v ? 'xyz'[i] : '').filter(Boolean);
+  if (dead.length) why.push(`no real load path on ${dead.join(', ')} (stiffness at the pore-material level, left out of anisotropy)`);
   const under = [];
   if (P.solverPerc && P.solidPerc) {
     const diff = ['x', 'y', 'z'].filter(a => !!P.solverPerc['connect_' + a] !== !!P.solidPerc['connect_' + a]);
