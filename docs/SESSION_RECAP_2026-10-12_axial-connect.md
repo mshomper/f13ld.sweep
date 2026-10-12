@@ -22,3 +22,11 @@ Reseeding Vault, several designs that don't connect along one or more axes score
 
 ## Checks for Matt (GPU)
 `tests/bench.html` on the branch, then a Fast sweep of a recipe that gave 99s; designs that previously scored 99 should show a dash for anisotropy or a value over the axes that carry load, with the dead axes named in the stiffness flag.
+
+## Preflight fix search (same release)
+Matt's popup: one of three test designs flagged at 32³ Rigorous ("thin walls broke into pieces"), and "No fix confirmed within 15 s". The search ran one test solve at a time; at Rigorous each one (32³ solve, 64³ metrics field for grain / noise, 64³ connectivity, tight tolerance) took seconds, and the density floor search (top of range + four halvings) ran before the finer grid was ever tried. A bug also dropped a floor that had already cleared: with one flagged design, the final confirm step was skipped once time was up, and the floor with it.
+- First round side by side: the floor at the top of its range and the settings fix (next grid up and / or Rigorous) at the bottom of the window. Halving the floor uses the time left.
+- A floor that cleared every flagged design is always offered (possibly higher than needed).
+- The design's own 64³ connectivity is cached by the solved recipe.
+- The popup and log say what was tried ("Tried: a density floor up to 22.0 % didn't clear; the 64³ grid wasn't tested in time.").
+- Budget stays 15 s (Matt). Test: `node tests/preflight-fixes.js`.

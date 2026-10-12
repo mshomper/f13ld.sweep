@@ -163,6 +163,7 @@ function pfMergeIssues(lists) {
 /* One probe at one density and grid → what Preflight reads from it. The
    reasons come from stiffnessFlags (54-estimate.js) — keep these patterns
    in step with its wording. */
+const PF_OWN_CACHE = new Map();   /* v0.32.0 — solved-recipe hash → axes it connects on at 64³ */
 async function pfSolve(S, pool, p, vf, gridN) {
   const t0 = performance.now();
   let msg;
@@ -188,12 +189,21 @@ async function pfSolve(S, pool, p, vf, gridN) {
   if ((m = /broke into pieces on the solver grid \((\d+) %/.exec(why))) iss.push({ k: 'trim', pct: +m[1] });
   if (hom.stiffness_flag && !iss.length) iss.push({ k: 'flag' });
   iss.sort((a, b) => PF_ISSUE_ORDER.indexOf(a.k) - PF_ISSUE_ORDER.indexOf(b.k));
-  /* the design's own connectivity: its solved recipe's voxels at 64³ (no solve) */
+  /* the design's own connectivity: its solved recipe's voxels at 64³ (no solve).
+     v0.32.0 — cached by the solved recipe: the fix search meets the same
+     design at the same density again (another grid, Rigorous), and the 64³
+     build is a large share of a test solve for grain and noise */
   let own = null;
-  try {
-    const c = await pool.dispatch({ type: 'connectivity', attemptIdx: -200 - (p.idx || 0), recipe: msg.recipe || p.recipe, gridN: PF_REF_N });
-    own = ['x', 'y', 'z'].filter(a => c.connect && c.connect[a]);
-  } catch (e) { own = null; }
+  const rec = msg.recipe || p.recipe, key = pfHash(JSON.stringify(rec));
+  if (PF_OWN_CACHE.has(key)) own = PF_OWN_CACHE.get(key);
+  else {
+    try {
+      const c = await pool.dispatch({ type: 'connectivity', attemptIdx: -200 - (p.idx || 0), recipe: rec, gridN: PF_REF_N });
+      own = ['x', 'y', 'z'].filter(a => c.connect && c.connect[a]);
+      if (PF_OWN_CACHE.size >= 64) PF_OWN_CACHE.delete(PF_OWN_CACHE.keys().next().value);
+      PF_OWN_CACHE.set(key, own);
+    } catch (e) { own = null; }
+  }
   return { built: true, flagged: !!hom.stiffness_flag, iss, own, E: [hom.Ex_GPa, hom.Ey_GPa, hom.Ez_GPa], ms: performance.now() - t0,
            vf: (hom.volume_fraction || 0) / 100, gridN, slice: msg.slice || null };
 }
@@ -280,47 +290,88 @@ async function pfFixes(S, gen, R, pool, flagged) {
   const kinds = new Set([].concat(...flagged.map(p => p.res.iss.map(i => i.k))));
   const needGrid = ['break', 'vf', 'trim', 'flag'].some(k => kinds.has(k));
   const needPrec = kinds.has('pore') && S.precMode === 'fast';
-  let msSolo = null;
+  /* v0.32.0 — what was tried, for the popup when nothing is confirmed */
+  const cap = pfFloorCap(S);
+  let g = null;
+  if (needGrid) {
+    for (const n of [16, 32, 64]) {
+      if (n <= S.pick || (n > 32 && !S.gpu)) continue;
+      const N = resolveGridNFor(S.mode, n);
+      if (N > S.gridN) { g = { pick: n, N }; break; }
+    }
+  }
+  const setPossible = (!needGrid || !!g) && (needGrid || needPrec);
+  const SS = needPrec ? Object.assign({}, S, { precMode: 'rigorous' }) : S;
+  const setN = g ? g.N : S.gridN;
+  const setName = pfSetFixName({ pick: g ? g.pick : null, N: setN, prec: needPrec ? 'rigorous' : null }).replace(/^Use t/, 't').replace(/^Use /, '');
+  R.tried = { cap, floor: cap == null ? 'no-room' : null, set: (needGrid || needPrec) ? (setPossible ? null : 'none') : 'n/a', setName };
+  const base = worst.res && worst.res.ms > 0 ? worst.res.ms : null;
   try {
-    /* density floor: the top of the allowed range first — if the worst
-       design still fails there, no floor will do */
-    const cap = pfFloorCap(S);
-    if (cap != null) {
-      const top = await one(S, worst, cap, S.gridN);
-      msSolo = top.ms;
-      if (pfPasses(top)) {
+    /* v0.32.0 — first round side by side: the density floor at the top of
+       its range and the settings fix at the bottom of the window. The
+       settings fix used to wait for the whole floor search, which could use
+       up the budget before the finer grid was ever tried. */
+    const [top, set] = await Promise.all([
+      cap != null ? one(S, worst, cap, S.gridN) : Promise.resolve(null),
+      setPossible ? one(SS, worst, lo, setN) : Promise.resolve(null)
+    ]);
+    if (top) R.tried.floor = pfPasses(top) ? 'cleared' : 'failed';
+    if (set) R.tried.set = pfPasses(set) ? 'cleared' : 'failed';
+
+    /* the settings fix: confirm on the other flagged designs */
+    if (set && pfPasses(set)) {
+      if (!others.length || (!over() && await all(SS, others, lo, setN)))
+        R.setFix = { pick: g ? g.pick : null, N: setN, prec: needPrec ? 'rigorous' : null, slower: base ? set.ms / base : null };
+      else if (others.length) R.tried.set = over() ? 'unconfirmed' : 'others';
+    }
+
+    /* the density floor: the top cleared the worst design — confirm it on
+       the others, then lower it while time is left. v0.32.0 — a floor that
+       has cleared every flagged design is always offered, even when the
+       budget runs out part way (it used to be dropped). */
+    if (top && pfPasses(top)) {
+      let confirmed = null;
+      if (!others.length) confirmed = cap;
+      else if (!over() && await all(S, others, cap, S.gridN)) confirmed = cap;
+      if (confirmed == null) R.tried.floor = over() ? 'unconfirmed' : 'others';
+      else {
         let a = lo, b = cap;
         for (let k = 0; k < 4 && !over(); k++) {
           const m = (a + b) / 2;
           if (pfPasses(await one(S, worst, m, S.gridN))) b = m; else a = m;
         }
-        let floor = Math.min(cap, Math.ceil(b * 200 - 1e-9) / 200);   /* up to the next 0.5 %, inside the cap */
-        if (floor < b) floor = b;
-        let ok = !over() && await all(S, others, floor, S.gridN);
-        if (!ok && floor < cap && !over()) { floor = cap; ok = await all(S, others, cap, S.gridN); }
-        if (ok && floor > lo + 1e-4) R.floorFix = { floor, lo, hi: S.dens.hi, cap };
+        if (b < cap) {
+          let floor = Math.min(cap, Math.ceil(b * 200 - 1e-9) / 200);   /* up to the next 0.5 %, inside the cap */
+          if (floor < b) floor = b;
+          if (floor < cap && (!others.length || (!over() && await all(S, others, floor, S.gridN)))) confirmed = floor;
+        }
+        if (confirmed > lo + 1e-4) R.floorFix = { floor: confirmed, lo, hi: S.dens.hi, cap };
       }
-    }
-    /* settings matched to the problem */
-    let g = null;
-    if (needGrid) {
-      for (const n of [16, 32, 64]) {
-        if (n <= S.pick || (n > 32 && !S.gpu)) continue;
-        const N = resolveGridNFor(S.mode, n);
-        if (N > S.gridN) { g = { pick: n, N }; break; }
-      }
-    }
-    if (!over() && (!needGrid || g) && (needGrid || needPrec)) {
-      const SS = needPrec ? Object.assign({}, S, { precMode: 'rigorous' }) : S;
-      const N = g ? g.N : S.gridN;
-      const r = await one(SS, worst, lo, N);
-      if (pfPasses(r) && !over() && await all(SS, others, lo, N))
-        R.setFix = { pick: g ? g.pick : null, N, prec: needPrec ? 'rigorous' : null, slower: msSolo > 0 ? r.ms / msSolo : null };
     }
   } finally {
     R.time.fixes = performance.now() - t1;
     R.fixCapped = over();
   }
+}
+
+/* v0.32.0 — when no fix is confirmed, what Preflight got to */
+function pfTriedText(R) {
+  const t = R.tried;
+  if (!t) return '';
+  const parts = [];
+  const cap = t.cap != null ? `${pfPct(t.cap)} %` : '';
+  if (t.floor === 'no-room') parts.push('the density window leaves no room for a higher floor');
+  else if (t.floor === 'failed') parts.push(`a density floor up to ${cap} didn’t clear`);
+  else if (t.floor === 'others') parts.push(`a density floor of ${cap} cleared one design but not the others`);
+  else if (t.floor === 'unconfirmed') parts.push(`a density floor of ${cap} cleared one design; the others weren’t checked in time`);
+  else if (t.floor == null) parts.push('the density floor wasn’t tested in time');
+  if (t.set === 'none') parts.push('there is no finer grid to try here');
+  else if (t.set === 'failed') parts.push(`${t.setName} didn’t clear`);
+  else if (t.set === 'others') parts.push(`${t.setName} cleared one design but not the others`);
+  else if (t.set === 'unconfirmed') parts.push(`${t.setName} cleared one design; the others weren’t checked in time`);
+  else if (t.set == null) parts.push(`${t.setName} wasn’t tested in time`);
+  if (!parts.length) return '';
+  return 'Tried: ' + parts.join('; ') + '. ';
 }
 
 function pfStart(S) {
@@ -358,7 +409,8 @@ function pfLogFixes(R) {
   if (R.floorFix) fixes.push(`density floor ${pfPct(R.floorFix.floor)} %`);
   if (R.setFix) fixes.push(pfSetFixName(R.setFix).replace(/^Use the /, '').replace(/^Use /, ''));
   log(fixes.length ? 'info' : 'warn', `Preflight: ${fixes.length ? 'fix ready (' + fixes.join(' or ') + ')' : 'no quick fix found'} · ${pfSec(R.time.fixes)}` +
-    (R.fixCapped ? ` (stopped at the ${PF_FIX_BUDGET_MS / 1000} s limit)` : ''));
+    (R.fixCapped ? ` (stopped at the ${PF_FIX_BUDGET_MS / 1000} s limit)` : '') +
+    (fixes.length ? '' : (' — ' + pfTriedText(R)).replace(/ — $/, '')));
 }
 
 /* ── starting it ──────────────────────────────────────────────────── */
@@ -610,9 +662,10 @@ function pfPopup(R) {
         acts.appendChild(btn('ghost', 'Ignore and run', 'ignore'));
         acts.appendChild(btn('primary', 'Apply and run', 'pick'));
       } else {
-        fixBox.appendChild(pfEl('div', 'pf-none', R.fixCapped
-          ? `No fix confirmed within ${PF_FIX_BUDGET_MS / 1000} s. Change the settings, or run and filter the flagged designs out afterwards.`
-          : 'No quick fix found within the density window or by changing the grid or precision. Change the settings, or run and filter the flagged designs out afterwards.'));
+        fixBox.appendChild(pfEl('div', 'pf-none', (R.fixCapped
+          ? `No fix confirmed within ${PF_FIX_BUDGET_MS / 1000} s. `
+          : 'No quick fix found within the density window or by changing the grid or precision. ') +
+          pfTriedText(R) + 'Change the settings, or run and filter the flagged designs out afterwards.'));
         acts.appendChild(btn('primary', 'Back to settings', 'back'));
         acts.appendChild(btn('ghost', 'Ignore and run', 'ignore'));
       }
