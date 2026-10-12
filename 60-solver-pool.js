@@ -255,10 +255,15 @@ async function computeDesign(pool, gpu, spec, gpuPrec) {
   if (prep.reject) return { attemptIdx: spec.attemptIdx, hom: prep.reject, recipe: msg.recipe, density: msg.density };
   const o = spec.opts, P = prep.P;
   const anyAxis = P.connectGate.x || P.connectGate.y || P.connectGate.z;
+  /* v0.31.0 — Preflight's probes: a mid-cell slice of the partial-volume
+     voxels, taken before the solve can move phi's buffer */
+  const slice = spec.wantSlice ? voxelMidSliceThin(prep.phi, P.N) : null;
   const sol = await gpu.solve({
     N: P.N, phi: prep.phi, edges: prep.edges,
     elastic: anyAxis ? { Es: o.Es, nu: o.nu, voidRatio: gpuPrec.voidRatio, tol: gpuPrec.tol, maxiter: gpuPrec.maxiter } : null,
-    thermal: { kS: o.ks || 1.0, kF: (o.ks || 1.0) * 0.0003, tol: gpuPrec.thTol, maxiter: gpuPrec.thMaxiter }
+    thermal: o.flagsOnly ? null : { kS: o.ks || 1.0, kF: (o.ks || 1.0) * 0.0003, tol: gpuPrec.thTol, maxiter: gpuPrec.thMaxiter }   /* v0.31.0 — Preflight skips it */
   });
-  return { attemptIdx: spec.attemptIdx, hom: finishDesignGpu(prep, sol, o, gpuPrec), recipe: msg.recipe, density: msg.density };
+  const out = { attemptIdx: spec.attemptIdx, hom: finishDesignGpu(prep, sol, o, gpuPrec), recipe: msg.recipe, density: msg.density };
+  if (slice) out.slice = slice;
+  return out;
 }

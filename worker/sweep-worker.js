@@ -56,7 +56,13 @@ self.addEventListener('message', e => {
     try {
       const d = applyDensityTarget(msg.recipe, msg.opts);
       const hom = (d.density && !d.density.ok) ? densityReject(d.density) : estimateHomogenization(d.recipe, solvedOpts(msg.opts, d.density));
-      self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, hom, recipe: d.recipe, density: d.density });
+      /* v0.31.0 — Preflight's probes only: a mid-cell slice of the solver voxels */
+      let slice = null;
+      if (msg.wantSlice && hom && !hom.degenerate && hom.grid_N) {
+        try { slice = voxelMidSliceThin(designVoxels(designGeometry(d.recipe), hom.grid_N), hom.grid_N); } catch (e) { slice = null; }
+      }
+      self.postMessage(slice ? { type: 'result', attemptIdx: msg.attemptIdx, hom, recipe: d.recipe, density: d.density, slice }
+                             : { type: 'result', attemptIdx: msg.attemptIdx, hom, recipe: d.recipe, density: d.density });
     } catch (err) {
       self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
     }
@@ -65,6 +71,16 @@ self.addEventListener('message', e => {
       const d = applyDensityTarget(msg.recipe, msg.opts);
       const prep = (d.density && !d.density.ok) ? { reject: densityReject(d.density) } : prepareDesignGpu(d.recipe, solvedOpts(msg.opts, d.density));
       self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, prep, recipe: d.recipe, density: d.density }, prep.phi ? [prep.phi.buffer] : []);
+    } catch (err) {
+      self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
+    }
+  } else if (msg.type === 'connectivity') {
+    /* v0.31.0 — Preflight's reference: which axes the recipe's own solid
+       connects on, from its voxels (no solve) */
+    try {
+      const n = msg.gridN || 64;
+      const pc = computeSolidPercolation(designVoxels(designGeometry(msg.recipe), n), n);
+      self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, connect: { x: !!pc.connect_x, y: !!pc.connect_y, z: !!pc.connect_z } });
     } catch (err) {
       self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
     }

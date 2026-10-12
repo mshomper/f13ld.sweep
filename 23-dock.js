@@ -40,6 +40,8 @@ var SWEEP_ICONS = {
   sliders:  '<path d="M5 11 H9.5 M18.5 11 H35 M5 29 H21.5 M30.5 29 H35"' + SW_SV + '/><circle cx="14" cy="11" r="4.5"' + SW_SV + '/><circle class="acc" cx="26" cy="29" r="4"/>',
   /* a crosshair on a point (v0.28.0 — targets) */
   target:   '<circle cx="20" cy="20" r="12.5"' + SW_SV + '/><path d="M20 3 V10 M20 30 V37 M3 20 H10 M30 20 H37"' + SW_SV + ' opacity=".7"/><circle class="acc" cx="20" cy="20" r="3.4"/>',
+  /* Preflight (v0.31.0): three voxels on a load path, the middle one breaking, and a scan arc */
+  preflight: '<path d="M4 25 H14 V35 H4 Z M26 5 H36 V15 H26 Z"' + SW_SV + '/><path d="M15 15 H25 V25 H15 Z"' + SW_SV + ' stroke-dasharray="2.6 3.4" opacity=".7"/><path d="M28 34.5 a7 7 0 0 0 6.5 -6.5"' + SW_SV + ' stroke-width="2.2" opacity=".6"/><circle class="acc" cx="20" cy="20" r="3.3"/>',
   /* one lattice cell (a recipe) */
   cell:     '<path d="M20 4 L34 12 V28 L20 36 L6 28 V12 Z"' + SW_SV + '/><path d="M20 12 L27 16 V24 L20 28 L13 24 V16 Z"' + SW_SV + ' stroke-width="2" opacity=".55"/><circle class="acc" cx="20" cy="20" r="3.2"/>'
 };
@@ -85,6 +87,27 @@ function setRunBtn(busy) {
 }
 /* Empty-state mark (results table, plot, preview). */
 function swEmptyIcon() { return '<span class="empty-ico">' + swIcon('cell') + '</span>'; }
+
+/* v0.31.0 — the grid a run really uses: PI-TPMS and beams have a 32³
+   minimum (44-solver-config.js resolveGridNFor), so a picked 16 runs at 32.
+   → { N: picked, eff: used, why: 'PI-TPMS' | 'beam' | '' } */
+var _swGridMode = { r: null, m: null };
+function swGridEffective() {
+  var N = (typeof getSolverN === 'function') ? getSolverN() : 16;
+  if (typeof baseRecipe === 'undefined' || !baseRecipe || typeof resolveGridNFor !== 'function') return { N: N, eff: N, why: '' };
+  if (_swGridMode.r !== baseRecipe) {
+    try { _swGridMode.m = designGeometry(baseRecipe).sweepMode; } catch (e) { _swGridMode.m = null; }
+    _swGridMode.r = baseRecipe;
+  }
+  var m = _swGridMode.m;
+  if (!m) return { N: N, eff: N, why: '' };
+  return { N: N, eff: resolveGridNFor(m, N), why: m === 'pi-tpms' ? 'PI-TPMS' : m === 'beam-solid' ? 'beam' : '' };
+}
+/* one log line on Run when the picked grid is below the family's minimum */
+function swLogGridFloor() {
+  var g = swGridEffective();
+  if (g.eff > g.N && typeof log === 'function') log('info', 'Grid ' + g.N + ' is below ' + (g.why || 'this family') + '\u2019s minimum \u2014 running at ' + g.eff + '\u00b3');
+}
 
 /* Fill [data-ico] / [data-g] placeholders in static markup. */
 function swFillIcons(root) {
@@ -178,7 +201,10 @@ function updateDock() {
   var st = (typeof gpuSolverStatus === 'function') ? gpuSolverStatus() : { gpu: null, text: '' };
   if (typeof swSettingsGpu === 'function') { swSettingsGpu(st); N = getSolverN(); }
   var hwCls = st.gpu === true ? 'ok' : st.gpu === false ? 'cpu' : '';
-  tags.push(dockTag('solver', swIcon('solver'), '', '<b>' + prec + '</b>' + N + '³<span class="hw ' + hwCls + '">' + (st.gpu === true ? 'GPU' : st.gpu === false ? 'CPU' : '') + '</span>', 'Precision, grid and solver'));
+  var gEff = swGridEffective();   /* v0.31.0 — a picked grid below the family's minimum shows what runs */
+  var gTxt = gEff.eff > N ? N + ' \u2192 ' + gEff.eff + '³' : N + '³';
+  tags.push(dockTag('solver', swIcon('solver'), '', '<b>' + prec + '</b>' + gTxt + '<span class="hw ' + hwCls + '">' + (st.gpu === true ? 'GPU' : st.gpu === false ? 'CPU' : '') + '</span>',
+    'Precision, grid and solver' + (gEff.eff > N ? ' \u00b7 ' + gEff.eff + '³ is the ' + gEff.why + ' minimum' : '')));
   /* ranks */
   var dirs = (typeof directions !== 'undefined') ? directions : {};
   var bothOff = ['r2metric', 'r3metric'].every(function (id) { var v = dockVal(id); return !v || v === 'none'; });
