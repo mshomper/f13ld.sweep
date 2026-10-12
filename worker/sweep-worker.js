@@ -56,7 +56,13 @@ self.addEventListener('message', e => {
     try {
       const d = applyDensityTarget(msg.recipe, msg.opts);
       const hom = (d.density && !d.density.ok) ? densityReject(d.density) : estimateHomogenization(d.recipe, solvedOpts(msg.opts, d.density));
-      self.postMessage({ type: 'result', attemptIdx: msg.attemptIdx, hom, recipe: d.recipe, density: d.density });
+      /* v0.31.0 — Preflight's probes only: a mid-cell slice of the solver voxels */
+      let slice = null;
+      if (msg.wantSlice && hom && !hom.degenerate && hom.grid_N) {
+        try { slice = voxelMidSliceThin(designVoxels(designGeometry(d.recipe), hom.grid_N), hom.grid_N); } catch (e) { slice = null; }
+      }
+      self.postMessage(slice ? { type: 'result', attemptIdx: msg.attemptIdx, hom, recipe: d.recipe, density: d.density, slice }
+                             : { type: 'result', attemptIdx: msg.attemptIdx, hom, recipe: d.recipe, density: d.density });
     } catch (err) {
       self.postMessage({ type: 'error', attemptIdx: msg.attemptIdx, message: err.message || String(err), stack: err.stack || '' });
     }

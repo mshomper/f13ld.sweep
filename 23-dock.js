@@ -40,6 +40,8 @@ var SWEEP_ICONS = {
   sliders:  '<path d="M5 11 H9.5 M18.5 11 H35 M5 29 H21.5 M30.5 29 H35"' + SW_SV + '/><circle cx="14" cy="11" r="4.5"' + SW_SV + '/><circle class="acc" cx="26" cy="29" r="4"/>',
   /* a crosshair on a point (v0.28.0 — targets) */
   target:   '<circle cx="20" cy="20" r="12.5"' + SW_SV + '/><path d="M20 3 V10 M20 30 V37 M3 20 H10 M30 20 H37"' + SW_SV + ' opacity=".7"/><circle class="acc" cx="20" cy="20" r="3.4"/>',
+  /* Preflight (v0.31.0): three voxels on a load path, the middle one breaking, and a scan arc */
+  preflight: '<path d="M4 25 H14 V35 H4 Z M26 5 H36 V15 H26 Z"' + SW_SV + '/><path d="M15 15 H25 V25 H15 Z"' + SW_SV + ' stroke-dasharray="2.6 3.4" opacity=".7"/><path d="M28 34.5 a7 7 0 0 0 6.5 -6.5"' + SW_SV + ' stroke-width="2.2" opacity=".6"/><circle class="acc" cx="20" cy="20" r="3.3"/>',
   /* one lattice cell (a recipe) */
   cell:     '<path d="M20 4 L34 12 V28 L20 36 L6 28 V12 Z"' + SW_SV + '/><path d="M20 12 L27 16 V24 L20 28 L13 24 V16 Z"' + SW_SV + ' stroke-width="2" opacity=".55"/><circle class="acc" cx="20" cy="20" r="3.2"/>'
 };

@@ -24,6 +24,11 @@
 
 /* The Run button: auto rounds when a target says so, otherwise one sweep. */
 function runClick() {
+  /* v0.31.0 — Preflight first (64-preflight.js): every run, target runs too */
+  if (typeof preflightGate === 'function') return preflightGate(runClickNow);
+  return runClickNow();
+}
+function runClickNow() {
   if (TARGET && TARGET.metrics.length && TARGET.auto) return runTargetSweep();
   return runSweep();
 }
@@ -47,6 +52,9 @@ function tgtSetVariation(mode, spread) {
 /* Density window in Set mode, lo / hi as fractions (clamped to the recipe's bounds). */
 function tgtSetWindow(lo, hi) {
   const b = densityBounds();
+  /* v0.31.0 — a density floor Preflight set holds for the rounds too */
+  const pf = typeof preflightFloor === 'function' ? preflightFloor() : 0;
+  if (pf > lo) { lo = pf; hi = Math.max(hi, lo); }
   lo = Math.max(b.lo, Math.min(b.hi, lo)); hi = Math.max(lo, Math.min(b.hi, hi));
   if (hi - lo < 0.005) { const c = (lo + hi) / 2; lo = Math.max(b.lo, c - 0.005); hi = Math.min(b.hi, c + 0.005); }
   pxSet('vfAuto', '0', 'input');

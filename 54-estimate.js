@@ -533,3 +533,25 @@ function stiffnessFlags(P, S, out, Es, rho) {
     stiffness_flag_reasons: why.length ? why.join('; ') : null
   };
 }
+
+/* v0.31.0 — Preflight's thumbnail (64-preflight.js): of the three mid-cell
+   slices (normal to x, y, z), the one with the least solid — where thin
+   walls and struts show first. vals: N³ solid fractions (0–1, index
+   i·N² + j·N + k). → { N, axis, data: Uint8Array(N²), 0–255 } */
+function voxelMidSliceThin(vals, N) {
+  if (!vals || !N || vals.length !== N * N * N) return null;
+  const h = N >> 1, NN = N * N;
+  const at = [(a, b) => h * NN + a * N + b, (a, b) => a * NN + h * N + b, (a, b) => a * NN + b * N + h];
+  let best = 0, bestSum = Infinity;
+  for (let ax = 0; ax < 3; ax++) {
+    let s = 0;
+    for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) s += vals[at[ax](a, b)];
+    if (s < bestSum) { bestSum = s; best = ax; }
+  }
+  const data = new Uint8Array(NN);
+  for (let a = 0; a < N; a++) for (let b = 0; b < N; b++) {
+    const v = vals[at[best](a, b)];
+    data[a * N + b] = Math.max(0, Math.min(255, Math.round(v * 255)));
+  }
+  return { N, axis: 'xyz'[best], data };
+}

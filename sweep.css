@@ -1220,3 +1220,47 @@ th.th-tgt { color: var(--neon, #c8f542); }
   .plot-axes { bottom: 8px; }
   .pchip .dir { display: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   v0.31.0 — Preflight popup (64-preflight.js). Fits its pane: wraps,
+   scrolls vertically only when the window is short.
+   ════════════════════════════════════════════════════════════════ */
+.pf-overlay { position: fixed; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: rgba(3,4,8,0.66); }
+.pf-card { width: min(480px, 100%); max-height: 100%; overflow-y: auto; overflow-x: hidden; background: var(--s2);
+  border: 1px solid var(--hair2); border-radius: 12px; padding: 16px 18px; color: var(--t1); font-size: 13px; line-height: 1.45; }
+.pf-head { display: flex; gap: 12px; align-items: flex-start; }
+.pf-ico { width: 38px; height: 38px; border-radius: 9px; }
+.pf-ht { min-width: 0; flex: 1; }
+.pf-title { font-size: 15px; font-weight: 600; color: var(--t1); }
+.pf-sub { color: var(--t2); margin-top: 2px; }
+.pf-probes { margin-top: 12px; }
+.pf-row { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--hair); }
+.pf-slice { width: 40px; height: 40px; flex: none; border-radius: 5px; image-rendering: pixelated; background: var(--panel-3);
+  box-shadow: inset 0 0 0 1px var(--hair2); }
+.pf-slice.none { opacity: 0.35; }
+.pf-rtx { flex: 1; min-width: 0; }
+.pf-rname { color: var(--t1); overflow-wrap: anywhere; }
+.pf-rwhy { color: var(--t2); font-size: 12px; overflow-wrap: anywhere; }
+.pf-tag { flex: none; font: 600 10px var(--mono); letter-spacing: 0.04em; padding: 2px 8px; border-radius: 6px; }
+.pf-tag.bad { color: var(--bad); background: rgba(251,113,133,0.12); }
+.pf-tag.ok { color: var(--success); background: rgba(52,211,153,0.10); }
+.pf-tag.skip { color: var(--t3); background: var(--hair); }
+.pf-key { font-size: 11px; color: var(--t3); padding-top: 6px; border-top: 1px solid var(--hair); }
+.pf-sec { margin-top: 12px; font-size: 11px; color: var(--t3); letter-spacing: 0.04em; }
+.pf-fix { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; margin-top: 8px; padding: 9px 11px;
+  border: 1px solid var(--hair2); border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.pf-fix:hover { border-color: var(--neon-ring); }
+.pf-fix.on { border-color: var(--neon); background: var(--neon-soft); }
+.pf-dot { flex: none; width: 13px; height: 13px; margin-top: 3px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--t2); }
+.pf-fix.on .pf-dot { box-shadow: inset 0 0 0 1.5px var(--neon), inset 0 0 0 4px var(--s2); background: var(--neon); }
+.pf-ftx { display: flex; flex-direction: column; min-width: 0; }
+.pf-ft { color: var(--t1); }
+.pf-fs { color: var(--t2); font-size: 12px; overflow-wrap: anywhere; }
+.pf-none { margin-top: 12px; padding: 9px 11px; border: 1px dashed var(--hair2); border-radius: 8px; color: var(--t2); }
+.pf-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.pf-btn { font: 500 13px 'Exo 2', system-ui, sans-serif; padding: 7px 14px; border-radius: 8px; cursor: pointer; }
+.pf-btn.ghost { background: transparent; color: var(--t1); border: 1px solid var(--hair2); }
+.pf-btn.ghost:hover { border-color: var(--line-2); }
+.pf-btn.primary { background: var(--neon); color: #11160a; border: 1px solid var(--neon); }
+.pf-btn:focus-visible, .pf-fix:focus-visible { outline: 2px solid var(--neon-ring); outline-offset: 2px; }

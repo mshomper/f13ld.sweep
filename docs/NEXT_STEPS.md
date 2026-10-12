@@ -4,7 +4,7 @@
 
 **Next:**
 1. **Matt wipes and reseeds F13LD.vault** through Push to Vault from v0.30.0 (noise from F13LD.noise v0.12.0+). The reseed fills specific surface, the new throat ratio and the stiffness matrix on every row.
-2. **Bundle — now v0.31.0** (it was planned as v0.30.0; that number went to the metrics release). Plan: [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md) §2.
+2. **Bundle — now v0.32.0** (planned as v0.30.0, then v0.31.0; those numbers went to the metrics release and Preflight). Plan: [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md) §2.
 3. Later: **local thickness pore size** (see §4) — the micro-CT standard, so Vault's pore sizes compare with published scaffold data.
 4. Still pinned: density exponent as a target metric; the CPU fallback with the GPU physics (stretched cells).
 
