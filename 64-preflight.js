@@ -24,8 +24,9 @@
    · Nothing shows until Run. Then: all clear → the run starts; still
      checking → Run reads "Preflight" for the few seconds left; issues →
      the popup. Apply sets the fix and runs; Ignore runs as is; Back to
-     settings (only when no fix exists) doesn't run. The popup has no
-     close button — it must be answered (Matt).
+     settings, the close mark and Escape close it without running (Matt,
+     2026-10-11 — an exit is needed). The popup opens as soon as the test
+     designs are done; the fixes fill in when ready.
    · Not exported (Matt): the stiffness flags and solver grid already in
      the export are enough to filter by. `window.SWEEP_PREFLIGHT = false`
      or `?preflight=0` switches it off (the harness does).
@@ -232,50 +233,75 @@ async function pfRun(S, gen) {
   probes.forEach((p, i) => { p.res = pfJudge(S, solved[i]); });
   const flagged = probes.filter(p => p.res.built && p.res.flagged);
   const R = { S, probes, flagged: flagged.length, built: probes.filter(p => p.res.built).length, floorFix: null, gridFix: null,
-              time: { probes: performance.now() - t0, fixes: 0 } };
+              time: { probes: performance.now() - t0, fixes: 0 }, fixState: 'none', fixPromise: null, cancelled: false };
   if (!flagged.length) return R;
-
-  /* Fixes in two parallel rounds (on a phone, rounds one after another
-     each wait on the slowest design). Round 1: the window at a quarter,
-     half, three quarters and the top, and each finer grid at the floor.
-     Round 2: three densities inside the bracket round 1 found. */
-  const t1 = performance.now();
-  const batch = jobs => Promise.all(jobs.map(j =>
-    Promise.all(flagged.map(p => pfSolve(S, pool, p, j.vf, j.N))).then(r => r.map(x => pfJudge(S, x)))));
-  const allPass = r => r.every(pfPasses), msOf = r => r.reduce((s, x) => s + x.ms, 0) / r.length;
-  const lo = S.dens.lo, hi = S.dens.hi;
-  const fr = hi - lo >= 0.005 ? [0.25, 0.5, 0.75, 1].map(t => lo + t * (hi - lo)) : [];
-  const grids = [];
-  for (const n of [16, 32, 64]) {
-    if (n <= S.pick || (n > 32 && !S.gpu)) continue;
-    const N = resolveGridNFor(S.mode, n);
-    if (N > S.gridN && !grids.some(g => g.N === N)) grids.push({ pick: n, N });
-  }
-  const resA = await batch(fr.map(vf => ({ vf, N: S.gridN })).concat(grids.map(g => ({ vf: lo, N: g.N }))));
-  stale();
-
-  /* density floor at the current grid — the default fix (Matt: the grid
-     was likely picked for speed) */
-  const iA = fr.findIndex((vf, j) => allPass(resA[j]));
-  if (iA >= 0) {
-    const a = iA > 0 ? fr[iA - 1] : lo;
-    let b = fr[iA];
-    const fr2 = [0.25, 0.5, 0.75].map(t => a + t * (b - a));
-    const resB = await batch(fr2.map(vf => ({ vf, N: S.gridN })));
-    stale();
-    const iB = fr2.findIndex((vf, j) => allPass(resB[j]));
-    if (iB >= 0) b = fr2[iB];
-    const floor = Math.min(hi, Math.ceil(b * 200 - 1e-9) / 200);   /* up to the next 0.5 % */
-    if (floor > lo + 1e-4) R.floorFix = { floor, lo, hi };
-  }
-
-  /* the lowest finer grid where every flagged probe clears; its solve time
-     against the current grid's in the same round */
-  const msCur = fr.length ? msOf(resA[0]) : msOf(flagged.map(p => p.res));
-  const iG = grids.findIndex((g, k) => allPass(resA[fr.length + k]));
-  if (iG >= 0) R.gridFix = { pick: grids[iG].pick, N: grids[iG].N, slower: msCur > 0 ? msOf(resA[fr.length + iG]) / msCur : null };
-  R.time.fixes = performance.now() - t1;
+  /* the fixes carry on after this returns: Run and the popup don't wait on
+     them — the popup fills them in when they arrive */
+  R.fixState = 'working';
+  R.fixPromise = pfFixes(S, gen, R, pool, flagged)
+    .catch(e => { if (!(e && e.stale)) console.warn('[preflight] fixes', e); })
+    .then(() => { R.fixState = 'done'; if (gen === PF.gen && !R.cancelled) pfLogFixes(R); return R; });
   return R;
+}
+
+/* Fixes, cheapest exits first and one design at a time (Matt's iPhone: the
+   phone is limited by total work, so parallel rounds only queued up). The
+   search runs on the worst flagged test design (least solid in its slice);
+   a fix is offered only once every flagged design clears with it. Stops at
+   PF_FIX_BUDGET_MS and offers what it has confirmed by then. */
+const PF_FIX_BUDGET_MS = 15000;
+async function pfFixes(S, gen, R, pool, flagged) {
+  const t1 = performance.now(), over = () => performance.now() - t1 > PF_FIX_BUDGET_MS;
+  const stale = () => { if (gen !== PF.gen || R.cancelled) throw { stale: true }; };
+  const one = async (p, vf, N) => { const r = pfJudge(S, await pfSolve(S, pool, p, vf, N)); stale(); return r; };
+  const all = async (ps, vf, N) => {
+    if (!ps.length) return true;
+    const r = (await Promise.all(ps.map(p => pfSolve(S, pool, p, vf, N)))).map(x => pfJudge(S, x));
+    stale();
+    return r.every(pfPasses);
+  };
+  const thin = sl => (sl && sl.data) ? sl.data.reduce((s, v) => s + v, 0) / sl.data.length : Infinity;
+  const worst = flagged.reduce((m, p) => (thin(p.res.slice) < thin(m.res.slice) ? p : m), flagged[0]);
+  const others = flagged.filter(p => p !== worst);
+  const lo = S.dens.lo, hi = S.dens.hi;
+  let msSolo = null;
+  try {
+    /* density floor at the current grid — the default fix (Matt: the grid
+       was likely picked for speed). The top of the window first: if the
+       worst design still fails there, no floor will do. */
+    if (hi - lo >= 0.005) {
+      const top = await one(worst, hi, S.gridN);
+      msSolo = top.ms;
+      if (pfPasses(top)) {
+        let a = lo, b = hi;
+        for (let k = 0; k < 4 && !over(); k++) {
+          const m = (a + b) / 2;
+          if (pfPasses(await one(worst, m, S.gridN))) b = m; else a = m;
+        }
+        let floor = Math.min(hi, Math.ceil(b * 200 - 1e-9) / 200);   /* up to the next 0.5 % */
+        let ok = !over() && await all(others, floor, S.gridN);
+        if (!ok && floor < hi && !over()) { floor = hi; ok = await all(others, hi, S.gridN); }
+        if (ok && floor > lo + 1e-4) R.floorFix = { floor, lo, hi };
+      }
+    }
+    /* the next grid up only (64 on GPU only) */
+    if (!over()) {
+      let g = null;
+      for (const n of [16, 32, 64]) {
+        if (n <= S.pick || (n > 32 && !S.gpu)) continue;
+        const N = resolveGridNFor(S.mode, n);
+        if (N > S.gridN) { g = { pick: n, N }; break; }
+      }
+      if (g) {
+        const r = await one(worst, lo, g.N);
+        if (pfPasses(r) && !over() && await all(others, lo, g.N))
+          R.gridFix = { pick: g.pick, N: g.N, slower: msSolo > 0 ? r.ms / msSolo : null };
+      }
+    }
+  } finally {
+    R.time.fixes = performance.now() - t1;
+    R.fixCapped = over();
+  }
 }
 
 function pfStart(S) {
@@ -299,15 +325,17 @@ const pfPct = v => (v * 100).toFixed(1);
 const pfPrecTxt = S => (S.precMode === 'fast' ? 'Fast' : 'Rigorous');
 const pfSec = ms => (ms / 1000).toFixed(1) + ' s';
 function pfLog(R) {
-  const S = R.S, n = R.probes.length, t = R.time || { probes: 0, fixes: 0 };
-  const took = R.flagged ? ` · ${pfSec(t.probes + t.fixes)} (test designs ${pfSec(t.probes)}, fixes ${pfSec(t.fixes)})` : ` · ${pfSec(t.probes)}`;
+  const S = R.S, n = R.probes.length, took = ` · ${pfSec(R.time.probes)}`;
   if (!R.built) { log('info', `Preflight: none of the ${n} test designs could be built at the density floor (${pfPct(S.dens.lo)} %) — nothing to check${took}`); return; }
   if (!R.flagged) { log('info', `Preflight: ${R.built} test designs at the density floor (${pfPct(S.dens.lo)} %) clear on ${S.gridN}³ ${pfPrecTxt(S)}${took}`); return; }
+  log('warn', `Preflight: ${R.flagged} of ${n} test designs would be flagged on ${S.gridN}³ ${pfPrecTxt(S)}${took} — working out a fix; you'll be asked when you press Run`);
+}
+function pfLogFixes(R) {
   const fixes = [];
   if (R.floorFix) fixes.push(`density floor ${pfPct(R.floorFix.floor)} %`);
   if (R.gridFix) fixes.push(`${R.gridFix.N}³ grid`);
-  log('warn', `Preflight: ${R.flagged} of ${n} test designs would be flagged on ${S.gridN}³ ${pfPrecTxt(S)}` +
-    (fixes.length ? ` — fix ready (${fixes.join(' or ')}); you'll be asked when you press Run` : ' — no quick fix found; you’ll be asked when you press Run') + took);
+  log(fixes.length ? 'info' : 'warn', `Preflight: ${fixes.length ? 'fix ready (' + fixes.join(' or ') + ')' : 'no quick fix found'} · ${pfSec(R.time.fixes)}` +
+    (R.fixCapped ? ` (stopped at the ${PF_FIX_BUDGET_MS / 1000} s limit)` : ''));
 }
 
 /* ── starting it ──────────────────────────────────────────────────── */
@@ -371,6 +399,8 @@ async function preflightGate(run) {
     const choice = await pfPopup(R);
     if (b) b.disabled = !baseRecipe;
     if (choice === 'back') { log('info', 'Preflight: back to settings — nothing was run'); return; }
+    /* a run is starting: the fix search stops (it would share the workers and GPU) */
+    if (choice !== 'back' && R.fixState === 'working') R.cancelled = true;
     if (choice === 'ignore') {
       PF.ignored = S.sig;
       log('info', `Preflight: ignored — running on ${S.gridN}³ with the density floor at ${pfPct(S.dens.lo)} % as set.`);
@@ -498,56 +528,83 @@ function pfPopup(R) {
     card.appendChild(list);
     card.appendChild(pfEl('div', 'pf-key', 'Slices: solid voxels light, partly filled voxels amber, pores dark'));
 
-    const fixes = [];
-    if (R.floorFix) fixes.push({ k: 'floor', t: `Raise the density floor to ${pfPct(R.floorFix.floor)} %`,
-      s: `Keeps ${S.gridN}³ · the window was ${pfPct(R.floorFix.lo)}–${pfPct(R.floorFix.hi)} %` +
-         (typeof TARGET !== 'undefined' && TARGET && TARGET.auto ? ' · the target rounds stay above it too' : '') });
-    if (R.gridFix) fixes.push({ k: 'grid', t: `Use the ${R.gridFix.N}³ grid`,
-      s: 'Every test design clears' + (R.gridFix.slower ? ` · they took about ${R.gridFix.slower.toFixed(1)}× longer to solve` : '') });
-
-    let pick = fixes.length ? fixes[0].k : null;
-    if (fixes.length) {
-      card.appendChild(pfEl('div', 'pf-sec', 'Suggested fix'));
-      const opts = [];
-      fixes.forEach(f => {
-        const o = pfEl('button', 'pf-fix' + (f.k === pick ? ' on' : ''));
-        o.type = 'button';
-        o.setAttribute('role', 'radio');
-        o.setAttribute('aria-checked', f.k === pick ? 'true' : 'false');
-        o.appendChild(pfEl('span', 'pf-dot'));
-        const ft = pfEl('span', 'pf-ftx');
-        ft.appendChild(pfEl('span', 'pf-ft', f.t));
-        ft.appendChild(pfEl('span', 'pf-fs', f.s));
-        o.appendChild(ft);
-        o.onclick = () => {
-          pick = f.k;
-          opts.forEach(x => { x.el.classList.toggle('on', x.k === pick); x.el.setAttribute('aria-checked', x.k === pick ? 'true' : 'false'); });
-        };
-        opts.push({ k: f.k, el: o });
-        card.appendChild(o);
-      });
-    } else {
-      card.appendChild(pfEl('div', 'pf-none',
-        `No quick fix found — even at the top of the density window${S.gpu ? ' and on the finest grid' : ''} these test designs flag. Change the settings, or run and filter the flagged designs out afterwards.`));
-    }
-
-    const acts = pfEl('div', 'pf-acts');
-    const done = v => { ov.remove(); document.removeEventListener('keydown', trap, true); resolve(v); };
-    const ign = pfEl('button', 'pf-btn ghost', 'Ignore and run'); ign.type = 'button'; ign.onclick = () => done('ignore');
-    if (fixes.length) {
-      const ap = pfEl('button', 'pf-btn primary', 'Apply and run'); ap.type = 'button'; ap.onclick = () => done(pick);
-      acts.appendChild(ign); acts.appendChild(ap);
-    } else {
-      const bk = pfEl('button', 'pf-btn primary', 'Back to settings'); bk.type = 'button'; bk.onclick = () => done('back');
-      acts.appendChild(bk); acts.appendChild(ign);
-    }
+    /* the fixes: still being worked out, or ready — repainted when they arrive */
+    const fixBox = pfEl('div', 'pf-fixes'), acts = pfEl('div', 'pf-acts');
+    card.appendChild(fixBox);
     card.appendChild(acts);
+    let open = true, pick = null;
+    const done = v => {
+      if (!open) return;
+      open = false; ov.remove(); document.removeEventListener('keydown', trap, true); resolve(v);
+    };
+    const btn = (cls, text, v) => { const e = pfEl('button', 'pf-btn ' + cls, text); e.type = 'button'; e.onclick = () => done(v === 'pick' ? pick : v); return e; };
+    const paint = () => {
+      fixBox.innerHTML = ''; acts.innerHTML = '';
+      if (R.fixState === 'working') {
+        fixBox.appendChild(pfEl('div', 'pf-sec', 'Suggested fix'));
+        const w = pfEl('div', 'pf-working');
+        w.innerHTML = SWEEP_RUN_BUSY.replace('<span>Running</span>', '<span>Working out a fix…</span>');
+        fixBox.appendChild(w);
+        acts.appendChild(btn('ghost', 'Back to settings', 'back'));
+        acts.appendChild(btn('ghost', 'Ignore and run', 'ignore'));
+        return;
+      }
+      const fixes = [];
+      if (R.floorFix) fixes.push({ k: 'floor', t: `Raise the density floor to ${pfPct(R.floorFix.floor)} %`,
+        s: `Keeps ${S.gridN}³ · the window was ${pfPct(R.floorFix.lo)}–${pfPct(R.floorFix.hi)} %` +
+           (typeof TARGET !== 'undefined' && TARGET && TARGET.auto ? ' · the target rounds stay above it too' : '') });
+      if (R.gridFix) fixes.push({ k: 'grid', t: `Use the ${R.gridFix.N}³ grid`,
+        s: 'Every flagged test design clears' + (R.gridFix.slower ? ` · about ${R.gridFix.slower.toFixed(1)}× longer to solve` : '') });
+      if (fixes.length) {
+        if (!fixes.some(f => f.k === pick)) pick = fixes[0].k;
+        fixBox.appendChild(pfEl('div', 'pf-sec', 'Suggested fix'));
+        const opts = [];
+        fixes.forEach(f => {
+          const o = pfEl('button', 'pf-fix' + (f.k === pick ? ' on' : ''));
+          o.type = 'button';
+          o.setAttribute('role', 'radio');
+          o.setAttribute('aria-checked', f.k === pick ? 'true' : 'false');
+          o.appendChild(pfEl('span', 'pf-dot'));
+          const ft = pfEl('span', 'pf-ftx');
+          ft.appendChild(pfEl('span', 'pf-ft', f.t));
+          ft.appendChild(pfEl('span', 'pf-fs', f.s));
+          o.appendChild(ft);
+          o.onclick = () => {
+            pick = f.k;
+            opts.forEach(x => { x.el.classList.toggle('on', x.k === pick); x.el.setAttribute('aria-checked', x.k === pick ? 'true' : 'false'); });
+          };
+          opts.push({ k: f.k, el: o });
+          fixBox.appendChild(o);
+        });
+        acts.appendChild(btn('ghost', 'Ignore and run', 'ignore'));
+        acts.appendChild(btn('primary', 'Apply and run', 'pick'));
+      } else {
+        fixBox.appendChild(pfEl('div', 'pf-none', R.fixCapped
+          ? `No fix confirmed within ${PF_FIX_BUDGET_MS / 1000} s. Change the settings, or run and filter the flagged designs out afterwards.`
+          : `No quick fix found — even at the top of the density window${S.gpu ? ' and on the next grid up' : ''} these test designs flag. Change the settings, or run and filter the flagged designs out afterwards.`));
+        acts.appendChild(btn('primary', 'Back to settings', 'back'));
+        acts.appendChild(btn('ghost', 'Ignore and run', 'ignore'));
+      }
+      const f = acts.querySelector('.primary');
+      if (f && card.contains(document.activeElement) === false) f.focus();
+    };
+    paint();
+    if (R.fixState === 'working' && R.fixPromise) R.fixPromise.then(() => { if (open) { paint(); const f = acts.querySelector('.primary'); if (f) f.focus(); } });
+
+    /* the way out: the close mark and Escape close it without running */
+    const x = pfEl('button', 'pf-x');
+    x.type = 'button';
+    x.setAttribute('aria-label', 'Close without running');
+    x.title = 'Close without running';
+    x.innerHTML = swGlyph('x');
+    x.onclick = () => done('back');
+    card.appendChild(x);
     ov.appendChild(card);
     document.body.appendChild(ov);
 
-    /* the popup must be answered: Escape does nothing, focus stays inside */
+    /* Escape closes without running; focus stays inside */
     const trap = e => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done('back'); return; }
       if (e.key !== 'Tab') return;
       const f = card.querySelectorAll('button');
       if (!f.length) return;

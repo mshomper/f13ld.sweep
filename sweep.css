@@ -1265,3 +1265,11 @@ th.th-tgt { color: var(--neon, #c8f542); }
 .pf-btn.ghost:hover { border-color: var(--line-2); }
 .pf-btn.primary { background: var(--neon); color: #11160a; border: 1px solid var(--neon); }
 .pf-btn:focus-visible, .pf-fix:focus-visible { outline: 2px solid var(--neon-ring); outline-offset: 2px; }
+.pf-card { position: relative; }
+.pf-head { padding-right: 28px; }
+.pf-x { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 7px; border: 1px solid var(--hair2); background: transparent; color: var(--t2); cursor: pointer; }
+.pf-x:hover { color: var(--t1); border-color: var(--line-2); }
+.pf-x:focus-visible { outline: 2px solid var(--neon-ring); outline-offset: 2px; }
+.pf-x .g { width: 14px; height: 14px; }
+.pf-working { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 9px 11px; border: 1px dashed var(--hair2); border-radius: 8px; color: var(--t2); }

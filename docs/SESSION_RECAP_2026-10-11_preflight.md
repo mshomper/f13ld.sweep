@@ -39,3 +39,10 @@ Matt's idea: check whether the solver settings can hold the thinnest designs a s
 
 ## Next
 - Bundle moves to v0.32.0 (`docs/NEXT_STEPS.md`).
+
+## Phone pass (after Matt's iPhone test got slower)
+- The two parallel fix rounds did more total work (~32 solves for 4 flagged PI-TPMS designs) and the phone is limited by total work, not rounds — parallel jobs just queued.
+- Now: the search runs on the worst flagged test design only (least solid in its slice), one solve at a time with the cheapest exits first (top of the window alone; 4 bisection steps; the next grid up only), then confirms the chosen fix on the other flagged designs in one step. 15 s cap: what is confirmed by then is offered.
+- Run and the popup no longer wait on the fixes: the popup opens when the test designs are done and shows "Working out a fix…" until they arrive. Choosing Ignore or Apply stops a search still running (it would share the workers and GPU with the run).
+- Log: one line when the test designs are done (with their time), one when the fixes are (with theirs, and whether the cap stopped it).
+- Not run in the VM (too slow): Matt tests on his machines.
