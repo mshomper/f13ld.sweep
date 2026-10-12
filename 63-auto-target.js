@@ -24,6 +24,7 @@
 
 /* The Run button: auto rounds when a target says so, otherwise one sweep. */
 function runClick() {
+  if (typeof swLogGridFloor === 'function' && baseRecipe) swLogGridFloor();   /* v0.31.0 */
   /* v0.31.0 — Preflight first (64-preflight.js): every run, target runs too */
   if (typeof preflightGate === 'function') return preflightGate(runClickNow);
   return runClickNow();

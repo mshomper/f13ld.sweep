@@ -410,8 +410,12 @@ async function preflightGate(run) {
     if (!S) { go = run; return; }
     if ((PF.coreSig && PF.coreSig !== S.coreSig) || S.dens.lo < PF.floor - 1e-6) PF.floor = 0;
     let R;
-    if (PF.sig === S.sig && PF.state === 'done') R = PF.result;
-    else {
+    if (PF.sig === S.sig && PF.state === 'done') {
+      R = PF.result;
+      /* say that the check already covers this run */
+      if (R && !R.error && !R.applied && R.built && !R.flagged)
+        log('info', `Preflight: already checked at ${S.gridN}³ ${pfPrecTxt(S)} — clear`);
+    } else {
       if (!(PF.sig === S.sig && PF.state === 'running')) pfStart(S);
       pfRunBtnChecking(true);
       try { R = await PF.promise; } finally { pfRunBtnChecking(false); }

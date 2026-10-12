@@ -88,6 +88,27 @@ function setRunBtn(busy) {
 /* Empty-state mark (results table, plot, preview). */
 function swEmptyIcon() { return '<span class="empty-ico">' + swIcon('cell') + '</span>'; }
 
+/* v0.31.0 — the grid a run really uses: PI-TPMS and beams have a 32³
+   minimum (44-solver-config.js resolveGridNFor), so a picked 16 runs at 32.
+   → { N: picked, eff: used, why: 'PI-TPMS' | 'beam' | '' } */
+var _swGridMode = { r: null, m: null };
+function swGridEffective() {
+  var N = (typeof getSolverN === 'function') ? getSolverN() : 16;
+  if (typeof baseRecipe === 'undefined' || !baseRecipe || typeof resolveGridNFor !== 'function') return { N: N, eff: N, why: '' };
+  if (_swGridMode.r !== baseRecipe) {
+    try { _swGridMode.m = designGeometry(baseRecipe).sweepMode; } catch (e) { _swGridMode.m = null; }
+    _swGridMode.r = baseRecipe;
+  }
+  var m = _swGridMode.m;
+  if (!m) return { N: N, eff: N, why: '' };
+  return { N: N, eff: resolveGridNFor(m, N), why: m === 'pi-tpms' ? 'PI-TPMS' : m === 'beam-solid' ? 'beam' : '' };
+}
+/* one log line on Run when the picked grid is below the family's minimum */
+function swLogGridFloor() {
+  var g = swGridEffective();
+  if (g.eff > g.N && typeof log === 'function') log('info', 'Grid ' + g.N + ' is below ' + (g.why || 'this family') + '\u2019s minimum \u2014 running at ' + g.eff + '\u00b3');
+}
+
 /* Fill [data-ico] / [data-g] placeholders in static markup. */
 function swFillIcons(root) {
   var r = root || document, i, els = r.querySelectorAll('[data-ico]');
@@ -180,7 +201,10 @@ function updateDock() {
   var st = (typeof gpuSolverStatus === 'function') ? gpuSolverStatus() : { gpu: null, text: '' };
   if (typeof swSettingsGpu === 'function') { swSettingsGpu(st); N = getSolverN(); }
   var hwCls = st.gpu === true ? 'ok' : st.gpu === false ? 'cpu' : '';
-  tags.push(dockTag('solver', swIcon('solver'), '', '<b>' + prec + '</b>' + N + '³<span class="hw ' + hwCls + '">' + (st.gpu === true ? 'GPU' : st.gpu === false ? 'CPU' : '') + '</span>', 'Precision, grid and solver'));
+  var gEff = swGridEffective();   /* v0.31.0 — a picked grid below the family's minimum shows what runs */
+  var gTxt = gEff.eff > N ? N + ' \u2192 ' + gEff.eff + '³' : N + '³';
+  tags.push(dockTag('solver', swIcon('solver'), '', '<b>' + prec + '</b>' + gTxt + '<span class="hw ' + hwCls + '">' + (st.gpu === true ? 'GPU' : st.gpu === false ? 'CPU' : '') + '</span>',
+    'Precision, grid and solver' + (gEff.eff > N ? ' \u00b7 ' + gEff.eff + '³ is the ' + gEff.why + ' minimum' : '')));
   /* ranks */
   var dirs = (typeof directions !== 'undefined') ? directions : {};
   var bothOff = ['r2metric', 'r3metric'].every(function (id) { var v = dockVal(id); return !v || v === 'none'; });

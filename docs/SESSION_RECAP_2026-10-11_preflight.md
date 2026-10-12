@@ -54,3 +54,6 @@ Matt's idea: check whether the solver settings can hold the thinnest designs a s
 - **Density floor limit**: on Auto never above the recipe's own density; with the window set by hand no higher than its middle; never the top of the window.
 - **Slice**: the mid-cell slice with the most partly filled voxels (else the most solid), so PI pipes show.
 - **Log**: the flagged line names the problems.
+
+## Grid below the family's minimum
+- Matt switched a PI-TPMS recipe to 16 and Preflight didn't re-run: PI-TPMS (and beams) run at 32³ minimum, so the settings hadn't changed and the passed check was reused. Now the dock's solver tag and the Configure grid hint show "16 → 32³ (PI-TPMS minimum)" (`swGridEffective`, 23-dock.js), Run logs "Grid 16 is below PI-TPMS's minimum — running at 32³" (`runClick`, not `runSweep`, so the harness log is unchanged), and Run logs "Preflight: already checked at 32³ Rigorous — clear" when it reuses a passed check.

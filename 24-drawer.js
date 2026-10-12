@@ -489,8 +489,10 @@ function paintSettings() {
                        : 'F13LD.lab\'s sweep settings: pores 1e-6, CG 1e-4. Slower.')
     : (prec === 'fast' ? 'Pores 1e-3 of the solid; about 3× faster, rankings hold.'
                        : 'Pores 1e-4 of the solid, for absolute stiffness values.');
-  pxEl('hGrid').textContent = (N === 16 ? 'Fastest.' : N === 32 ? 'Resolves thin walls; several times slower.' : 'Fine walls and struts; GPU only.') +
-    ' PI-TPMS and beams use 32³ or finer.';
+  var gEff = (typeof swGridEffective === 'function') ? swGridEffective() : { N: N, eff: N, why: '' };   /* v0.31.0 */
+  pxEl('hGrid').textContent = gEff.eff > N
+    ? N + ' \u2192 ' + gEff.eff + '³ (' + gEff.why + ' minimum): this recipe runs at ' + gEff.eff + '³.'
+    : (N === 16 ? 'Fastest.' : N === 32 ? 'Resolves thin walls; several times slower.' : 'Fine walls and struts; GPU only.') + ' PI-TPMS and beams use 32³ or finer.';
   /* ranks (v0.28.0 — a target replaces them) */
   var pane0 = pxEl('setPane');
   var tgOn = !!(TARGET && TARGET.metrics.length);
