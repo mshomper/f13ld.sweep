@@ -1,5 +1,7 @@
 # Session recap — 2026-10-12 · v0.32.0 straight-reach load gate
 
+**Main:** v0.32.0, merged 2026-10-12 with F13LD.lab v0.27.0 after Matt's click-test (load paths and Preflight behaving as expected). Next: the Vault reseed from v0.32.0, then Bundle (v0.33.0) — see [`NEXT_STEPS.md`](NEXT_STEPS.md).
+
 ## The problem (Matt)
 Reseeding Vault, several designs that don't connect along one or more axes scored anisotropy 99: the solver ran on axes with no load path and returned a stiffness near the pore-material floor (small, never zero), so stiff ÷ floor hit the cap.
 
