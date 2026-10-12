@@ -1,5 +1,14 @@
 # F13LD.sweep — next steps
 
+**As of 2026-10-11 (late evening).** `main` = **v0.31.0** — Preflight: after a recipe loads, a few test designs at the bottom of the density window are solved on the sweep's own workers and GPU; on Run, a popup offers a fix when the settings can't hold them (a density floor, the next grid up, Rigorous, or grid and Rigorous together). Catches broken load paths the sweep's own flags miss. Export shape unchanged; Ingest / Vault untouched. Merged after Matt's tests on his phone and machine. Recap: [`SESSION_RECAP_2026-10-11_preflight.md`](SESSION_RECAP_2026-10-11_preflight.md).
+
+**Next (reaffirmed 2026-10-11):**
+1. **Matt wipes and reseeds F13LD.vault** through Push to Vault (v0.30.0 or later — v0.31.0 exports are identical; noise from F13LD.noise v0.12.0+). Preflight can be used to pick solver settings before each seeding sweep.
+2. **Bundle — v0.32.0.** Plan: [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md) §2. Bundles connect along one axis only; Preflight already treats that as the design, not a flag.
+3. **Open question from Preflight:** should the sweep itself flag a broken load path (zero stiffness on an axis the design connects on at a finer grid), so it shows in the table and can be filtered in Vault? It would add to the export's stiffness flag — its own small version, Matt to decide.
+4. Later: **local thickness pore size** (§4) — the micro-CT standard, so Vault's pore sizes compare with published scaffold data.
+5. Still pinned: density exponent as a target metric; the CPU fallback with the GPU physics (stretched cells).
+
 **As of 2026-10-11 (evening).** `main` = **v0.30.0** — metrics for F13LD.vault v0.9.0's audit: `specific_surface` (true interface area ÷ V^(2/3), from the curvature pass), `throat_ratio` = throat ÷ mean pore (was throat ÷ cell), and Aim targets `_beff` (Voigt efficiency, stiffest axis — the bound-efficiency target pinned on 2026-10-10), `_tp` (throat ÷ pore) and `_keff` (conductivity efficiency). Merged with F13LD.vault v0.9.0; F13LD.ingest unchanged (the new field lands in `metrics_extended`), no database change. Recap: [`SESSION_RECAP_2026-10-11_metrics.md`](SESSION_RECAP_2026-10-11_metrics.md).
 
 **Next:**

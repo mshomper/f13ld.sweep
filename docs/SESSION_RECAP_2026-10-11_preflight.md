@@ -1,59 +1,46 @@
 # F13LD.sweep — session recap, 2026-10-11 · v0.31.0 Preflight
 
+Merged to `main` 2026-10-11 after Matt's tests on his phone and machine (branch `v0.31.0-preflight`).
+
 Matt's idea: check whether the solver settings can hold the thinnest designs a sweep will draw, before a long sweep ends up full of flags and inflated stiffness.
 
 ## Matt's decisions
-- Runs on its own after a recipe loads, without freezing the window; works out the fixes in the background, but shows nothing until Run.
-- On Run with issues: a popup ("Preflight found issues with your solver settings…") with its own drawn icon; Apply or Ignore. It must be answered — no close button, Escape does nothing.
+- Runs on its own after a recipe loads and after settings change, without freezing the window; shows nothing until Run.
+- On Run with issues: a popup ("Preflight found issues with your solver settings…") with its own drawn icon. Apply or Ignore — and a way out: the close mark, Escape and Back to settings close it without running (the first build had no exit; Matt: needed).
 - Every run gets it, target runs from Vault too.
-- Density floor is the default fix — the grid was likely picked for how fast the user wants to run.
+- Density floor is the default fix — the grid was likely picked for how fast the user wants to run. Never above the recipe's own density on Auto; with the window set by hand, no higher than its middle (the user may be sweeping that space on purpose); never the top.
+- A design that doesn't connect along an axis even on a fine grid is the design itself (bundles connect along one axis only): noted, not flagged.
+- Skipping work the flags don't read is fine.
 - Not in the export: the stiffness flags and solver grid already there are enough to filter by.
-- Plain wording in the popup (no "knobs").
+- Plain wording in the popup (no "knobs"); when every test design fails, one row instead of four.
 
 ## How it works (`64-preflight.js`)
-- **When**: `preflightOnRecipe()` after `loadRecipe`; after that, ~0.9 s after any input / change / click, if the settings signature changed (recipe, grid, Fast / Rigorous, material, density window, variation, spread, cell scale ranges, cell size). Never while a sweep or target run is going.
-- **Test designs**: the recipe at the bottom of the density window, built by the family's own jitter (seeded) with the varied settings at the middle of Spread, alternating ends one way, and the other way; plus the most stretched cell scale corner when the ranges allow it (≥ 1.15× the middle's stretch). Alternating ends matters: one value for every setting only rescales a TPMS (coefficients and normal weights are normalised) — the first version's three probes were the same design.
-- **Same pipeline as the sweep**: `computeDesign` on the sweep's pool and GPU, the run's grid, precision and material. A probe is flagged when `stiffnessFlags` would flag it, **or** when an axis the recipe's own design carries load on (the recipe's own voxels at 64³ and a percolation check in a worker — no solve, `connectivity` message) reads zero stiffness — a broken load path. The sweep keeps such designs without a flag (found here: a 2–5 % gyroid sheet on 16³ connects on no axis, E = 0, `stiffness_flag` false).
-- **Fixes**, only when a probe flags, in two parallel rounds (a phone waits on the slowest design per round): round 1 tests the window at ¼, ½, ¾ and the top, and every finer grid (16 → 32 → 64, 64 on GPU only) at the floor; round 2 tests three densities inside the bracket round 1 found. The floor is rounded up to 0.5 %; the grid fix is the lowest that clears, with its solve time against the current grid's in the same round. A probe that can't be built at a density counts as clear there (the sweep would discard it); a worker error never does.
-- **Run** (`runClick` → `preflightGate`): clear → runs; still checking → the Run button reads "Preflight"; issues → popup. Apply sets the floor (window switches to Set) or the grid and runs; Ignore runs and isn't asked again for the same settings. With no fix: "Back to settings" or "Ignore and run".
-- **Target runs**: a floor Preflight set also holds in the rounds (`tgtSetWindow` clamps to `preflightFloor()`). It clears on a new recipe, when other settings change, or when the window is set below it by hand.
-- **Flags only** (`opts.flagsOnly`, 54-estimate.js / 60-solver-pool.js): test designs skip pores, curvature, topology, tortuosity and the thermal solve — none feed a flag. Checked in the browser (CPU): stiffness, flags and reasons identical with and without it on gyroid sheet, PI-TPMS, noise half, beam, closed foam and wave; per design ~2× faster on PI-TPMS, 4–10× on foam and wave (CPU; the GPU solve is quicker, so the saving there is larger). Matt's iPhone PI-TPMS check took over 20 s before this (it had issues, so the fix search ran).
-- **Popup**: when every test design that could be built fails, one row — the problems merged (axes joined, largest %), the thinnest slice, the designs named in small print. Otherwise one row per design.
-- **Thumbnails**: probes ask for `wantSlice`; the worker (CPU, binary voxels) or the GPU path (partial-volume `phi`) returns the mid-cell slice with the least solid (`voxelMidSliceThin`, 54-estimate.js). Solid light, partly filled amber, pores dark.
-- **Log**: one line per check, with how long it took (test designs and fixes separately) ("Preflight: 4 test designs … clear on 32³ Fast" / "… would be flagged … fix ready …") and one for the choice.
+- **When**: `preflightOnRecipe()` after `loadRecipe`, then ~0.9 s after any input / change / click if the settings signature changed (recipe, effective grid, Fast / Rigorous, material, density window, variation, spread, cell scale ranges, cell size). Never while a sweep or target run is going.
+- **Test designs**: the recipe at the bottom of the density window, built by the family's own jitter (seeded), with the varied settings at the middle of Spread, alternating ends one way, and the other way; plus the most stretched cell scale corner when the ranges allow it (≥ 1.15× the middle's stretch). Alternating ends matters: one value for every setting only rescales a TPMS (coefficients and normal weights are normalised).
+- **Same pipeline as the sweep**: `computeDesign` on the sweep's pool and GPU, at the run's effective grid, precision and material, with `opts.flagsOnly` — no pores, curvature, topology, tortuosity or thermal solve (none feed a flag; checked identical stiffness, flags and reasons with and without it on six families).
+- **Flagged when**: `stiffnessFlags` would flag it, **or** a broken load path — an axis the design's own solved recipe connects on at 64³ (voxels + percolation in a worker, `connectivity` message, no solve) reads zero stiffness on the solver grid. The sweep keeps such designs without a flag. An axis the design doesn't connect on at 64³ shows as Clear with "Doesn't connect on z (the design itself)".
+- **Fixes** (`pfFixes`), worked out after the test designs, one solve at a time on the worst flagged design (cheapest exits first), then confirmed on the other flagged designs; 15 s cap:
+  - density floor: the top of the allowed range first, then 4 bisection steps, rounded up to 0.5 %;
+  - settings matched to the problem: broken load paths / other resolution flags → the next grid up; pores carrying stiffness in Fast → Rigorous; both → one choice ("Use the 64³ grid and Rigorous"), with how much longer it took to solve.
+- **Run** (`runClick` → `preflightGate`): clear → runs (logs "Preflight: already checked at … — clear" when it reuses a check); still checking → the Run button reads "Preflight"; issues → the popup, which opens as soon as the test designs are done and fills the fixes in ("Working out a fix…"). Apply sets the floor (window switches to Set) or the grid / precision and runs; Ignore runs and isn't asked again for the same settings; choosing either stops a fix search still going.
+- **Target runs**: a floor Preflight set holds in the rounds (`tgtSetWindow` clamps to `preflightFloor()`); it clears on a new recipe, when other settings change, or when the window is set below it by hand.
+- **Popup**: one row per test design (mid-cell slice thumbnail: the slice with the most partly filled voxels, else the most solid — `voxelMidSliceThin`, 54-estimate.js; solid light, partly filled amber, pores dark). When every test design that could be built fails: one row with the problems merged, the thinnest slice and the designs named in small print.
+- **Log**: when the test designs are done (problems named, time) and when the fixes are (fix or none, time, cap), plus the choice.
+- **Grid below the family's minimum**: PI-TPMS and beams run at 32³ minimum. The dock's solver tag and the Configure grid hint show "16 → 32³ (PI-TPMS minimum)" (`swGridEffective`, 23-dock.js) and Run logs it (`runClick`, not `runSweep`, so the harness log is unchanged).
 - Off switch: `window.SWEEP_PREFLIGHT = false` or `?preflight=0`. The harness and vault-push tests set it; bench.html loads the app with `?preflight=0`.
 
 ## Not changed
-- `runSweep()` itself, the export shape, Ingest / Vault, `solver/lab/`.
-- The worker and `computeDesign` only add a `slice` when a probe asks (`wantSlice`).
+- `runSweep()`, the export shape, Ingest / Vault, `solver/lab/`. The worker and `computeDesign` add a `slice` only when a probe asks (`wantSlice`), skip work only under `flagsOnly`, and the worker gained the `connectivity` message.
+
+## What testing found
+- A 2–5 % gyroid sheet on 16³ connects on no axis (E = 0) and the sweep doesn't flag it — the broken-load-path check catches it.
+- PI-TPMS in Fast: "pores carry about 51 % of the stiffness" — the design is so soft that Fast's pore stiffness (1e-3 of the solid) carries the load. Rigorous clears it; the grid doesn't. A density floor only cured it by stiffening the design (30 %, the top of the window), hence the floor limits.
+- Matt's iPhone: the first fix search (sequential, all flagged designs) took over 20 s on PI-TPMS; two parallel rounds made it longer (the phone is limited by total work). The final search: test designs ~4 s, fixes ~6–12 s.
 
 ## Checks
-- `node tests/loadorder.js` OK.
-- `node tests/harness.js <main> .` (CPU): all 20 cases identical (first version); after the speed pass, the four touched paths (gyroid sheet, PI-TPMS, closed foam, wave) identical again.
-- Headless CPU smoke (cloud VM, one worker): gyroid sheet on Auto (21 %) → 4 probes clear, Run pressed mid-check shows "Preflight" then runs, no popup. Same recipe with the floor at 4 % → 4 of 4 flagged ("Load path breaks on x, y, z at 16³"), floor fix 20 %, no grid fix; popup at 1280 and 390 px with no horizontal scroll; Escape leaves it open; Apply raises the floor and the sweep starts.
+- `node tests/loadorder.js` OK at every step.
+- `node tests/harness.js <main> .` (CPU): all 20 cases identical on the first build; gyroid sheet, PI-TPMS, closed foam and wave identical after the flags-only pass. Later passes touch Preflight and the dock / drawer text only (not run in the VM — too slow; Matt tested on his machines).
+- Matt (phone and machine): popup, exit, collapsed row, PI-TPMS on Fast and Rigorous, grid 16 on PI-TPMS.
 
-## For Matt to check on the GPU
-- Load a thin recipe (e.g. a sheet near the bottom of its density range) with the floor dragged low, wait a few seconds, then in the console: `PF.result.probes.map(p => [p.key, p.res.flagged, p.res.issues, Math.round(p.res.ms)])` and `PF.result.floorFix`, `PF.result.gridFix`.
-- Press Run: the popup, its slices (partial voxels show amber on the GPU path), Apply and Ignore.
-- How long the check takes on the iPhone now (the log line gives test designs and fixes separately).
-
-## Next
-- Bundle moves to v0.32.0 (`docs/NEXT_STEPS.md`).
-
-## Phone pass (after Matt's iPhone test got slower)
-- The two parallel fix rounds did more total work (~32 solves for 4 flagged PI-TPMS designs) and the phone is limited by total work, not rounds — parallel jobs just queued.
-- Now: the search runs on the worst flagged test design only (least solid in its slice), one solve at a time with the cheapest exits first (top of the window alone; 4 bisection steps; the next grid up only), then confirms the chosen fix on the other flagged designs in one step. 15 s cap: what is confirmed by then is offered.
-- Run and the popup no longer wait on the fixes: the popup opens when the test designs are done and shows "Working out a fix…" until they arrive. Choosing Ignore or Apply stops a search still running (it would share the workers and GPU with the run).
-- Log: one line when the test designs are done (with their time), one when the fixes are (with theirs, and whether the cap stopped it).
-- Not run in the VM (too slow): Matt tests on his machines.
-
-## PI-TPMS pass (Matt's iPhone, Fast and Rigorous screenshots)
-- Fast flagged "pores carry about 51 % of the stiffness" (PI-TPMS is that soft) plus breaks; Rigorous cleared the pore share, leaving single-axis breaks on the shape variations only.
-- **Break check per test design**: each design's own solved recipe is voxelised at 64³ (connectivity only). A break is flagged only where 64³ connects and the solver grid doesn't. An axis the design doesn't connect on at 64³ is the design itself (bundles connect along one axis — Matt): shown as Clear with "Doesn't connect on z (the design itself)".
-- **Fixes matched to the problem**: broken load paths / other resolution flags → the next grid up; pores carrying stiffness in Fast → Rigorous; both → one choice ("Use the 64³ grid and Rigorous"). The density floor is still the default.
-- **Density floor limit**: on Auto never above the recipe's own density; with the window set by hand no higher than its middle; never the top of the window.
-- **Slice**: the mid-cell slice with the most partly filled voxels (else the most solid), so PI pipes show.
-- **Log**: the flagged line names the problems.
-
-## Grid below the family's minimum
-- Matt switched a PI-TPMS recipe to 16 and Preflight didn't re-run: PI-TPMS (and beams) run at 32³ minimum, so the settings hadn't changed and the passed check was reused. Now the dock's solver tag and the Configure grid hint show "16 → 32³ (PI-TPMS minimum)" (`swGridEffective`, 23-dock.js), Run logs "Grid 16 is below PI-TPMS's minimum — running at 32³" (`runClick`, not `runSweep`, so the harness log is unchanged), and Run logs "Preflight: already checked at 32³ Rigorous — clear" when it reuses a passed check.
+## Open
+- Should the sweep itself flag a broken load path (zero stiffness on an axis the design connects on at a finer grid), so it shows in the table and can be filtered in Vault? It would add to the export's stiffness flag — its own small version.
