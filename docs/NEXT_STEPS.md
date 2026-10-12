@@ -1,5 +1,14 @@
 # F13LD.sweep — next steps
 
+**As of 2026-10-12.** `main` = **v0.32.0** — load paths read straight along each axis. An axis connects for stiffness only when a piece reaches its own copy straight along it (tilted sheets, diagonal fibres and layers stacked along the cube diagonal used to read connected on every axis and were solved at the pore-material floor, anisotropy 99). The solve is gated on the grid actually solved (PI-TPMS / noise / grain: metrics grid AND solver grid); anisotropy leaves out skipped, failed (E = 0) and pore-level axes, and the stiffness flag names a pore-level axis ("no real load path on z"). Preflight's fix search now tries the density floor and the finer grid side by side, keeps a floor that cleared even when the 15 s limit hits, caches the 64³ connectivity, and says what it tried. Merged with F13LD.lab v0.27.0 (same straight-reach test, card notes) after Matt's click-test. Export shape unchanged; `solver_version` is `sweep-gpu v2`. Recap: [`SESSION_RECAP_2026-10-12_axial-connect.md`](SESSION_RECAP_2026-10-12_axial-connect.md).
+
+**Next:**
+1. **Matt wipes and reseeds F13LD.vault from v0.32.0** through Push to Vault (noise from F13LD.noise v0.12.0+). Earlier exports carry the old connectivity and anisotropy — don't mix them in. Use Preflight to pick solver settings before each seeding sweep.
+2. **Bundle — now v0.33.0.** Plan: [`FAMILIES_AND_JITTER_PLAN.md`](FAMILIES_AND_JITTER_PLAN.md) §2. Bundles connect along one axis only; the straight-reach gate and Preflight already treat that as the design.
+3. **Preflight's open question (2026-10-11), mostly answered:** an axis the coarse solver grid breaks now reads 0 and stays flagged under-resolved for PI-TPMS / noise / grain. Other families are measured on the solver grid itself, so there is no finer grid to compare with — Matt to decide whether that needs more.
+4. Later: **local thickness pore size** (§4) — the micro-CT standard, so Vault's pore sizes compare with published scaffold data.
+5. Still pinned: density exponent as a target metric; the CPU fallback with the GPU physics (stretched cells).
+
 **As of 2026-10-11 (late evening).** `main` = **v0.31.0** — Preflight: after a recipe loads, a few test designs at the bottom of the density window are solved on the sweep's own workers and GPU; on Run, a popup offers a fix when the settings can't hold them (a density floor, the next grid up, Rigorous, or grid and Rigorous together). Catches broken load paths the sweep's own flags miss. Export shape unchanged; Ingest / Vault untouched. Merged after Matt's tests on his phone and machine. Recap: [`SESSION_RECAP_2026-10-11_preflight.md`](SESSION_RECAP_2026-10-11_preflight.md).
 
 **Next (reaffirmed 2026-10-11):**

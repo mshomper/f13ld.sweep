@@ -34,7 +34,7 @@ const GPU_PRECISION = {
   fast:     { voidRatio: 1e-3, tol: 1e-3, maxiter: 800,  thTol: 1e-3, thMaxiter: 1500, metricsN: 48 },
   rigorous: { voidRatio: 1e-6, tol: 1e-4, maxiter: 1000, thTol: 1e-5, thMaxiter: 3000, metricsN: null }
 };
-const SOLVER_VERSION_GPU = 'sweep-gpu v1 — F13LD.lab v0.26.0 solver (elastic ef-1 full 6x6, thermal tg-1), partial volume, island trim, stretched cells';
+const SOLVER_VERSION_GPU = 'sweep-gpu v2 — straight-reach load gate on the solved grid, F13LD.lab v0.27.0 solver (elastic ef-1 full 6x6, thermal tg-1), partial volume, island trim, stretched cells';
 
 /* GPU designs in flight per grid (= gwLaneCount in solver/gpu-worker.js). */
 function gpuLanesFor(N) { return N <= 16 ? 6 : N <= 32 ? 4 : 2; }
