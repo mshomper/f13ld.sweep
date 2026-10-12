@@ -13,13 +13,15 @@
      stretched cell scale corner. Same grid, precision and material as the
      run, so a probe is flagged exactly when a sweep design would be
      (stiffnessFlags, 54-estimate.js).
-   · A probe also flags when an axis the recipe's own design connects on
-     (its voxels at 64³, no solve) reads zero stiffness: a broken load path.
+   · A probe also flags when an axis its own design connects on (its voxels
+     at 64³, no solve) reads zero stiffness on the solver grid: a broken load
+     path. An axis the design doesn't connect on at 64³ is the design itself
+     — noted, not flagged.
      Probes skip what the flags don't read (pores, curvature, topology,
      tortuosity, thermal — opts.flagsOnly).
-   · When a probe flags, two fixes are worked out in the background, in two
-     parallel rounds: the lowest density floor where the flagged probes
-     clear at the current grid, and the first finer grid where they clear.
+   · When a probe flags, fixes are worked out in the background (pfFixes):
+     a density floor, and settings matched to the problem (next grid up,
+     Rigorous, or both).
    · When every test design fails, the popup shows them as one row.
    · Nothing shows until Run. Then: all clear → the run starts; still
      checking → Run reads "Preflight" for the few seconds left; issues →
@@ -186,17 +188,28 @@ async function pfSolve(S, pool, p, vf, gridN) {
   if ((m = /broke into pieces on the solver grid \((\d+) %/.exec(why))) iss.push({ k: 'trim', pct: +m[1] });
   if (hom.stiffness_flag && !iss.length) iss.push({ k: 'flag' });
   iss.sort((a, b) => PF_ISSUE_ORDER.indexOf(a.k) - PF_ISSUE_ORDER.indexOf(b.k));
-  return { built: true, flagged: !!hom.stiffness_flag, iss, E: [hom.Ex_GPa, hom.Ey_GPa, hom.Ez_GPa], ms, vf: (hom.volume_fraction || 0) / 100, gridN, slice: msg.slice || null };
+  /* the design's own connectivity: its solved recipe's voxels at 64³ (no solve) */
+  let own = null;
+  try {
+    const c = await pool.dispatch({ type: 'connectivity', attemptIdx: -200 - (p.idx || 0), recipe: msg.recipe || p.recipe, gridN: PF_REF_N });
+    own = ['x', 'y', 'z'].filter(a => c.connect && c.connect[a]);
+  } catch (e) { own = null; }
+  return { built: true, flagged: !!hom.stiffness_flag, iss, own, E: [hom.Ex_GPa, hom.Ey_GPa, hom.Ez_GPa], ms: performance.now() - t0,
+           vf: (hom.volume_fraction || 0) / 100, gridN, slice: msg.slice || null };
 }
 
-/* The broken-load-path check: an axis the recipe's own design connects on
-   (S.expect, its voxels on a 64³ grid) reads zero stiffness here — the solid
-   doesn't connect across the cell. The sweep keeps such a design without a
-   stiffness flag, so Preflight adds this one itself. */
+/* The broken-load-path check, per test design: an axis the design's own
+   voxels connect on at 64³ (r.own) reads zero stiffness on the solver grid —
+   resolution, flagged (the sweep keeps such a design without a flag). An
+   axis the design doesn't connect on even at 64³ is the design itself
+   (bundles connect along one axis only — Matt): not flagged, noted
+   (r.designOff). */
 function pfJudge(S, r) {
-  if (!r.built || !S.expect) return r;
+  if (!r.built || !r.own) return r;
+  const designOff = ['x', 'y', 'z'].filter(a => !r.own.includes(a));
+  r = Object.assign({}, r, { designOff });
   const E = { x: r.E[0], y: r.E[1], z: r.E[2] };
-  const broken = S.expect.filter(a => !(E[a] > 0));
+  const broken = r.own.filter(a => !(E[a] > 0));
   if (!broken.length) return r;
   const old = r.iss.find(i => i.k === 'break');
   const axes = [...new Set(broken.concat(old ? old.axes : []))].sort();
@@ -208,31 +221,18 @@ function pfJudge(S, r) {
    (the sweep would discard it, not flag it) — a worker error never passes */
 const pfPasses = r => !r.error && !(r.built && r.flagged);
 
-/* The axes the recipe's own design connects on: its voxels on a 64³ grid
-   and a percolation check in a worker — no solve (sweep-worker.js
-   'connectivity'). */
-const PF_REF_N = 64;
-async function pfReferenceAxes(pool) {
-  try {
-    const msg = await pool.dispatch({ type: 'connectivity', attemptIdx: -100, recipe: JSON.parse(JSON.stringify(baseRecipe)), gridN: PF_REF_N });
-    const c = msg.connect || {};
-    const ax = ['x', 'y', 'z'].filter(a => c[a]);
-    return ax.length ? ax : ['x', 'y', 'z'];
-  } catch (e) { return ['x', 'y', 'z']; }
-}
+const PF_REF_N = 64;   /* the grid the designs' own connectivity is read on */
 
 async function pfRun(S, gen) {
   const pool = getSolverPool(S.gpuClient);
   const stale = () => { if (gen !== PF.gen) throw { stale: true }; };
   const t0 = performance.now();
   const probes = pfProbes(S);
-  const [expect, ...solved] = await Promise.all([pfReferenceAxes(pool)]
-    .concat(probes.map(p => pfSolve(S, pool, p, S.dens.lo, S.gridN))));
+  const solved = await Promise.all(probes.map(p => pfSolve(S, pool, p, S.dens.lo, S.gridN)));
   stale();
-  S.expect = expect;
   probes.forEach((p, i) => { p.res = pfJudge(S, solved[i]); });
   const flagged = probes.filter(p => p.res.built && p.res.flagged);
-  const R = { S, probes, flagged: flagged.length, built: probes.filter(p => p.res.built).length, floorFix: null, gridFix: null,
+  const R = { S, probes, flagged: flagged.length, built: probes.filter(p => p.res.built).length, floorFix: null, setFix: null,
               time: { probes: performance.now() - t0, fixes: 0 }, fixState: 'none', fixPromise: null, cancelled: false };
   if (!flagged.length) return R;
   /* the fixes carry on after this returns: Run and the popup don't wait on
@@ -244,59 +244,78 @@ async function pfRun(S, gen) {
   return R;
 }
 
-/* Fixes, cheapest exits first and one design at a time (Matt's iPhone: the
-   phone is limited by total work, so parallel rounds only queued up). The
-   search runs on the worst flagged test design (least solid in its slice);
-   a fix is offered only once every flagged design clears with it. Stops at
-   PF_FIX_BUDGET_MS and offers what it has confirmed by then. */
+/* Fixes matched to the problem, cheapest exits first, one design at a time
+   (Matt's iPhone: the phone is limited by total work). The search runs on
+   the worst flagged test design (least solid in its slice); a fix is
+   offered only once every flagged design clears with it. Stops at
+   PF_FIX_BUDGET_MS and offers what it has confirmed by then.
+     · density floor at the current settings — the default (the grid was
+       likely picked for speed). Never above the recipe's own density on
+       Auto, never above the middle of a window set by hand, never the top.
+     · settings: broken load paths (and other resolution flags) → the next
+       grid up; pores carrying stiffness in Fast → Rigorous; both → both
+       together, offered as one choice (Matt, PI-TPMS 2026-10-11: each alone
+       cured only half). */
 const PF_FIX_BUDGET_MS = 15000;
+function pfFloorCap(S) {
+  const lo = S.dens.lo, hi = S.dens.hi;
+  let cap = S.dens.auto ? Math.min(hi, baseDensity != null ? baseDensity : hi) : (lo + hi) / 2;
+  cap = Math.min(cap, hi - 0.005);
+  return cap > lo + 0.001 ? cap : null;
+}
 async function pfFixes(S, gen, R, pool, flagged) {
   const t1 = performance.now(), over = () => performance.now() - t1 > PF_FIX_BUDGET_MS;
   const stale = () => { if (gen !== PF.gen || R.cancelled) throw { stale: true }; };
-  const one = async (p, vf, N) => { const r = pfJudge(S, await pfSolve(S, pool, p, vf, N)); stale(); return r; };
-  const all = async (ps, vf, N) => {
+  const one = async (SS, p, vf, N) => { const r = pfJudge(SS, await pfSolve(SS, pool, p, vf, N)); stale(); return r; };
+  const all = async (SS, ps, vf, N) => {
     if (!ps.length) return true;
-    const r = (await Promise.all(ps.map(p => pfSolve(S, pool, p, vf, N)))).map(x => pfJudge(S, x));
+    const r = (await Promise.all(ps.map(p => pfSolve(SS, pool, p, vf, N)))).map(x => pfJudge(SS, x));
     stale();
     return r.every(pfPasses);
   };
   const thin = sl => (sl && sl.data) ? sl.data.reduce((s, v) => s + v, 0) / sl.data.length : Infinity;
   const worst = flagged.reduce((m, p) => (thin(p.res.slice) < thin(m.res.slice) ? p : m), flagged[0]);
   const others = flagged.filter(p => p !== worst);
-  const lo = S.dens.lo, hi = S.dens.hi;
+  const lo = S.dens.lo;
+  const kinds = new Set([].concat(...flagged.map(p => p.res.iss.map(i => i.k))));
+  const needGrid = ['break', 'vf', 'trim', 'flag'].some(k => kinds.has(k));
+  const needPrec = kinds.has('pore') && S.precMode === 'fast';
   let msSolo = null;
   try {
-    /* density floor at the current grid — the default fix (Matt: the grid
-       was likely picked for speed). The top of the window first: if the
-       worst design still fails there, no floor will do. */
-    if (hi - lo >= 0.005) {
-      const top = await one(worst, hi, S.gridN);
+    /* density floor: the top of the allowed range first — if the worst
+       design still fails there, no floor will do */
+    const cap = pfFloorCap(S);
+    if (cap != null) {
+      const top = await one(S, worst, cap, S.gridN);
       msSolo = top.ms;
       if (pfPasses(top)) {
-        let a = lo, b = hi;
+        let a = lo, b = cap;
         for (let k = 0; k < 4 && !over(); k++) {
           const m = (a + b) / 2;
-          if (pfPasses(await one(worst, m, S.gridN))) b = m; else a = m;
+          if (pfPasses(await one(S, worst, m, S.gridN))) b = m; else a = m;
         }
-        let floor = Math.min(hi, Math.ceil(b * 200 - 1e-9) / 200);   /* up to the next 0.5 % */
-        let ok = !over() && await all(others, floor, S.gridN);
-        if (!ok && floor < hi && !over()) { floor = hi; ok = await all(others, hi, S.gridN); }
-        if (ok && floor > lo + 1e-4) R.floorFix = { floor, lo, hi };
+        let floor = Math.min(cap, Math.ceil(b * 200 - 1e-9) / 200);   /* up to the next 0.5 %, inside the cap */
+        if (floor < b) floor = b;
+        let ok = !over() && await all(S, others, floor, S.gridN);
+        if (!ok && floor < cap && !over()) { floor = cap; ok = await all(S, others, cap, S.gridN); }
+        if (ok && floor > lo + 1e-4) R.floorFix = { floor, lo, hi: S.dens.hi, cap };
       }
     }
-    /* the next grid up only (64 on GPU only) */
-    if (!over()) {
-      let g = null;
+    /* settings matched to the problem */
+    let g = null;
+    if (needGrid) {
       for (const n of [16, 32, 64]) {
         if (n <= S.pick || (n > 32 && !S.gpu)) continue;
         const N = resolveGridNFor(S.mode, n);
         if (N > S.gridN) { g = { pick: n, N }; break; }
       }
-      if (g) {
-        const r = await one(worst, lo, g.N);
-        if (pfPasses(r) && !over() && await all(others, lo, g.N))
-          R.gridFix = { pick: g.pick, N: g.N, slower: msSolo > 0 ? r.ms / msSolo : null };
-      }
+    }
+    if (!over() && (!needGrid || g) && (needGrid || needPrec)) {
+      const SS = needPrec ? Object.assign({}, S, { precMode: 'rigorous' }) : S;
+      const N = g ? g.N : S.gridN;
+      const r = await one(SS, worst, lo, N);
+      if (pfPasses(r) && !over() && await all(SS, others, lo, N))
+        R.setFix = { pick: g ? g.pick : null, N, prec: needPrec ? 'rigorous' : null, slower: msSolo > 0 ? r.ms / msSolo : null };
     }
   } finally {
     R.time.fixes = performance.now() - t1;
@@ -323,17 +342,21 @@ function pfStart(S) {
 
 const pfPct = v => (v * 100).toFixed(1);
 const pfPrecTxt = S => (S.precMode === 'fast' ? 'Fast' : 'Rigorous');
+function pfSetFixName(f) {
+  return f.pick && f.prec ? `Use the ${f.N}³ grid and Rigorous` : f.pick ? `Use the ${f.N}³ grid` : 'Use Rigorous';
+}
 const pfSec = ms => (ms / 1000).toFixed(1) + ' s';
 function pfLog(R) {
   const S = R.S, n = R.probes.length, took = ` · ${pfSec(R.time.probes)}`;
   if (!R.built) { log('info', `Preflight: none of the ${n} test designs could be built at the density floor (${pfPct(S.dens.lo)} %) — nothing to check${took}`); return; }
   if (!R.flagged) { log('info', `Preflight: ${R.built} test designs at the density floor (${pfPct(S.dens.lo)} %) clear on ${S.gridN}³ ${pfPrecTxt(S)}${took}`); return; }
-  log('warn', `Preflight: ${R.flagged} of ${n} test designs would be flagged on ${S.gridN}³ ${pfPrecTxt(S)}${took} — working out a fix; you'll be asked when you press Run`);
+  const main = pfMergeIssues(R.probes.filter(p => p.res.built && p.res.flagged).map(p => p.res.iss)).map(i => pfIssueText(i, S.gridN).replace(/^./, c => c.toLowerCase())).join('; ');
+  log('warn', `Preflight: ${R.flagged} of ${n} test designs would be flagged on ${S.gridN}³ ${pfPrecTxt(S)} (${main})${took} — working out a fix; you'll be asked when you press Run`);
 }
 function pfLogFixes(R) {
   const fixes = [];
   if (R.floorFix) fixes.push(`density floor ${pfPct(R.floorFix.floor)} %`);
-  if (R.gridFix) fixes.push(`${R.gridFix.N}³ grid`);
+  if (R.setFix) fixes.push(pfSetFixName(R.setFix).replace(/^Use the /, '').replace(/^Use /, ''));
   log(fixes.length ? 'info' : 'warn', `Preflight: ${fixes.length ? 'fix ready (' + fixes.join(' or ') + ')' : 'no quick fix found'} · ${pfSec(R.time.fixes)}` +
     (R.fixCapped ? ` (stopped at the ${PF_FIX_BUDGET_MS / 1000} s limit)` : ''));
 }
@@ -424,10 +447,12 @@ function pfApply(R, choice) {
     if (getDensityWindow().hi < f) pxSet('vfHi', +(f * 100).toFixed(1), 'input');
     if (typeof pxAfter === 'function') pxAfter();
     log('accent', `Preflight: density floor raised to ${pfPct(f)} % (was ${pfPct(S.dens.lo)} %) — the window is now set by hand${typeof TARGET !== 'undefined' && TARGET && TARGET.auto ? '; the target rounds stay above it too' : ''}`);
-  } else if (choice === 'grid' && R.gridFix) {
-    setResolutionUI(R.gridFix.pick);
+  } else if (choice === 'set' && R.setFix) {
+    const f = R.setFix, did = [];
+    if (f.pick) { setResolutionUI(f.pick); did.push(`solver grid ${f.N}³ (was ${S.gridN}³)`); }
+    if (f.prec) { setPrecisionUI(f.prec); did.push('Rigorous (was Fast)'); }
     if (typeof pxAfter === 'function') pxAfter();
-    log('accent', `Preflight: solver grid set to ${R.gridFix.N}³ (was ${S.gridN}³)`);
+    log('accent', `Preflight: ${did.join(' and ')}`);
   }
   /* the fix was tested — don't check these settings again before this run */
   pfContext().then(S2 => { if (S2) { PF.sig = S2.sig; PF.coreSig = S2.coreSig; PF.state = 'done'; PF.result = { S: S2, probes: [], flagged: 0, built: 0, applied: true }; PF.gen++; } });
@@ -522,7 +547,8 @@ function pfPopup(R) {
         const r = p.res;
         addRow(r.slice, `Lowest density (${pfPct(S.dens.lo)} %) · ${p.label}`,
           !r.built ? 'Couldn’t be built at this density' : r.flagged ? r.iss.map(i => pfIssueText(i, r.gridN)).join(' · ') : 'Clear',
-          null, !r.built ? 'skip' : r.flagged ? 'bad' : 'ok');
+          r.built && r.designOff && r.designOff.length ? `Doesn’t connect on ${r.designOff.join(', ')} (the design itself)` : null,
+          !r.built ? 'skip' : r.flagged ? 'bad' : 'ok');
       });
     }
     card.appendChild(list);
@@ -551,10 +577,11 @@ function pfPopup(R) {
       }
       const fixes = [];
       if (R.floorFix) fixes.push({ k: 'floor', t: `Raise the density floor to ${pfPct(R.floorFix.floor)} %`,
-        s: `Keeps ${S.gridN}³ · the window was ${pfPct(R.floorFix.lo)}–${pfPct(R.floorFix.hi)} %` +
+        s: `Keeps ${S.gridN}³ ${pfPrecTxt(S)} · the window was ${pfPct(R.floorFix.lo)}–${pfPct(R.floorFix.hi)} %` +
            (typeof TARGET !== 'undefined' && TARGET && TARGET.auto ? ' · the target rounds stay above it too' : '') });
-      if (R.gridFix) fixes.push({ k: 'grid', t: `Use the ${R.gridFix.N}³ grid`,
-        s: 'Every flagged test design clears' + (R.gridFix.slower ? ` · about ${R.gridFix.slower.toFixed(1)}× longer to solve` : '') });
+      if (R.setFix) fixes.push({ k: 'set', t: pfSetFixName(R.setFix),
+        s: 'Every flagged test design clears' + (R.setFix.prec ? ' · the pores carry far less stand-in stiffness' : '') +
+           (R.setFix.slower ? ` · about ${R.setFix.slower.toFixed(1)}× longer to solve` : '') });
       if (fixes.length) {
         if (!fixes.some(f => f.k === pick)) pick = fixes[0].k;
         fixBox.appendChild(pfEl('div', 'pf-sec', 'Suggested fix'));
@@ -581,7 +608,7 @@ function pfPopup(R) {
       } else {
         fixBox.appendChild(pfEl('div', 'pf-none', R.fixCapped
           ? `No fix confirmed within ${PF_FIX_BUDGET_MS / 1000} s. Change the settings, or run and filter the flagged designs out afterwards.`
-          : `No quick fix found — even at the top of the density window${S.gpu ? ' and on the next grid up' : ''} these test designs flag. Change the settings, or run and filter the flagged designs out afterwards.`));
+          : 'No quick fix found within the density window or by changing the grid or precision. Change the settings, or run and filter the flagged designs out afterwards.'));
         acts.appendChild(btn('primary', 'Back to settings', 'back'));
         acts.appendChild(btn('ghost', 'Ignore and run', 'ignore'));
       }

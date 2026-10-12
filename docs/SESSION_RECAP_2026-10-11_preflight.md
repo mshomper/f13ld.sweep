@@ -46,3 +46,11 @@ Matt's idea: check whether the solver settings can hold the thinnest designs a s
 - Run and the popup no longer wait on the fixes: the popup opens when the test designs are done and shows "Working out a fix…" until they arrive. Choosing Ignore or Apply stops a search still running (it would share the workers and GPU with the run).
 - Log: one line when the test designs are done (with their time), one when the fixes are (with theirs, and whether the cap stopped it).
 - Not run in the VM (too slow): Matt tests on his machines.
+
+## PI-TPMS pass (Matt's iPhone, Fast and Rigorous screenshots)
+- Fast flagged "pores carry about 51 % of the stiffness" (PI-TPMS is that soft) plus breaks; Rigorous cleared the pore share, leaving single-axis breaks on the shape variations only.
+- **Break check per test design**: each design's own solved recipe is voxelised at 64³ (connectivity only). A break is flagged only where 64³ connects and the solver grid doesn't. An axis the design doesn't connect on at 64³ is the design itself (bundles connect along one axis — Matt): shown as Clear with "Doesn't connect on z (the design itself)".
+- **Fixes matched to the problem**: broken load paths / other resolution flags → the next grid up; pores carrying stiffness in Fast → Rigorous; both → one choice ("Use the 64³ grid and Rigorous"). The density floor is still the default.
+- **Density floor limit**: on Auto never above the recipe's own density; with the window set by hand no higher than its middle; never the top of the window.
+- **Slice**: the mid-cell slice with the most partly filled voxels (else the most solid), so PI pipes show.
+- **Log**: the flagged line names the problems.
