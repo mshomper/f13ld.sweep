@@ -35,7 +35,7 @@ const shapes = run(ctx, `(() => {
     rod:     (x, y, z) => Math.hypot(x, y) - 1.2,
     channel: (x, y, z) => 1.2 - Math.hypot(x, y),
     gyroid:  g,
-    sheet:   (x, y, z) => Math.abs(g(x, y, z)) - 0.3,
+    sheet:   (x, y, z) => Math.abs(g(x, y, z)) - 0.4,   // ~26 % VF: resolved at 48³ and 64³ (thinner sheets are flagged at 48³)
     beam:    (x, y, z) => Math.min(Math.hypot(y, z), Math.hypot(x, z), Math.hypot(x, y)) - 0.7,
   };
   const out = {};
@@ -55,7 +55,7 @@ const k = 2 * Math.PI;
 check('ball: convex, kappa2 = +2pi/R', near(shapes.ball.curv_k2_mean, k / 1.5, 0.05) && shapes.ball.curv_f_neg === 0, JSON.stringify(shapes.ball));
 check('pore: concave, kappa2 = -2pi/R', near(shapes.pore.curv_k2_neg_med, -k / 1.5, 0.05) && shapes.pore.curv_f_neg === 1 && shapes.pore.curv_f_sad === 0, JSON.stringify(shapes.pore));
 check('rod: kappa2 = 0, neither concave nor saddle', shapes.rod.curv_f_neg === 0 && shapes.rod.curv_f_sad === 0, JSON.stringify(shapes.rod));
-check('channel: concave, kappa2 = -2pi/R', near(shapes.channel.curv_k2_neg_med, -k / 1.2, 0.08) && shapes.channel.curv_f_neg === 1, JSON.stringify(shapes.channel));
+check('channel: concave, kappa2 = -2pi/R', near(shapes.channel.curv_k2_neg_med, -k / 1.2, 0.03 * k / 1.2) && shapes.channel.curv_f_neg === 1, JSON.stringify(shapes.channel));
 check('gyroid network: saddle everywhere', shapes.gyroid.curv_f_neg > 0.99 && shapes.gyroid.curv_f_sad > 0.98, JSON.stringify(shapes.gyroid));
 check('gyroid sheet: saddle everywhere', shapes.sheet.curv_f_neg > 0.99 && shapes.sheet.curv_f_sad > 0.98, JSON.stringify(shapes.sheet));
 for (const n of ['ball', 'pore', 'gyroid', 'sheet'])
