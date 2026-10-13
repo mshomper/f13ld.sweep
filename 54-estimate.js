@@ -32,7 +32,10 @@ const METRICS_N_MIN = 32;
    specific surface and the κ₂ profile), whatever the solver and metrics grids:
    curvature has a support scale of one voxel, so values are only comparable
    across Vault when that voxel is the same fraction of the cell (Matt,
-   2026-10-13). A thin sheet at 32³ read 58 % saddle area instead of ~100 %. */
+   2026-10-13). A thin sheet at 32³ read 58 % saddle area instead of ~100 %.
+   64³, not 48³ (Matt, 2026-10-13): 64³ resolves gyroid sheets from ~19 % volume
+   fraction, 48³ only from ~25 %; on his GPU bench 64³ cost +39 % on a
+   gyroid-sheet sweep, +15 % spinodoid, nothing on beams. */
 const CURV_N = 64;
 function metricWeights(recipe, family) {
   const e = (typeof designCellEdges === 'function') ? designCellEdges(recipe, family) : [1, 1, 1];

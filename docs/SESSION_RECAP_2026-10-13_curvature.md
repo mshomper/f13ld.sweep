@@ -1,6 +1,6 @@
 # Session recap — 2026-10-13 · v0.33.0 principal-curvature profile
 
-**Branch:** `v0.33.0-curvature` (not merged — waiting on Matt's GPU bench and the grid decision below). Ships with F13LD.vault v0.11.0 (`v0.11.0-curvature`) and F13LD.ingest v0.11.1 (`v0.11.1-aniso-check`, push file 1.1.1). Bundle moves to v0.34.0.
+**Merged to `main` 2026-10-13** after Matt's GPU bench and click-test (Sweep pushed the curvature fields; Vault read them), with `CURV_N = 64`. Ships with F13LD.vault v0.11.0 (`v0.11.0-curvature`) and F13LD.ingest v0.11.1 (`v0.11.1-aniso-check`, push file 1.1.1). Bundle moves to v0.34.0.
 
 ## Why
 Matt (2026-10-13, his notes "Surface curvature as a ranking metric for F13LD.vault", after Callens et al. 2023, Nat Commun 14:855, and Xiao, Schilling & Wang 2024): rank scaffolds by how much of their surface bone cells prefer — where the smaller principal curvature κ₂ < 0. Never store a signed mean of K (fixed by topology through Gauss–Bonnet); store area fractions and moments, dimensionless (κ × cell size), from one estimator on one support scale.
@@ -22,7 +22,7 @@ Matt (2026-10-13, his notes "Surface curvature as a ranking metric for F13LD.vau
 | gyroid sheet | — | median −4.88 | 1.00 | 0.99 | 0.09 |
 | cubic beam, sharp nodes | — | — | — | — | 5.2 (flagged) |
 
-## Open: the grid (Matt to decide before merging)
+## The grid (decided: 64³)
 Concave area fraction against the curvature grid (VM, CPU):
 
 | Recipe | 32³ | 48³ | 64³ | 96³ |
@@ -33,7 +33,14 @@ Concave area fraction against the curvature grid (VM, CPU):
 | tpms-pi-fieldpair (2 %) | 0.375 | 0.580 | 0.538 | 0.479 |
 | beam-bcc (sharp nodes) | 0.352 | 0.225 | 0.083 | 0.055 |
 
-Smooth, well-resolved designs settle by 48³; thin and multi-scale ones are still moving at 96³ and the Gauss–Bonnet flag catches them (most foam, grain, noise and low-density PI-TPMS will carry it). Extra field build on the VM: gyroid sheet ~1.4 s at 48³, ~3.6 s at 64³. Claude's recommendation: `CURV_N = 48` — same values where they can be trusted, ~2.5× cheaper, and GPU Fast's noise / grain / PI designs reuse the 48³ field they already build. One constant (`54-estimate.js`). The voxel topology (genus, χ) of thin designs also swings with the grid.
+Smooth, well-resolved designs settle by 48³; thin and multi-scale ones are still moving at 96³ and the Gauss–Bonnet flag catches them (most foam, grain, noise and low-density PI-TPMS will carry it). Extra field build on the VM: gyroid sheet ~1.4 s at 48³, ~3.6 s at 64³. Claude first recommended 48³; checking thin sheets reversed that. Gyroid sheet saddle area (should be ~1):
+
+| Sheet VF | 13 % | 19 % | 26 % | 32 % |
+|---|---|---|---|---|
+| 48³ | 0.49 (flag) | 0.82 (flag) | 0.98 | 0.98 |
+| 64³ | 0.63 (flag) | 0.99 | 0.99 | 0.98 |
+
+Matt's GPU bench, 25 designs, main → 64³: gyroid sheet 7.5 → 10.4 s, spinodoid 7.8 → 9.0 s, beam BCC 2.9 → 2.9 s. **Matt chose 64³.** The voxel topology (genus, χ) of thin designs also swings with the grid.
 
 ## Checks for Matt (GPU)
 1. `tests/bench.html` on the branch (raw.githack) → *Run speed bench*, against `main`: Fast and Rigorous on TPMS shell, beam, foam, wave. The curvature field is CPU-side, in the workers.
