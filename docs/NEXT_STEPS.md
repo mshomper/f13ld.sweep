@@ -1,5 +1,14 @@
 # F13LD.sweep — next steps
 
+**As of 2026-10-13.** `main` = v0.32.0. Branch **`v0.33.0-curvature`** (not merged): the principal-curvature profile for F13LD.vault — concave and saddle area fractions, κ₂ moments, median concave curvature, saddle curvature and a Gauss–Bonnet check (`curv_flag`, flag only) — with every curvature value measured on one fixed grid (`CURV_N`). Export schema 0.21.0, additive. Goes with F13LD.vault v0.11.0 and F13LD.ingest v0.11.1 (push file 1.1.1: the anisotropy check accepts v0.32.0's pore-level exclusion and the 99 cap). Recap: [`SESSION_RECAP_2026-10-13_curvature.md`](SESSION_RECAP_2026-10-13_curvature.md).
+
+**Next:**
+1. **Matt decides the curvature grid** — 64³ (as built) or 48³ (Claude's recommendation: smooth designs settle by 48³, ~2.5× cheaper, GPU Fast's noise / grain / PI reuse their 48³ field) — and benches the branch against `main` (`tests/bench.html`). Then merge Sweep v0.33.0, Vault v0.11.0, Ingest v0.11.1 together.
+2. **Matt wipes and reseeds F13LD.vault from v0.33.0** through Push to Vault (noise from F13LD.noise v0.12.0+). Earlier exports carry no curvature profile and curvature from the metrics grid — don't mix them in.
+3. After the reseed: Vault's correlation map — does the concave area move within a family, and how closely does it track volume fraction? Then decide on a curvature factor in the Biomedical score.
+4. **Bundle — now v0.34.0.**
+5. Later: thin and multi-scale designs (foam, grain, noise, low-density PI-TPMS) aren't resolved on any affordable Sweep grid — a curvature pass at F13LD.lab's finer GPU grids; local thickness pore size (§4); the voxel topology of thin designs also moves with the grid.
+
 **As of 2026-10-12.** `main` = **v0.32.0** — load paths read straight along each axis. An axis connects for stiffness only when a piece reaches its own copy straight along it (tilted sheets, diagonal fibres and layers stacked along the cube diagonal used to read connected on every axis and were solved at the pore-material floor, anisotropy 99). The solve is gated on the grid actually solved (PI-TPMS / noise / grain: metrics grid AND solver grid); anisotropy leaves out skipped, failed (E = 0) and pore-level axes, and the stiffness flag names a pore-level axis ("no real load path on z"). Preflight's fix search now tries the density floor and the finer grid side by side, keeps a floor that cleared even when the 15 s limit hits, caches the 64³ connectivity, and says what it tried. Merged with F13LD.lab v0.27.0 (same straight-reach test, card notes) after Matt's click-test. Export shape unchanged; `solver_version` is `sweep-gpu v2`. Recap: [`SESSION_RECAP_2026-10-12_axial-connect.md`](SESSION_RECAP_2026-10-12_axial-connect.md).
 
 **Next:**

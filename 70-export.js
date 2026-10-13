@@ -170,6 +170,7 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     curvature_uniformity: d.curvature_uniformity,  // v0.13: smooth 1/(1+σ/⟨|H|⟩)
     MIH:                  d.MIH,
     specific_surface:     d.specific_surface,   // v0.30.0
+    ...curvDesignFields(d),                     // v0.33.0
     euler_char:           d.euler_char,
     genus:                d.genus,
     genus_per_cell:       d.genus_per_cell,
@@ -199,6 +200,19 @@ function perDesignHomogenization(d, gridOverride, methodLabel) {
     ...densityDesignFields(d),
     solver_version: d.solver_version || SOLVER_VERSION,
     geometry_version: GEOMETRY_VERSION
+  };
+}
+
+/* v0.33.0 — principal-curvature profile on the fixed curvature grid
+   (computeCurvatureProfile, 52-geometry-metrics.js). Additive; F13LD.ingest
+   puts unknown fields in metrics_extended, where F13LD.vault reads them. */
+function curvDesignFields(d) {
+  if (!d || d.curv_N == null) return {};
+  return {
+    curv_f_neg: d.curv_f_neg, curv_f_sad: d.curv_f_sad,
+    curv_k2_mean: d.curv_k2_mean, curv_k2_sd: d.curv_k2_sd, curv_k2_neg_med: d.curv_k2_neg_med,
+    curv_k_neg_int: d.curv_k_neg_int, curv_gb_resid: d.curv_gb_resid, curv_flag: d.curv_flag,
+    curv_N: d.curv_N
   };
 }
 
@@ -330,7 +344,10 @@ function buildResultsPayload(action) {
       // cell aspect …) and the stiffness flags, all additive.
       // v0.20.0 (Sweep v0.28.0): meta.solver.target — the point target and
       // auto-target rounds, additive.
-      schema_version: '0.20.0',
+      // v0.21.0 (Sweep v0.33.0): per-design curv_* (principal-curvature
+      // profile) and meta.solver.curvature (its grid and thresholds); every
+      // curvature value now comes from one fixed grid. Additive.
+      schema_version: '0.21.0',
       count:    currentFiltered.length,
       solver: {
         method:   'FFT-CG',
@@ -349,6 +366,14 @@ function buildResultsPayload(action) {
           load_cases:     6
         } : {}),
         geometry: GEOMETRY_VERSION,
+        /* v0.33.0 — how every curvature value was measured (one estimator for the database) */
+        curvature: {
+          grid: CURV_N,
+          estimator: 'field central differences at interface crossings, Crofton area weights',
+          flat_band: CURV_FLAT,
+          tail_clamp_radius_voxels: 2,
+          gb_flag: '|resid| > max(0.5, 0.1·|chi|)'
+        },
         N_std:    FFT_N_STD,
         N_pi:     FFT_N_PI,
         N_beam:   FFT_N_BEAM,
@@ -538,6 +563,7 @@ function buildResultsPayload(action) {
         curvature_uniformity: d.curvature_uniformity,  // v0.13: smooth formula
         MIH:                  d.MIH,
         specific_surface:     d.specific_surface,   // v0.30.0
+    ...curvDesignFields(d),                     // v0.33.0
         euler_char:           d.euler_char,
         genus:                d.genus,
         genus_per_cell:       d.genus_per_cell,

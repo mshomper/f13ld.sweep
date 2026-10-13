@@ -55,6 +55,29 @@ function buildGeomFieldOn(geo, N, solidMask) {
   }
   return { solidMask, voidMask, rawField, N };
 }
+/* v0.33.0 — the signed field alone on an N³ grid, for the fixed curvature
+   grid (CURV_N, 54-estimate.js): one pass over the design's margin, with the
+   solid taken as margin > 0 (the field's own sign, so every crossing the
+   curvature pass sees is a sign change of the field it differentiates). */
+function buildMarginField(geo, N) {
+  const N3 = N * N * N, NN = N * N;
+  const L = Math.PI, step = (2 * L) / N;
+  const margin = designMarginFn(geo);
+  const rawField = new Float32Array(N3), solidMask = new Uint8Array(N3), voidMask = new Uint8Array(N3);
+  for (let i = 0; i < N; i++) {
+    const x = -L + (i + 0.5) * step;
+    for (let j = 0; j < N; j++) {
+      const y = -L + (j + 0.5) * step;
+      for (let k = 0; k < N; k++) {
+        const id = i * NN + j * N + k, m = margin(x, y, -L + (k + 0.5) * step);
+        rawField[id] = -m;
+        const sld = m > 0 ? 1 : 0;
+        solidMask[id] = sld; voidMask[id] = 1 - sld;
+      }
+    }
+  }
+  return { solidMask, voidMask, rawField, N };
+}
 /* Preview bake: the design's margin (solid ⟺ m > 0) at the N³ voxel
    centres, stored x-fastest (WebGL texImage3D order), plus the largest
    finite-difference slope |∇m| per unit of the [-1,1] preview box — the

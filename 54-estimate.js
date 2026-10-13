@@ -28,6 +28,12 @@
    its cells inside a cubic tile and noise its field inside a cube, so both
    are cubes here (designCellEdges, 55-estimate-gpu.js). */
 const METRICS_N_MIN = 32;
+/* v0.33.0 — one fixed grid for every curvature value (H, K, uniformity, MIH,
+   specific surface and the κ₂ profile), whatever the solver and metrics grids:
+   curvature has a support scale of one voxel, so values are only comparable
+   across Vault when that voxel is the same fraction of the cell (Matt,
+   2026-10-13). A thin sheet at 32³ read 58 % saddle area instead of ~100 %. */
+const CURV_N = 64;
 function metricWeights(recipe, family) {
   const e = (typeof designCellEdges === 'function') ? designCellEdges(recipe, family) : [1, 1, 1];
   if (!e.every(v => isFinite(v) && v > 0)) return [1, 1, 1];
@@ -186,8 +192,8 @@ function prepareDesign(recipe, opts) {
   };
 
   if (hiResData) {
-    // Every family (v0.29.1) — full curvature + topology + tortuosity on the metrics grid
-    const cm = computeCurvatureMetrics(hiResData.rawField, hiResData.voidMask, hiResData.solidMask, cellSizeMm, hiResData.N, hiResData.w);
+    // Every family (v0.29.1) — topology + tortuosity on the metrics grid; curvature on CURV_N (v0.33.0)
+    /* (v0.33.0: curvature moved to the fixed CURV_N grid below) */
     const tm = computeTopology(hiResData.solidMask, cellSizeMm, hiResData.N);
     const tort = computeTortuosity(hiResData.voidMask, hiResData.N, hiResData.w);
 
@@ -200,8 +206,16 @@ function prepareDesign(recipe, opts) {
       return +Math.min(1.0, eps_void / (tau * tau)).toFixed(4);
     };
 
+    /* v0.33.0 — curvature on the fixed CURV_N grid (reuses the metrics field
+       when it already is CURV_N), with the profile and its Gauss–Bonnet check */
+    const cf = hiResData.N === CURV_N ? hiResData : Object.assign(buildMarginField(geo, CURV_N), { w: hiResData.w });
+    const crossings = [];
+    const cmC = computeCurvatureMetrics(cf.rawField, cf.voidMask, cf.solidMask, cellSizeMm, CURV_N, cf.w, crossings);
+    const chiC = cf === hiResData ? tm.euler_char : computeTopology(cf.solidMask, cellSizeMm, CURV_N).euler_char;
+    const prof = computeCurvatureProfile(crossings, CURV_N, chiC);
+
     geom = {
-      ...cm, ...tm, ...tort,
+      ...tm, ...tort, ...cmC, ...prof, curv_N: CURV_N,
       D_eff_x_norm: dEff(tort.tortuosity_x),
       D_eff_y_norm: dEff(tort.tortuosity_y),
       D_eff_z_norm: dEff(tort.tortuosity_z)
@@ -482,6 +496,16 @@ function finishDesign(P, S, opts) {
     curvature_uniformity: geom.curvature_uniformity,
     MIH:                  geom.MIH,
     specific_surface:     geom.specific_surface,   // v0.30.0 — true area ÷ V^(2/3)
+    // ── v0.33.0: principal-curvature profile on the fixed CURV_N grid ──
+    curv_f_neg:      geom.curv_f_neg != null ? geom.curv_f_neg : null,
+    curv_f_sad:      geom.curv_f_sad != null ? geom.curv_f_sad : null,
+    curv_k2_mean:    geom.curv_k2_mean != null ? geom.curv_k2_mean : null,
+    curv_k2_sd:      geom.curv_k2_sd != null ? geom.curv_k2_sd : null,
+    curv_k2_neg_med: geom.curv_k2_neg_med != null ? geom.curv_k2_neg_med : null,
+    curv_k_neg_int:  geom.curv_k_neg_int != null ? geom.curv_k_neg_int : null,
+    curv_gb_resid:   geom.curv_gb_resid != null ? geom.curv_gb_resid : null,
+    curv_flag:       geom.curv_flag != null ? geom.curv_flag : null,
+    curv_N:          geom.curv_N || null,
 
     // ── v0.12 Phase 1: Topology ────────────────────────────────────────
     euler_char:     geom.euler_char,
