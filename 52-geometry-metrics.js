@@ -43,7 +43,10 @@
    mean 1). Derivatives are taken per physical length (∂/∂x = ∂/∂i ÷ w_x),
    and a crossing along axis a stands for a face of area w_b·w_c, so the
    area estimate stays exact for planes. Omitted = a cube (unchanged). */
-function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N, w) {
+/* v0.33.0 — collect (optional array): every interface crossing is pushed as
+   [area weight, H, K] in voxel units, H in the exported sign (convex into
+   the void > 0), for computeCurvatureProfile. Omitted = unchanged. */
+function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N, w, collect) {
   const NN = N * N;
   const WA = w || [1, 1, 1], iwx = 1 / WA[0], iwy = 1 / WA[1], iwz = 1 / WA[2];
   const AF = [WA[1] * WA[2], WA[0] * WA[2], WA[0] * WA[1]];
@@ -112,6 +115,7 @@ function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N, w
     else if (va)  { w = NAx[sa]; H = Hs[sa]; K = Ks[sa]; }
     else          { w = NAx[sb]; H = Hs[sb]; K = Ks[sb]; }
     w *= AF[axis];
+    if (collect) collect.push(w, -H, K);
     W += w; sumH += w * H; sumAbsH += w * Math.abs(H); sumH2 += w * H * H; sumK += w * K;
   };
   for (let i = 0; i < N; i++) {
@@ -158,6 +162,76 @@ function computeCurvatureMetrics(rawField, voidMask, solidMask, cellSizeMm, N, w
     MIH:                  +(-MIH).toFixed(4),
     specific_surface:     +(W / (N * N)).toFixed(4)   /* v0.30.0 */
   };
+}
+
+// ─── v0.33.0 · Principal-curvature profile (bone-cell curvature cues) ──────────
+// From the crossings computeCurvatureMetrics collects on the fixed curvature
+// grid (CURV_N, 54-estimate.js). Spec: Matt's 2026-10-13 notes ("Surface
+// curvature as a ranking metric") after Callens et al. 2023 (Nat Commun 14:855):
+// bone cells pattern where the minimum principal curvature κ₂ < 0.
+//
+//   κ₁,₂ = H ± √max(H² − K, 0)   (H > 0 convex into the void, as exported;
+//                                 a pore or channel reads κ₂ < 0)
+//   κ̃ = κ × cell edge — stored dimensionless; Vault scales by the build cell.
+//
+// Area-weighted over the interface (each crossing weighted as in the area
+// integral, so these are surface integrals, not voxel counts):
+//   curv_f_neg      area fraction with κ̃₂ < −CURV_FLAT (concave somewhere;
+//                   a radius over two cells counts as flat)
+//   curv_f_sad      area fraction with K̃ < −CURV_FLAT² (saddle)
+//   curv_k2_mean / curv_k2_sd   mean and SD of κ̃₂
+//   curv_k2_neg_med area-weighted median κ̃₂ over the concave area (null
+//                   without one) — the median concave radius is cell ÷ |this|
+//   curv_k_neg_int  ∫ min(K̃, 0) dA ÷ A (magnitude-weighted saddle curvature)
+//   curv_gb_resid   (∫K dA − 2πχ) ÷ 2π, in units of the Euler characteristic
+//                   — Gauss–Bonnet, a check on the estimator. K from the
+//                   clamped κ̃₁κ̃₂: curvature the grid can't resolve (a crease
+//                   narrower than two voxels) is missing from the integral and
+//                   fails the check, while a single crossing near a pinch point
+//                   (|∇φ| → 0, K unbounded) can't swamp it.
+//   curv_flag       the check failed: |resid| > max(0.5, 0.1·|χ|) — the grid
+//                   can't hold the surface (sharp creases, walls too thin)
+// Tails: κ̃₁, κ̃₂ are clamped to ±N/2 (a radius of two voxels) before the
+// moments, the median and K̃⁻; the fractions are unaffected by the clamp.
+const CURV_FLAT = 0.5;
+function computeCurvatureProfile(cr, N, chi) {
+  const out = { curv_f_neg: null, curv_f_sad: null, curv_k2_mean: null, curv_k2_sd: null,
+                curv_k2_neg_med: null, curv_k_neg_int: null, curv_gb_resid: null, curv_flag: null };
+  const n = cr ? cr.length / 3 : 0;
+  if (!n) return out;
+  const C = N / 2, flatK = CURV_FLAT * CURV_FLAT;
+  let A = 0, aNeg = 0, aSad = 0, m1 = 0, m2 = 0, kNeg = 0, sumK = 0;
+  const negK2 = [], negW = [];
+  for (let c = 0; c < n; c++) {
+    const w = cr[3 * c], H = cr[3 * c + 1] * N, K = cr[3 * c + 2] * N * N;   // → κ̃ (× cell edge = N voxels)
+    if (!(w > 0) || !Number.isFinite(H) || !Number.isFinite(K)) continue;
+    const r = Math.sqrt(Math.max(H * H - K, 0));
+    const k1 = Math.max(-C, Math.min(C, H + r)), k2 = Math.max(-C, Math.min(C, H - r));
+    const Kc = k1 * k2;
+    sumK += w * Kc / (N * N);                                                 // ∫K dA, voxel units
+    A += w; m1 += w * k2; m2 += w * k2 * k2;
+    if (k2 < -CURV_FLAT) { aNeg += w; negK2.push(k2); negW.push(w); }
+    if (K < -flatK) aSad += w;
+    if (Kc < 0) kNeg += w * Kc;
+  }
+  if (!(A > 0)) return out;
+  const mean = m1 / A, sd = Math.sqrt(Math.max(0, m2 / A - mean * mean));
+  let med = null;
+  if (negK2.length) {
+    const idx = negK2.map((_, i) => i).sort((a, b) => negK2[a] - negK2[b]);
+    let acc = 0; const half = aNeg / 2;
+    for (const i of idx) { acc += negW[i]; if (acc >= half) { med = negK2[i]; break; } }
+  }
+  const resid = Number.isFinite(chi) ? (sumK - 2 * Math.PI * chi) / (2 * Math.PI) : null;
+  out.curv_f_neg = +(aNeg / A).toFixed(4);
+  out.curv_f_sad = +(aSad / A).toFixed(4);
+  out.curv_k2_mean = +mean.toFixed(3);
+  out.curv_k2_sd = +sd.toFixed(3);
+  out.curv_k2_neg_med = med == null ? null : +med.toFixed(3);
+  out.curv_k_neg_int = +(kNeg / A).toFixed(3);
+  out.curv_gb_resid = resid == null ? null : +resid.toFixed(3);
+  out.curv_flag = resid == null ? null : Math.abs(resid) > Math.max(0.5, 0.1 * Math.abs(chi));
+  return out;
 }
 
 // ─── Topology — Euler characteristic and genus of one periodic cell ──────────

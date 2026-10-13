@@ -1,5 +1,13 @@
 # F13LD.sweep — next steps
 
+**As of 2026-10-13.** `main` = **v0.33.0** — the principal-curvature profile for F13LD.vault (concave and saddle area fractions, κ₂ moments, median concave curvature, saddle curvature, Gauss–Bonnet check `curv_flag`, flag only), every curvature value on one fixed 64³ grid (`CURV_N`, Matt's choice after his bench). Export schema 0.21.0, additive. Merged with F13LD.vault v0.11.0 and F13LD.ingest v0.11.1 (push file 1.1.1). Recap: [`SESSION_RECAP_2026-10-13_curvature.md`](SESSION_RECAP_2026-10-13_curvature.md).
+
+**Next:**
+1. **Matt wipes and reseeds F13LD.vault from v0.33.0** through Push to Vault (noise from F13LD.noise v0.12.0+). Earlier exports carry no curvature profile and curvature from the metrics grid — don't mix them in.
+2. After the reseed: Vault's correlation map — does the concave area move within a family, and how closely does it track volume fraction? Then decide on a curvature factor in the Biomedical score.
+3. **Bundle — now v0.34.0.**
+4. Later: thin and multi-scale designs (gyroid sheets below ~19 % VF, foam, grain, noise, low-density PI-TPMS) aren't resolved on Sweep's curvature grid — a curvature pass at F13LD.lab's finer GPU grids; local thickness pore size (§4); the voxel topology of thin designs also moves with the grid.
+
 **As of 2026-10-12.** `main` = **v0.32.0** — load paths read straight along each axis. An axis connects for stiffness only when a piece reaches its own copy straight along it (tilted sheets, diagonal fibres and layers stacked along the cube diagonal used to read connected on every axis and were solved at the pore-material floor, anisotropy 99). The solve is gated on the grid actually solved (PI-TPMS / noise / grain: metrics grid AND solver grid); anisotropy leaves out skipped, failed (E = 0) and pore-level axes, and the stiffness flag names a pore-level axis ("no real load path on z"). Preflight's fix search now tries the density floor and the finer grid side by side, keeps a floor that cleared even when the 15 s limit hits, caches the 64³ connectivity, and says what it tried. Merged with F13LD.lab v0.27.0 (same straight-reach test, card notes) after Matt's click-test. Export shape unchanged; `solver_version` is `sweep-gpu v2`. Recap: [`SESSION_RECAP_2026-10-12_axial-connect.md`](SESSION_RECAP_2026-10-12_axial-connect.md).
 
 **Next:**
