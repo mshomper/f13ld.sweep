@@ -1,5 +1,7 @@
 # F13LD.sweep — next steps
 
+**As of 2026-10-14.** `main` = **v0.33.1** — hyperuniform Grain designs evaluate ~10–40× faster per point (shared kernel index from F13LD.lab v0.29.2); results identical to v0.33.0, so the reseed in item 1 below can use either. Recap: [`SESSION_RECAP_2026-10-14_hu-speed.md`](SESSION_RECAP_2026-10-14_hu-speed.md). The 2026-10-13 next list is unchanged.
+
 **As of 2026-10-13.** `main` = **v0.33.0** — the principal-curvature profile for F13LD.vault (concave and saddle area fractions, κ₂ moments, median concave curvature, saddle curvature, Gauss–Bonnet check `curv_flag`, flag only), every curvature value on one fixed 64³ grid (`CURV_N`, Matt's choice after his bench). Export schema 0.21.0, additive. Merged with F13LD.vault v0.11.0 and F13LD.ingest v0.11.1 (push file 1.1.1). Recap: [`SESSION_RECAP_2026-10-13_curvature.md`](SESSION_RECAP_2026-10-13_curvature.md).
 
 **Next:**
